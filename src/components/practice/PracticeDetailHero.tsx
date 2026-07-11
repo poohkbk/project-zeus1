@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { Reveal } from "@/components/animation/Reveal";
 import { PracticeIcon } from "@/components/practice/PracticeIcon";
@@ -33,10 +34,20 @@ export function PracticeDetailHero({ practice }: PracticeDetailHeroProps) {
           </div>
         </Reveal>
         <Reveal className="practice-visual" delay={120}>
-          <div className="practice-placeholder" role="img" aria-label={`${practice.title} 이미지 자리`}>
-            <PracticeIcon name={practice.icon} />
-            <strong>{practice.title}</strong>
-            <span>{practice.englishTitle}</span>
+          <div className="practice-image-card">
+            <Image
+              src={practice.heroImage}
+              alt={`${practice.title} 업무분야 이미지`}
+              width={1200}
+              height={800}
+              sizes="(max-width: 900px) 100vw, 42vw"
+              priority
+            />
+            <div className="practice-image-caption">
+              <PracticeIcon name={practice.icon} />
+              <strong>{practice.title}</strong>
+              <span>{practice.englishTitle}</span>
+            </div>
           </div>
         </Reveal>
       </div>
