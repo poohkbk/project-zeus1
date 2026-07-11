@@ -23,7 +23,7 @@ export const viewport: Viewport = {
 };
 
 const navItems = [
-  { label: "업무분야", href: "/practice/civil" },
+  { label: "업무분야", href: "/practice" },
   { label: "승소사례", href: siteConfig.links.cases },
   { label: "법률가이드", href: siteConfig.links.legalGuide },
   { label: "변호사 소개", href: siteConfig.links.lawyer },

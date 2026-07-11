@@ -32,3 +32,25 @@ export type LegalGuide = {
 export type LawyerHighlight = {
   label: string;
 };
+
+export type PracticeSlug = "civil" | "criminal" | "divorce" | "inheritance";
+
+export interface RelatedContentBase {
+  id: string;
+  slug: string;
+  title: string;
+  excerpt: string;
+  href: string;
+  category: string;
+  tags: string[];
+  publishedAt?: string;
+  featured?: boolean;
+}
+
+export interface CaseContent extends RelatedContentBase {
+  resultLabel?: string;
+}
+
+export interface LegalGuideContent extends RelatedContentBase {
+  readingTime?: string;
+}
