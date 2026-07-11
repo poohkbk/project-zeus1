@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { Reveal } from "@/components/animation/Reveal";
 import { SimpleIcon } from "@/components/icons/SimpleIcon";
@@ -41,10 +42,19 @@ export function Hero() {
         </Reveal>
 
         <Reveal className="profile-panel" delay={120}>
-          <div className="profile-placeholder" role="img" aria-label="강병권 변호사 프로필 이미지 자리">
-            <span className="profile-initial">姜</span>
-            <strong>강병권 변호사</strong>
-            <small>청주 민사·형사·이혼·상속 상담</small>
+          <div className="profile-image-card">
+            <Image
+              src="/images/lawyer/kang-byoungkwon-hero.png"
+              alt="강병권 변호사"
+              width={760}
+              height={900}
+              sizes="(max-width: 900px) 100vw, 45vw"
+              priority
+            />
+            <div className="profile-caption">
+              <strong>강병권 변호사</strong>
+              <small>청주 민사·형사·이혼·상속 상담</small>
+            </div>
           </div>
         </Reveal>
       </div>

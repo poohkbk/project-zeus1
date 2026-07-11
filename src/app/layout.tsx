@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import "./globals.css";
@@ -10,6 +11,9 @@ export const metadata: Metadata = {
     template: "%s | 법률사무소 제우",
   },
   description: siteConfig.description,
+  icons: {
+    icon: "/favicon.png",
+  },
 };
 
 export const viewport: Viewport = {
@@ -31,7 +35,15 @@ function Header() {
     <header className="site-header">
       <div className="site-shell header-inner">
         <Link href="/" className="brand" aria-label="법률사무소 제우 홈">
-          <span className="brand-mark">J</span>
+          <span className="brand-logo">
+            <Image
+              src="/images/brand/zeu-logo.png"
+              alt=""
+              width={42}
+              height={42}
+              aria-hidden="true"
+            />
+          </span>
           <span>
             <strong>{siteConfig.name}</strong>
             <small>LAW OFFICE JEWOO</small>

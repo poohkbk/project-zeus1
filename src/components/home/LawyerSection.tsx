@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { Reveal } from "@/components/animation/Reveal";
 import { SimpleIcon } from "@/components/icons/SimpleIcon";
@@ -9,9 +10,14 @@ export function LawyerSection() {
     <section className="lawyer-section" aria-labelledby="lawyer-title">
       <div className="site-shell lawyer-grid">
         <Reveal className="lawyer-photo">
-          <div className="profile-placeholder compact" role="img" aria-label="강병권 변호사 프로필 이미지 자리">
-            <span className="profile-initial">姜</span>
-            <strong>강병권 변호사</strong>
+          <div className="profile-image-card compact">
+            <Image
+              src="/images/lawyer/kang-byoungkwon-profile.png"
+              alt="강병권 변호사 프로필"
+              width={720}
+              height={860}
+              sizes="(max-width: 900px) 100vw, 40vw"
+            />
           </div>
         </Reveal>
         <Reveal className="lawyer-copy" delay={120}>
