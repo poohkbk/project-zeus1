@@ -14,6 +14,496 @@
   --shadow-soft: 0 18px 42px rgba(0, 27, 54, 0.12);
 }
 
+/* Case result pages */
+.cases-hero,
+.case-detail-hero {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 80% 26%, rgba(0, 122, 131, 0.34), transparent 32%),
+    linear-gradient(135deg, #00152d 0%, #062b55 56%, #001b36 100%);
+  color: var(--white);
+  padding: 104px 0 132px;
+}
+
+.cases-hero::after,
+.case-detail-hero::after {
+  content: "";
+  position: absolute;
+  right: -8%;
+  bottom: -92px;
+  left: -8%;
+  height: 150px;
+  border-top: 7px solid rgba(229, 182, 77, 0.72);
+  border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+  background: linear-gradient(180deg, #eef6f8 0%, #ffffff 80%);
+}
+
+.cases-hero .site-shell,
+.case-detail-hero .site-shell {
+  position: relative;
+  z-index: 1;
+}
+
+.cases-hero h1,
+.case-detail-hero h1 {
+  max-width: 920px;
+  margin: 0;
+  color: var(--white);
+  font-size: clamp(2.4rem, 6vw, 4.8rem);
+  line-height: 1.12;
+}
+
+.cases-hero p,
+.case-detail-hero p {
+  max-width: 780px;
+  color: rgba(255, 255, 255, 0.84);
+  font-size: 1.12rem;
+  line-height: 1.75;
+}
+
+.cases-hero small,
+.case-detail-hero small {
+  display: inline-flex;
+  margin-top: 18px;
+  border: 1px solid rgba(229, 182, 77, 0.34);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  padding: 9px 13px;
+  color: rgba(255, 255, 255, 0.78);
+  font-weight: 800;
+}
+
+.cases-section,
+.case-detail-section {
+  padding: 96px 0;
+  background:
+    radial-gradient(circle at 8% 12%, rgba(0, 122, 131, 0.06), transparent 28%),
+    linear-gradient(180deg, #f6fbfc 0%, #ffffff 78%);
+}
+
+.cases-section-muted,
+.case-section-muted {
+  background:
+    radial-gradient(circle at 90% 10%, rgba(199, 146, 43, 0.1), transparent 24%),
+    linear-gradient(180deg, #eaf5f7 0%, #f6fbfc 100%);
+}
+
+.case-results-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.case-results-grid.compact {
+  margin-bottom: 28px;
+}
+
+.case-result-card {
+  overflow: hidden;
+  border: 1px solid rgba(0, 27, 54, 0.1);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 14px 34px rgba(0, 27, 54, 0.08);
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease;
+}
+
+.case-result-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(199, 146, 43, 0.34);
+}
+
+.case-card-media {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 3 / 2;
+  background:
+    linear-gradient(145deg, rgba(0, 122, 131, 0.18), transparent 48%),
+    linear-gradient(180deg, #062b55 0%, #001b36 100%);
+  color: var(--accent-yellow);
+  font-weight: 900;
+}
+
+.case-card-body {
+  display: flex;
+  min-height: 310px;
+  flex-direction: column;
+  padding: 22px;
+}
+
+.case-card-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.case-card-badges span,
+.case-card-badges strong {
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 0.8rem;
+  font-weight: 900;
+}
+
+.case-card-badges span {
+  background: rgba(0, 122, 131, 0.1);
+  color: var(--secondary-teal);
+}
+
+.case-card-badges strong {
+  background: rgba(199, 146, 43, 0.12);
+  color: #916514;
+}
+
+.case-card-body small {
+  margin-top: 16px;
+  color: var(--secondary-teal);
+  font-weight: 900;
+}
+
+.case-card-body h3 {
+  margin: 8px 0 0;
+  color: var(--primary-navy);
+  font-size: 1.18rem;
+  line-height: 1.45;
+}
+
+.case-card-body p,
+.case-readable p,
+.case-two-column p,
+.lawyer-comment p {
+  color: var(--secondary-text);
+  line-height: 1.75;
+}
+
+.case-card-body ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin: auto 0 18px;
+  padding: 16px 0 0;
+  list-style: none;
+}
+
+.case-card-body li {
+  border: 1px solid rgba(0, 27, 54, 0.08);
+  border-radius: 999px;
+  padding: 6px 9px;
+  color: #344054;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.case-card-body em {
+  color: var(--secondary-teal);
+  font-style: normal;
+  font-weight: 900;
+}
+
+.cases-filter-panel {
+  margin-bottom: 30px;
+  border: 1px solid rgba(0, 27, 54, 0.1);
+  border-top: 5px solid var(--accent-gold);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 16px 38px rgba(0, 27, 54, 0.08);
+  padding: 26px;
+}
+
+.cases-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 220px;
+  gap: 16px;
+}
+
+.cases-controls label {
+  display: grid;
+  gap: 8px;
+  color: var(--primary-navy);
+  font-weight: 900;
+}
+
+.cases-controls input,
+.cases-controls select {
+  min-height: 50px;
+  border: 1px solid rgba(0, 27, 54, 0.16);
+  border-radius: 14px;
+  background: #ffffff;
+  padding: 0 14px;
+  color: var(--main-text);
+  font: inherit;
+}
+
+.cases-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.cases-chip-row button,
+.cases-result-meta button {
+  min-height: 40px;
+  border: 1px solid rgba(0, 27, 54, 0.12);
+  border-radius: 999px;
+  background: #ffffff;
+  padding: 0 14px;
+  color: var(--primary-navy);
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.cases-chip-row button[aria-pressed="true"] {
+  border-color: var(--secondary-teal);
+  background: var(--secondary-teal);
+  color: var(--white);
+}
+
+.cases-result-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 18px;
+  color: var(--secondary-text);
+}
+
+.empty-cases-state {
+  border: 1px solid rgba(0, 27, 54, 0.1);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.94);
+  padding: 48px;
+  text-align: center;
+}
+
+.empty-cases-state h3,
+.search-recommendations h3 {
+  color: var(--primary-navy);
+}
+
+.search-recommendations {
+  margin-bottom: 32px;
+}
+
+.case-detail-hero-grid,
+.case-two-column {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.55fr);
+  gap: 56px;
+  align-items: center;
+}
+
+.case-detail-hero ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 22px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.case-detail-hero li {
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  padding: 7px 11px;
+  color: rgba(255, 255, 255, 0.82);
+  font-weight: 800;
+}
+
+.case-detail-visual {
+  min-height: 360px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 14px;
+  border: 1px solid rgba(229, 182, 77, 0.42);
+  border-radius: 24px;
+  background:
+    linear-gradient(145deg, rgba(0, 122, 131, 0.18), transparent 45%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.04));
+  color: var(--white);
+  box-shadow: 0 26px 70px rgba(0, 12, 28, 0.28);
+  text-align: center;
+}
+
+.case-detail-visual span {
+  color: var(--accent-yellow);
+  font-weight: 900;
+}
+
+.case-detail-visual strong {
+  font-size: 1.8rem;
+}
+
+.case-readable {
+  max-width: 900px;
+}
+
+.case-readable h2,
+.case-two-column h2,
+.lawyer-comment h2,
+.case-detail-section h2 {
+  margin: 0;
+  color: var(--primary-navy);
+  font-size: clamp(2rem, 4vw, 3rem);
+}
+
+.case-two-column ul {
+  display: grid;
+  gap: 12px;
+  padding-left: 20px;
+  color: var(--secondary-text);
+  line-height: 1.75;
+}
+
+.case-mini-grid,
+.case-response-list {
+  display: grid;
+  gap: 12px;
+}
+
+.case-mini-grid div,
+.case-response-list li,
+.case-related-practices a {
+  border: 1px solid rgba(0, 27, 54, 0.1);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.94);
+  padding: 18px;
+  box-shadow: 0 12px 28px rgba(0, 27, 54, 0.06);
+}
+
+.case-mini-grid h3,
+.case-response-list h3 {
+  margin: 0;
+  color: var(--primary-navy);
+}
+
+.case-response-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.case-response-list li {
+  display: flex;
+  gap: 14px;
+}
+
+.case-response-list span {
+  color: var(--accent-gold);
+  font-weight: 900;
+}
+
+.case-result-panel {
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at 80% 20%, rgba(0, 122, 131, 0.34), transparent 30%),
+    linear-gradient(135deg, #001b36 0%, #062b55 100%);
+  padding: 34px;
+  color: var(--white);
+}
+
+.case-result-panel h2,
+.case-result-panel p {
+  color: var(--white);
+}
+
+.lawyer-comment {
+  padding: 80px 0;
+  background:
+    radial-gradient(circle at 16% 18%, rgba(199, 146, 43, 0.15), transparent 28%),
+    linear-gradient(90deg, #fffaf0 0%, #f4fbfc 58%, #eaf5f7 100%);
+}
+
+.lawyer-comment .site-shell {
+  max-width: 920px;
+}
+
+.case-related-practices {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 26px;
+}
+
+.case-related-practices a {
+  display: block;
+}
+
+.case-related-practices small {
+  color: var(--secondary-teal);
+  font-weight: 900;
+}
+
+.case-related-practices strong {
+  display: block;
+  margin-top: 8px;
+  color: var(--primary-navy);
+  font-size: 1.25rem;
+}
+
+.case-related-practices p {
+  color: var(--secondary-text);
+  line-height: 1.65;
+}
+
+.case-disclosure {
+  padding: 34px 0;
+  background: #001b36;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.case-disclosure p {
+  margin: 0;
+  line-height: 1.7;
+}
+
+@media (max-width: 1100px) {
+  .case-results-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .case-detail-hero-grid,
+  .case-two-column {
+    grid-template-columns: 1fr;
+  }
+
+  .cases-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .cases-result-meta {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 620px) {
+  .cases-hero,
+  .case-detail-hero {
+    padding: 76px 0 118px;
+  }
+
+  .case-results-grid,
+  .case-related-practices {
+    grid-template-columns: 1fr;
+  }
+
+  .cases-chip-row.tags {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 6px;
+  }
+
+  .cases-chip-row.tags button {
+    min-width: max-content;
+  }
+}
+
 * {
   box-sizing: border-box;
 }

@@ -1,6 +1,9 @@
 import { caseContents } from "@/data/cases";
 import { legalGuideContents } from "@/data/legal-guides";
-import type { CaseContent, LegalGuideContent, RelatedContentBase } from "@/types/content";
+import { isPublishedCase } from "@/lib/case-selectors";
+import { toPublicCaseContent } from "@/data/cases";
+import type { LegalGuideContent, RelatedContentBase } from "@/types/content";
+import type { PublicCaseContent } from "@/types/case";
 
 export function normalizeTag(tag: string) {
   return tag.trim().toLowerCase();
@@ -39,8 +42,26 @@ function sortRelated<T extends RelatedContentBase>(
     .slice(0, limit);
 }
 
-export function getRelatedCases(relatedTags: string[], limit = 3): CaseContent[] {
-  return sortRelated(caseContents, relatedTags, limit);
+export function getRelatedCases(relatedTags: string[], limit = 3): PublicCaseContent[] {
+  const matched = caseContents
+    .filter((content) => isPublishedCase(content))
+    .map((content) => ({
+      content,
+      score:
+        getTagMatchScore(content.tags, relatedTags) +
+        (content.visibility.showOnPractice ? 1 : 0),
+    }))
+    .filter((item) => item.score > 0)
+    .sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      if (Number(b.content.visibility.isFeatured) !== Number(a.content.visibility.isFeatured)) {
+        return Number(b.content.visibility.isFeatured) - Number(a.content.visibility.isFeatured);
+      }
+      return b.content.visibility.publishedAt.localeCompare(a.content.visibility.publishedAt);
+    })
+    .map((item) => toPublicCaseContent(item.content));
+
+  return matched.slice(0, limit);
 }
 
 export function getRelatedGuides(relatedTags: string[], limit = 3): LegalGuideContent[] {

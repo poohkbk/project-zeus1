@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { Reveal } from "@/components/animation/Reveal";
 import { siteConfig } from "@/config/site";
-import type { CaseContent } from "@/types/content";
+import type { PublicCaseContent } from "@/types/case";
 
-export function RelatedCases({ cases }: { cases: CaseContent[] }) {
+export function RelatedCases({ cases }: { cases: PublicCaseContent[] }) {
   if (cases.length === 0) return null;
 
   return (
@@ -20,7 +20,7 @@ export function RelatedCases({ cases }: { cases: CaseContent[] }) {
               <span>{item.category}</span>
               <h3>{item.title}</h3>
               <p>{item.excerpt}</p>
-              {item.resultLabel ? <em>{item.resultLabel}</em> : null}
+              <em>{item.subcategory}</em>
             </Link>
           ))}
         </div>

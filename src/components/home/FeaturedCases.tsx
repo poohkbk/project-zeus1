@@ -2,9 +2,11 @@ import Link from "next/link";
 import { Reveal } from "@/components/animation/Reveal";
 import { SimpleIcon } from "@/components/icons/SimpleIcon";
 import { siteConfig } from "@/config/site";
-import { featuredCases } from "@/data/home";
+import { getFeaturedCases } from "@/lib/case-selectors";
 
 export function FeaturedCases() {
+  const featuredCases = getFeaturedCases({ placement: "home", limit: 6 });
+
   return (
     <section className="section" aria-labelledby="cases-title">
       <div className="site-shell">
@@ -20,9 +22,9 @@ export function FeaturedCases() {
           {featuredCases.map((item, index) => (
             <Reveal key={item.title} delay={index * 45}>
               <Link className="case-card" href={item.href}>
-                <span className="case-category">{item.category}</span>
+                <span className="case-category">{item.categoryLabel}</span>
                 <strong>{item.title}</strong>
-                <p>{item.summary}</p>
+                <p>{item.excerpt}</p>
                 <em>
                   자세히 보기
                   <SimpleIcon name="arrow" />
