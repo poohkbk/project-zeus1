@@ -15,7 +15,7 @@ export function Hero() {
     <section className="hero-section" aria-labelledby="home-hero-title">
       <div className="site-shell hero-grid">
         <Reveal className="hero-copy">
-          <p className="eyebrow">LAW OFFICE JEWOO</p>
+          <p className="eyebrow">LAW OFFICE ZEU</p>
           <h1 id="home-hero-title">의뢰인의 시작부터 해결까지 함께합니다.</h1>
           <p className="hero-description">
             민사소송 · 형사소송 · 이혼소송 · 상속 분야의 풍부한 승소사례와

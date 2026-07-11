@@ -46,7 +46,7 @@ function Header() {
           </span>
           <span>
             <strong>{siteConfig.name}</strong>
-            <small>LAW OFFICE JEWOO</small>
+            <small>LAW OFFICE ZEU</small>
           </span>
         </Link>
         <nav className="desktop-nav" aria-label="주요 메뉴">
