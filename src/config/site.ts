@@ -22,7 +22,7 @@ export const siteConfig = {
     naverMapUrl:
       process.env.NEXT_PUBLIC_NAVER_MAP_URL ||
       `https://map.naver.com/p/search/${encodeURIComponent("법률사무소 제우 청주")}`,
-    parkingDescription: "본건물 지하주차장을 이용하실 수 있습니다.",
+    parkingDescription: "본건물 지하주차장을 이용하실 수 있으며, 무료 주차 시간은 2시간입니다.",
   },
   links: {
     consultation: "/consultation",
