@@ -8,7 +8,10 @@ export function AiGuideSection() {
     <section className="ai-section" aria-labelledby="ai-guide-title">
       <div className="site-shell ai-grid">
         <Reveal className="ai-copy">
-          <span className="section-kicker invert">AI Legal Guide</span>
+          <div className="ai-section-labels">
+            <span className="section-kicker invert">AI Legal Guide</span>
+            <span className="ai-version-badge">ZEUS AI V1</span>
+          </div>
           <h2 id="ai-guide-title">내 사건은 어디서부터 확인해야 할까요?</h2>
           <p>
             몇 가지 질문에 답하면 관련 업무분야, 준비자료와 상담 방향을 간단히
