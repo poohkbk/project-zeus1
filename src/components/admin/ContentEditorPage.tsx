@@ -1,12 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { cmsCategoryLabels, cmsTypeLabels } from "@/data/cms-seed";
-import { createEmptyCmsItem, loadCmsItems, normalizeTags, saveCmsItems } from "@/lib/admin/cms-store";
 import { createLocalAiSuggestion } from "@/lib/admin/ai/draft-service";
+import {
+  createEmptyCmsItem,
+  loadCmsItems,
+  normalizeTags,
+  saveCmsItems,
+} from "@/lib/admin/cms-store";
 import type { CmsContentItem, CmsContentType, CmsStatus } from "@/types/cms";
 import { typePath } from "./AdminDashboard";
+
+const acceptedImageTypes = ["image/jpeg", "image/png", "image/webp"];
+const maxImageSize = 5 * 1024 * 1024;
 
 export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: string }) {
   const [items, setItems] = useState<CmsContentItem[]>([]);
@@ -15,6 +23,8 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
   const [saveState, setSaveState] = useState("저장 전");
   const [aiInput, setAiInput] = useState("");
   const [preview, setPreview] = useState<"pc" | "tablet" | "mobile">("pc");
+  const [imageStatus, setImageStatus] = useState("");
+  const [imageError, setImageError] = useState("");
   const itemsRef = useRef<CmsContentItem[]>([]);
 
   useEffect(() => {
@@ -27,7 +37,7 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      if (!item.title && !item.body) return;
+      if (!item.title && !item.body && !item.heroImage) return;
       const nextItem = { ...item, updatedAt: new Date().toISOString() };
       const exists = itemsRef.current.some((entry) => entry.id === nextItem.id);
       const nextItems = exists
@@ -74,6 +84,46 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
     }));
   }
 
+  function handleImageChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    setImageError("");
+    setImageStatus("");
+
+    if (!file) return;
+    if (!acceptedImageTypes.includes(file.type)) {
+      setImageError("JPG, PNG, WebP 이미지만 업로드할 수 있습니다. SVG 파일은 사용할 수 없습니다.");
+      event.target.value = "";
+      return;
+    }
+    if (file.size > maxImageSize) {
+      setImageError("이미지는 5MB 이하로 올려 주세요.");
+      event.target.value = "";
+      return;
+    }
+
+    setImageStatus("이미지를 불러오는 중입니다.");
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = typeof reader.result === "string" ? reader.result : "";
+      setItem((current) => ({
+        ...current,
+        heroImage: result,
+        heroImageAlt: current.heroImageAlt || `${current.title || "콘텐츠"} 대표 이미지`,
+      }));
+      setImageStatus("이미지가 추가되었습니다. 운영 연결 후에는 Supabase Storage에 저장됩니다.");
+    };
+    reader.onerror = () => {
+      setImageError("이미지를 읽지 못했습니다. 다른 파일로 다시 시도해 주세요.");
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function removeImage() {
+    setItem((current) => ({ ...current, heroImage: "", heroImageAlt: "" }));
+    setImageStatus("대표 이미지를 제거했습니다.");
+    setImageError("");
+  }
+
   function publish(nextStatus: CmsStatus) {
     update("status", nextStatus);
     window.setTimeout(() => persist(nextStatus === "published" ? "공개됨" : "임시저장됨"), 0);
@@ -110,11 +160,20 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
               <div className="admin-form-grid">
                 <label>
                   제목 <span>*</span>
-                  <input value={item.title} onChange={(event) => update("title", event.target.value)} placeholder="예: 계약금 반환 승소사례" />
+                  <input
+                    value={item.title}
+                    onChange={(event) => update("title", event.target.value)}
+                    placeholder="예: 계약금 반환 승소사례"
+                  />
                 </label>
                 <label>
                   사건 분야 <span>*</span>
-                  <select value={item.category} onChange={(event) => update("category", event.target.value as CmsContentItem["category"])}>
+                  <select
+                    value={item.category}
+                    onChange={(event) =>
+                      update("category", event.target.value as CmsContentItem["category"])
+                    }
+                  >
                     {Object.entries(cmsCategoryLabels).map(([value, label]) => (
                       <option key={value} value={value}>
                         {label}
@@ -125,16 +184,53 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
               </div>
               <label>
                 목록에 보일 짧은 설명
-                <textarea value={item.summary} onChange={(event) => update("summary", event.target.value)} placeholder="제목 아래에 표시될 짧은 설명입니다." />
+                <textarea
+                  value={item.summary}
+                  onChange={(event) => update("summary", event.target.value)}
+                  placeholder="제목 아래에 표시될 짧은 설명입니다."
+                />
               </label>
-              <label>
-                대표 이미지 주소
-                <input value={item.heroImage ?? ""} onChange={(event) => update("heroImage", event.target.value)} placeholder="이미지 업로드 후 주소가 들어갑니다." />
-              </label>
-              <label>
-                이미지 대체문구
-                <input value={item.heroImageAlt ?? ""} onChange={(event) => update("heroImageAlt", event.target.value)} placeholder="예: 상담 자료를 검토하는 변호사" />
-              </label>
+
+              <div className="admin-image-uploader">
+                <div>
+                  <h3>대표 이미지</h3>
+                  <p>새 글 작성 중 바로 이미지를 추가하고 미리볼 수 있습니다.</p>
+                </div>
+                <label className="admin-upload-drop">
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={handleImageChange}
+                  />
+                  <strong>이미지 선택</strong>
+                  <span>JPG, PNG, WebP · 최대 5MB</span>
+                </label>
+                {item.heroImage ? (
+                  <figure className="admin-upload-preview">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={item.heroImage} alt={item.heroImageAlt || "대표 이미지 미리보기"} />
+                    <figcaption>
+                      <label>
+                        이미지 대체문구
+                        <input
+                          value={item.heroImageAlt ?? ""}
+                          onChange={(event) => update("heroImageAlt", event.target.value)}
+                          placeholder="예: 상담 자료를 검토하는 변호사"
+                        />
+                      </label>
+                      <button type="button" onClick={removeImage}>
+                        이미지 제거
+                      </button>
+                    </figcaption>
+                  </figure>
+                ) : null}
+                {imageStatus ? <p className="admin-upload-status">{imageStatus}</p> : null}
+                {imageError ? (
+                  <p className="admin-upload-error" role="alert">
+                    {imageError}
+                  </p>
+                ) : null}
+              </div>
             </section>
           ) : null}
 
@@ -163,8 +259,15 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
               </label>
               <div className="admin-ai-box">
                 <h3>AI 작성 도우미</h3>
-                <p>외부 AI가 연결되지 않은 상태라 로컬 추천만 보여줍니다. 결과는 자동 공개되지 않습니다.</p>
-                <textarea value={aiInput} onChange={(event) => setAiInput(event.target.value)} placeholder="주제나 사건 내용을 붙여 넣으면 제목, 요약, 태그를 추천합니다." />
+                <p>
+                  외부 AI가 연결되지 않은 상태라 로컬 추천만 보여줍니다. 결과는 자동 공개되지
+                  않습니다.
+                </p>
+                <textarea
+                  value={aiInput}
+                  onChange={(event) => setAiInput(event.target.value)}
+                  placeholder="주제나 사건 내용을 붙여 넣으면 제목, 요약, 태그를 추천합니다."
+                />
                 {suggestion ? (
                   <div className="admin-ai-result">
                     {suggestion.warning ? <strong>{suggestion.warning}</strong> : null}
@@ -189,11 +292,46 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
             <section className="admin-editor-panel">
               <h2>페이지 표시 설정</h2>
               <div className="admin-check-grid">
-                <label><input type="checkbox" checked={item.visibility.isFeatured} onChange={(event) => setVisibility("isFeatured", event.target.checked)} /> 대표 콘텐츠로 지정</label>
-                <label><input type="checkbox" checked={item.visibility.showOnHome} onChange={(event) => setVisibility("showOnHome", event.target.checked)} /> 메인 페이지에 표시</label>
-                <label><input type="checkbox" checked={item.visibility.showOnCategory} onChange={(event) => setVisibility("showOnCategory", event.target.checked)} /> 목록 상단에 표시</label>
-                <label><input type="checkbox" checked={item.visibility.showOnPractice} onChange={(event) => setVisibility("showOnPractice", event.target.checked)} /> 관련 업무분야에 추천</label>
-                <label><input type="checkbox" checked={item.visibility.showOnSearch} onChange={(event) => setVisibility("showOnSearch", event.target.checked)} /> 검색 결과에 추천</label>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={item.visibility.isFeatured}
+                    onChange={(event) => setVisibility("isFeatured", event.target.checked)}
+                  />{" "}
+                  대표 콘텐츠로 지정
+                </label>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={item.visibility.showOnHome}
+                    onChange={(event) => setVisibility("showOnHome", event.target.checked)}
+                  />{" "}
+                  메인 페이지에 표시
+                </label>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={item.visibility.showOnCategory}
+                    onChange={(event) => setVisibility("showOnCategory", event.target.checked)}
+                  />{" "}
+                  목록 상단에 표시
+                </label>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={item.visibility.showOnPractice}
+                    onChange={(event) => setVisibility("showOnPractice", event.target.checked)}
+                  />{" "}
+                  관련 업무분야에 추천
+                </label>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={item.visibility.showOnSearch}
+                    onChange={(event) => setVisibility("showOnSearch", event.target.checked)}
+                  />{" "}
+                  검색 결과에 추천
+                </label>
               </div>
               {item.visibility.isFeatured ? (
                 <div className="admin-form-grid">
@@ -207,14 +345,20 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
                       onChange={(event) =>
                         setItem((current) => ({
                           ...current,
-                          visibility: { ...current.visibility, featuredOrder: Number(event.target.value) },
+                          visibility: {
+                            ...current.visibility,
+                            featuredOrder: Number(event.target.value),
+                          },
                         }))
                       }
                     />
                   </label>
                   <label>
                     공개 상태
-                    <select value={item.status} onChange={(event) => update("status", event.target.value as CmsStatus)}>
+                    <select
+                      value={item.status}
+                      onChange={(event) => update("status", event.target.value as CmsStatus)}
+                    >
                       <option value="draft">임시저장</option>
                       <option value="published">공개</option>
                       <option value="private">비공개</option>
@@ -230,16 +374,40 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
             <section className="admin-editor-panel">
               <h2>공개 전 확인</h2>
               <div className="admin-review-grid">
-                <article><span>제목</span><strong>{item.title || "비어 있음"}</strong></article>
-                <article><span>분야</span><strong>{cmsCategoryLabels[item.category]}</strong></article>
-                <article><span>목록 설명</span><strong>{item.summary || "비어 있음"}</strong></article>
-                <article><span>노출 위치</span><strong>{item.visibility.isFeatured ? "대표 노출 포함" : "일반 노출"}</strong></article>
+                <article>
+                  <span>제목</span>
+                  <strong>{item.title || "비어 있음"}</strong>
+                </article>
+                <article>
+                  <span>분야</span>
+                  <strong>{cmsCategoryLabels[item.category]}</strong>
+                </article>
+                <article>
+                  <span>목록 설명</span>
+                  <strong>{item.summary || "비어 있음"}</strong>
+                </article>
+                <article>
+                  <span>대표 이미지</span>
+                  <strong>{item.heroImage ? "추가됨" : "없음"}</strong>
+                </article>
+                <article>
+                  <span>노출 위치</span>
+                  <strong>{item.visibility.isFeatured ? "대표 노출 포함" : "일반 노출"}</strong>
+                </article>
               </div>
               <div className="admin-final-actions">
-                <button type="button" onClick={() => setStep(3)}>이전으로</button>
-                <button type="button" onClick={() => persist("임시저장됨")}>임시저장</button>
-                <button type="button" onClick={() => publish("published")}>지금 공개</button>
-                <button type="button" onClick={() => publish("scheduled")}>예약 공개</button>
+                <button type="button" onClick={() => setStep(3)}>
+                  이전으로
+                </button>
+                <button type="button" onClick={() => persist("임시저장됨")}>
+                  임시저장
+                </button>
+                <button type="button" onClick={() => publish("published")}>
+                  지금 공개
+                </button>
+                <button type="button" onClick={() => publish("scheduled")}>
+                  예약 공개
+                </button>
               </div>
             </section>
           ) : null}
@@ -247,24 +415,44 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
 
         <aside className="admin-editor-side">
           <strong aria-live="polite">{saveState}</strong>
-          <p>마지막 자동저장: {item.updatedAt ? new Date(item.updatedAt).toLocaleTimeString("ko-KR") : "아직 없음"}</p>
+          <p>
+            마지막 자동저장:{" "}
+            {item.updatedAt ? new Date(item.updatedAt).toLocaleTimeString("ko-KR") : "아직 없음"}
+          </p>
           <div className="admin-preview-tabs">
             {(["pc", "tablet", "mobile"] as const).map((mode) => (
-              <button key={mode} type="button" data-active={preview === mode} onClick={() => setPreview(mode)}>
+              <button
+                key={mode}
+                type="button"
+                data-active={preview === mode}
+                onClick={() => setPreview(mode)}
+              >
                 {mode === "pc" ? "PC" : mode === "tablet" ? "태블릿" : "모바일"}
               </button>
             ))}
           </div>
           <div className="admin-preview" data-mode={preview}>
             <article>
+              {item.heroImage ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  className="admin-preview-image"
+                  src={item.heroImage}
+                  alt={item.heroImageAlt || "대표 이미지 미리보기"}
+                />
+              ) : null}
               <span>{cmsCategoryLabels[item.category]}</span>
               <h3>{item.title || "제목이 여기에 표시됩니다"}</h3>
               <p>{item.summary || "목록 설명이 여기에 표시됩니다."}</p>
               <small>{item.tags.join(" · ") || "태그 없음"}</small>
             </article>
           </div>
-          <button type="button" onClick={() => persist("수동 저장됨")}>지금 저장</button>
-          <button type="button" onClick={() => setStep(4)}>공개 확인으로</button>
+          <button type="button" onClick={() => persist("수동 저장됨")}>
+            지금 저장
+          </button>
+          <button type="button" onClick={() => setStep(4)}>
+            공개 확인으로
+          </button>
         </aside>
       </div>
     </div>

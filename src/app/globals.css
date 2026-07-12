@@ -420,6 +420,107 @@
   padding: 16px;
 }
 
+.admin-image-uploader {
+  display: grid;
+  gap: 14px;
+  border: 1px solid #dfe6ee;
+  border-radius: 8px;
+  background:
+    linear-gradient(145deg, rgba(15, 124, 130, 0.06), transparent 48%),
+    #f9fbfc;
+  padding: 18px;
+}
+
+.admin-image-uploader h3 {
+  margin: 0;
+  color: #0f2d52;
+}
+
+.admin-image-uploader p {
+  margin: 4px 0 0;
+}
+
+.admin-upload-drop {
+  display: grid;
+  min-height: 132px;
+  place-items: center;
+  align-content: center;
+  border: 1px dashed #9db2c7;
+  border-radius: 8px;
+  background: #ffffff;
+  cursor: pointer;
+  padding: 20px;
+  text-align: center;
+}
+
+.admin-upload-drop input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.admin-upload-drop strong {
+  color: #0f2d52;
+  font-size: 1.06rem;
+}
+
+.admin-upload-drop span {
+  margin-top: 6px;
+  color: #526273;
+  font-size: 0.9rem;
+}
+
+.admin-upload-preview {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.7fr) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+  margin: 0;
+  border: 1px solid #e6e8ec;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 12px;
+}
+
+.admin-upload-preview img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 8px;
+  background: #eef3f7;
+}
+
+.admin-upload-preview figcaption {
+  display: grid;
+  gap: 12px;
+}
+
+.admin-upload-preview button {
+  width: fit-content;
+  min-height: 38px;
+  border: 1px solid #d8dee6;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #0f2d52;
+  cursor: pointer;
+  padding: 0 12px;
+  font: inherit;
+  font-weight: 900;
+}
+
+.admin-upload-status {
+  color: #0f7c82;
+  font-weight: 800;
+}
+
+.admin-upload-error {
+  color: #b42318;
+  font-weight: 800;
+}
+
 .admin-ai-result {
   display: grid;
   gap: 10px;
@@ -497,6 +598,15 @@
   border-radius: 8px;
   background: #ffffff;
   padding: 16px;
+}
+
+.admin-preview-image {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  background: #eef3f7;
 }
 
 .admin-preview[data-mode="tablet"] article {
@@ -610,6 +720,7 @@
   .admin-check-grid,
   .admin-review-grid,
   .admin-admin-grid,
+  .admin-upload-preview,
   .admin-featured-row {
     grid-template-columns: 1fr;
   }
