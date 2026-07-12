@@ -26,6 +26,7 @@ export function OfficeMap({ compact = false }: OfficeMapProps) {
   const mapRef = useRef<HTMLDivElement | null>(null);
   const initializedRef = useRef(false);
   const [status, setStatus] = useState<MapStatus>("missing-config");
+  const [scriptReady, setScriptReady] = useState(false);
   const clientId = process.env.NEXT_PUBLIC_NAVER_MAPS_CLIENT_ID;
   const latitude = siteConfig.location.latitude;
   const longitude = siteConfig.location.longitude;
@@ -41,7 +42,7 @@ export function OfficeMap({ compact = false }: OfficeMapProps) {
       return;
     }
 
-    if (!window.naver?.maps || !mapRef.current || initializedRef.current) return;
+    if (!scriptReady || !window.naver?.maps || !mapRef.current || initializedRef.current) return;
 
     try {
       const position = new window.naver.maps.LatLng(latitude as number, longitude as number);
@@ -74,7 +75,7 @@ export function OfficeMap({ compact = false }: OfficeMapProps) {
     } catch {
       setStatus("error");
     }
-  }, [canLoadMap, latitude, longitude]);
+  }, [canLoadMap, latitude, longitude, scriptReady]);
 
   return (
     <div className={compact ? "office-map compact" : "office-map"} aria-label="법률사무소 제우 위치 지도">
@@ -85,6 +86,7 @@ export function OfficeMap({ compact = false }: OfficeMapProps) {
           strategy="afterInteractive"
           onLoad={() => {
             initializedRef.current = false;
+            setScriptReady(true);
             setStatus("loading");
           }}
           onError={() => setStatus("error")}
