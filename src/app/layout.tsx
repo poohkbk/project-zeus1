@@ -1,10 +1,13 @@
 import type { Metadata, Viewport } from "next";
+import { headers } from "next/headers";
 import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import "./globals.css";
+import { BlockedAccess } from "@/components/analytics/BlockedAccess";
 import { VisitTracker } from "@/components/analytics/VisitTracker";
 import { siteConfig } from "@/config/site";
+import { isIpBlocked } from "@/lib/admin/ip-blocklist";
 
 export const metadata: Metadata = {
   title: {
@@ -85,14 +88,32 @@ function Footer() {
   );
 }
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+function getClientIp(headerList: Headers) {
+  const forwardedFor = headerList.get("x-forwarded-for")?.split(",")[0]?.trim();
+  const realIp = headerList.get("x-real-ip")?.trim();
+  return forwardedFor || realIp || "local-preview";
+}
+
+export default async function RootLayout({ children }: { children: ReactNode }) {
+  const headerList = await headers();
+  const pathname = headerList.get("x-zeu-pathname") ?? "/";
+  const ip = getClientIp(headerList);
+  const isAdminArea = pathname.startsWith("/admin") || pathname.startsWith("/api");
+  const blocked = !isAdminArea && isIpBlocked(ip);
+
   return (
     <html lang="ko">
       <body>
-        <VisitTracker />
-        <Header />
-        {children}
-        <Footer />
+        {blocked ? (
+          <BlockedAccess ip={ip} />
+        ) : (
+          <>
+            <VisitTracker />
+            <Header />
+            {children}
+            <Footer />
+          </>
+        )}
       </body>
     </html>
   );

@@ -238,8 +238,89 @@
   font-weight: 900;
 }
 
+.admin-ip-list button,
+.admin-blocklist-form button,
+.admin-blocked-list button,
+.admin-analytics-table button {
+  width: fit-content;
+  min-height: 36px;
+  border: 1px solid #d8dee6;
+  border-radius: 999px;
+  background: #0f2d52;
+  color: #ffffff;
+  cursor: pointer;
+  padding: 0 12px;
+  font: inherit;
+  font-weight: 900;
+}
+
 .admin-ip-list small,
 .admin-muted {
+  color: #526273;
+}
+
+.admin-blocklist-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.admin-blocklist-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: end;
+}
+
+.admin-blocklist-form label {
+  display: grid;
+  gap: 8px;
+  color: #0f2d52;
+  font-weight: 900;
+}
+
+.admin-blocklist-form input {
+  width: 100%;
+  min-height: 48px;
+  border: 1px solid #d8dee6;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 0 12px;
+  color: #0e223d;
+  font: inherit;
+}
+
+.admin-blocklist-form button {
+  min-height: 48px;
+}
+
+.admin-blocked-list {
+  display: grid;
+  gap: 10px;
+}
+
+.admin-blocked-list article {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: space-between;
+  align-items: center;
+  border: 1px solid #e6e8ec;
+  border-radius: 8px;
+  background: #f9fbfc;
+  padding: 14px;
+}
+
+.admin-blocked-list article div {
+  display: grid;
+  gap: 4px;
+}
+
+.admin-blocked-list strong {
+  color: #0f2d52;
+}
+
+.admin-blocked-list span,
+.admin-blocked-list small {
   color: #526273;
 }
 
@@ -265,6 +346,76 @@
 
 .admin-analytics-table th {
   color: #0f2d52;
+  font-weight: 900;
+}
+
+.blocked-access-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(circle at 80% 20%, rgba(15, 124, 130, 0.24), transparent 28%),
+    linear-gradient(135deg, #091f3a 0%, #0f2d52 60%, #06172a 100%);
+  padding: 24px;
+}
+
+.blocked-access-page section {
+  width: min(100%, 560px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 24px 60px rgba(0, 12, 28, 0.28);
+  padding: 34px;
+}
+
+.blocked-access-page span {
+  color: #0f7c82;
+  font-weight: 900;
+}
+
+.blocked-access-page h1 {
+  margin: 8px 0 0;
+  color: #0f2d52;
+  font-size: clamp(1.9rem, 5vw, 2.8rem);
+}
+
+.blocked-access-page p {
+  color: #526273;
+  line-height: 1.75;
+}
+
+.blocked-access-page dl {
+  margin: 22px 0;
+}
+
+.blocked-access-page div {
+  border: 1px solid #e6e8ec;
+  border-radius: 8px;
+  background: #f9fbfc;
+  padding: 12px;
+}
+
+.blocked-access-page dt {
+  color: #526273;
+  font-size: 0.86rem;
+  font-weight: 900;
+}
+
+.blocked-access-page dd {
+  margin: 6px 0 0;
+  color: #0f2d52;
+  font-weight: 900;
+}
+
+.blocked-access-page a {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  border-radius: 999px;
+  background: #0f2d52;
+  color: #ffffff;
+  padding: 0 16px;
+  text-decoration: none;
   font-weight: 900;
 }
 
@@ -1096,6 +1247,7 @@
   .admin-sidebar nav,
   .admin-stat-grid,
   .admin-quick-actions,
+  .admin-blocklist-form,
   .admin-toolbar,
   .admin-form-grid,
   .admin-settings-grid,

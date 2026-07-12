@@ -23,6 +23,7 @@ yarn-error.log*
 
 # local analytics preview data
 data/analytics-visits.json
+data/blocked-ips.json
 
 # system
 .DS_Store

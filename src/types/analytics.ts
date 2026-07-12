@@ -19,6 +19,12 @@ export interface AnalyticsIpSummary {
   paths: string[];
 }
 
+export interface AnalyticsBlockedIp {
+  ip: string;
+  blockedAt: string;
+  reason?: string;
+}
+
 export interface AnalyticsDashboardData {
   generatedAt: string;
   totalVisits: number;
@@ -32,4 +38,5 @@ export interface AnalyticsDashboardData {
   ipSummaries: AnalyticsIpSummary[];
   repeatedIps: AnalyticsIpSummary[];
   recentVisits: AnalyticsVisit[];
+  blockedIps: AnalyticsBlockedIp[];
 }

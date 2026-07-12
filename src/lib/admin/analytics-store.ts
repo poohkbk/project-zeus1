@@ -6,6 +6,7 @@ import type {
   AnalyticsSummaryMetric,
   AnalyticsVisit,
 } from "@/types/analytics";
+import { loadBlockedIps } from "./ip-blocklist";
 
 const ANALYTICS_DIR = path.join(process.cwd(), "data");
 const ANALYTICS_FILE = path.join(ANALYTICS_DIR, "analytics-visits.json");
@@ -148,5 +149,6 @@ export function getAnalyticsDashboard(): AnalyticsDashboardData {
     ipSummaries,
     repeatedIps: ipSummaries.filter((summary) => summary.visits >= 2),
     recentVisits: visits.slice(0, 30),
+    blockedIps: loadBlockedIps(),
   };
 }

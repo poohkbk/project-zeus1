@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import type { AnalyticsDashboardData } from "@/types/analytics";
 
 function formatDateTime(value: string) {
@@ -22,22 +22,80 @@ function MetricCard({ label, visits, uniqueIps }: { label: string; visits: numbe
 
 export function AnalyticsPage() {
   const [data, setData] = useState<AnalyticsDashboardData | null>(null);
+  const [manualIp, setManualIp] = useState("");
+  const [blockReason, setBlockReason] = useState("");
+  const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    fetch("/api/admin/analytics", { cache: "no-store" })
+  function refreshAnalytics() {
+    return fetch("/api/admin/analytics", { cache: "no-store" })
       .then((response) => {
         if (!response.ok) throw new Error("통계를 불러오지 못했습니다.");
         return response.json() as Promise<AnalyticsDashboardData>;
       })
-      .then(setData)
-      .catch(() => setError("접속통계를 불러오지 못했습니다. 잠시 후 다시 확인해주세요."));
+      .then(setData);
+  }
+
+  useEffect(() => {
+    refreshAnalytics().catch(() =>
+      setError("접속통계를 불러오지 못했습니다. 잠시 후 다시 확인해주세요."),
+    );
   }, []);
+
+  const blockedIpSet = useMemo(
+    () => new Set(data?.blockedIps.map((item) => item.ip) ?? []),
+    [data],
+  );
 
   const maxDailyVisits = useMemo(
     () => Math.max(1, ...(data?.daily.map((item) => item.visits) ?? [1])),
     [data],
   );
+
+  async function updateBlocklist(method: "POST" | "DELETE", ip: string, reason?: string) {
+    const response = await fetch("/api/admin/analytics/blocklist", {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ip, reason }),
+    });
+
+    if (!response.ok) {
+      const body = (await response.json().catch(() => ({}))) as { message?: string };
+      throw new Error(body.message ?? "IP 차단 정보를 저장하지 못했습니다.");
+    }
+
+    await refreshAnalytics();
+  }
+
+  async function blockSelectedIp(ip: string, reason?: string) {
+    try {
+      await updateBlocklist("POST", ip, reason);
+      setMessage(`${ip} 접속을 차단했습니다.`);
+    } catch (blockError) {
+      setMessage(blockError instanceof Error ? blockError.message : "IP 차단에 실패했습니다.");
+    }
+  }
+
+  async function unblockSelectedIp(ip: string) {
+    try {
+      await updateBlocklist("DELETE", ip);
+      setMessage(`${ip} 차단을 해제했습니다.`);
+    } catch (unblockError) {
+      setMessage(unblockError instanceof Error ? unblockError.message : "IP 차단 해제에 실패했습니다.");
+    }
+  }
+
+  async function submitManualBlock(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const ip = manualIp.trim();
+    if (!ip) {
+      setMessage("차단할 IP를 입력해주세요.");
+      return;
+    }
+    await blockSelectedIp(ip, blockReason);
+    setManualIp("");
+    setBlockReason("");
+  }
 
   if (error) {
     return (
@@ -66,8 +124,8 @@ export function AnalyticsPage() {
           <span>방문자 분석</span>
           <h1>접속통계</h1>
           <p>
-            사이트 방문자의 일일, 주별, 월별 접속수와 접속 IP를 확인합니다. IP는 개인정보가 될 수
-            있으니 운영 목적에 필요한 범위에서만 확인해주세요.
+            사이트 방문자의 일일, 주별, 월별 접속수와 접속 IP를 확인합니다. 문제가 있는 IP는
+            공개 페이지 접속을 차단할 수 있습니다.
           </p>
         </div>
       </header>
@@ -77,6 +135,58 @@ export function AnalyticsPage() {
         <MetricCard {...data.today} />
         <MetricCard {...data.week} />
         <MetricCard {...data.month} />
+      </section>
+
+      <section className="admin-panel admin-blocklist-panel">
+        <div className="admin-panel-title">
+          <h2>IP 차단 관리</h2>
+          <p>
+            차단된 IP는 일반 사이트 화면에 접근할 수 없고, 관리자 화면은 해제를 위해 계속
+            접근할 수 있습니다.
+          </p>
+        </div>
+        <form className="admin-blocklist-form" onSubmit={submitManualBlock}>
+          <label>
+            차단할 IP
+            <input
+              value={manualIp}
+              onChange={(event) => setManualIp(event.target.value)}
+              placeholder="예: 203.0.113.10"
+            />
+          </label>
+          <label>
+            메모
+            <input
+              value={blockReason}
+              onChange={(event) => setBlockReason(event.target.value)}
+              placeholder="예: 반복 스팸 접속"
+            />
+          </label>
+          <button type="submit">IP 차단</button>
+        </form>
+        {message ? (
+          <p className="admin-taxonomy-message" role="status" aria-live="polite">
+            {message}
+          </p>
+        ) : null}
+        <div className="admin-blocked-list">
+          {data.blockedIps.length ? (
+            data.blockedIps.map((item) => (
+              <article key={item.ip}>
+                <div>
+                  <strong>{item.ip}</strong>
+                  <span>차단일 {formatDateTime(item.blockedAt)}</span>
+                  {item.reason ? <small>{item.reason}</small> : null}
+                </div>
+                <button type="button" onClick={() => unblockSelectedIp(item.ip)}>
+                  차단 해제
+                </button>
+              </article>
+            ))
+          ) : (
+            <p className="admin-muted">현재 차단된 IP가 없습니다.</p>
+          )}
+        </div>
       </section>
 
       <section className="admin-analytics-layout">
@@ -110,6 +220,15 @@ export function AnalyticsPage() {
                   <strong>{item.ip}</strong>
                   <span>{item.visits}회 접속</span>
                   <small>최근 {formatDateTime(item.lastVisitedAt)}</small>
+                  {blockedIpSet.has(item.ip) ? (
+                    <button type="button" onClick={() => unblockSelectedIp(item.ip)}>
+                      차단 해제
+                    </button>
+                  ) : (
+                    <button type="button" onClick={() => blockSelectedIp(item.ip, "반복 접속")}>
+                      차단
+                    </button>
+                  )}
                 </div>
               ))
             ) : (
@@ -125,26 +244,10 @@ export function AnalyticsPage() {
             <h2>주별 접속자수</h2>
             <p>최근 6주 기준입니다.</p>
           </div>
-          <div className="admin-table-wrap">
-            <table className="admin-analytics-table">
-              <thead>
-                <tr>
-                  <th>기간</th>
-                  <th>접속수</th>
-                  <th>IP 수</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.weekly.map((item) => (
-                  <tr key={item.label}>
-                    <td>{item.label}</td>
-                    <td>{item.visits}</td>
-                    <td>{item.uniqueIps}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <AnalyticsTable
+            headers={["기간", "접속수", "IP 수"]}
+            rows={data.weekly.map((item) => [item.label, String(item.visits), String(item.uniqueIps)])}
+          />
         </article>
 
         <article className="admin-panel">
@@ -152,26 +255,10 @@ export function AnalyticsPage() {
             <h2>월별 접속자수</h2>
             <p>최근 6개월 기준입니다.</p>
           </div>
-          <div className="admin-table-wrap">
-            <table className="admin-analytics-table">
-              <thead>
-                <tr>
-                  <th>월</th>
-                  <th>접속수</th>
-                  <th>IP 수</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.monthly.map((item) => (
-                  <tr key={item.label}>
-                    <td>{item.label}</td>
-                    <td>{item.visits}</td>
-                    <td>{item.uniqueIps}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <AnalyticsTable
+            headers={["월", "접속수", "IP 수"]}
+            rows={data.monthly.map((item) => [item.label, String(item.visits), String(item.uniqueIps)])}
+          />
         </article>
       </section>
 
@@ -188,6 +275,7 @@ export function AnalyticsPage() {
                 <th>접속수</th>
                 <th>최근 접속</th>
                 <th>방문 경로</th>
+                <th>관리</th>
               </tr>
             </thead>
             <tbody>
@@ -197,11 +285,22 @@ export function AnalyticsPage() {
                   <td>{item.visits}</td>
                   <td>{formatDateTime(item.lastVisitedAt)}</td>
                   <td>{item.paths.join(", ")}</td>
+                  <td>
+                    {blockedIpSet.has(item.ip) ? (
+                      <button type="button" onClick={() => unblockSelectedIp(item.ip)}>
+                        해제
+                      </button>
+                    ) : (
+                      <button type="button" onClick={() => blockSelectedIp(item.ip)}>
+                        차단
+                      </button>
+                    )}
+                  </td>
                 </tr>
               ))}
               {!data.ipSummaries.length ? (
                 <tr>
-                  <td colSpan={4}>아직 기록된 접속자가 없습니다.</td>
+                  <td colSpan={5}>아직 기록된 접속자가 없습니다.</td>
                 </tr>
               ) : null}
             </tbody>
@@ -240,6 +339,31 @@ export function AnalyticsPage() {
           </table>
         </div>
       </section>
+    </div>
+  );
+}
+
+function AnalyticsTable({ headers, rows }: { headers: string[]; rows: string[][] }) {
+  return (
+    <div className="admin-table-wrap">
+      <table className="admin-analytics-table">
+        <thead>
+          <tr>
+            {headers.map((header) => (
+              <th key={header}>{header}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => (
+            <tr key={row.join("-")}>
+              {row.map((cell, index) => (
+                <td key={`${cell}-${index}`}>{cell}</td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
