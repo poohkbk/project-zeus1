@@ -3863,13 +3863,18 @@ svg {
 .footer-brand {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 
 .footer-brand img {
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
+  width: 38px;
+  height: 38px;
+  border: 2px solid rgba(229, 182, 77, 0.72);
+  border-radius: 999px;
+  background: #ffffff;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
+  object-fit: contain;
+  padding: 5px;
 }
 
 .site-footer p {
