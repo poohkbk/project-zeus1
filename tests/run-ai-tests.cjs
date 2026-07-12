@@ -107,6 +107,8 @@ test("unit: classifies legal categories and expanded keywords", () => {
 });
 
 test("unit: recalculates conditional questions after editing previous answers", () => {
+  assert.deepEqual(getQuestionsForCategory("unclear"), []);
+
   const divorceNone = upsertAnswer([], answer("divorce-children", "minorChildrenCount", "none"));
   const divorceNoCustody = getQuestionsForCategory("divorce", divorceNone);
   assert.equal(divorceNoCustody.some((question) => question.field === "custodyConcern"), false);
@@ -496,6 +498,8 @@ test("screen-contract: AI guide includes fallback, transfer, and responsive CSS 
 
   assert.match(shell, /uiState === "failed"/);
   assert.match(shell, /AI 요약 포함 상담신청/);
+  assert.match(shell, /response\.questions\.length === 0/);
+  assert.match(shell, /setUiState\("start"\)/);
   assert.match(css, /@media \(max-width: 760px\)/);
   assert.match(css, /\.ai-guide-question/);
 });

@@ -164,6 +164,12 @@ export function AiGuideShell() {
       setAnswers([]);
       setCurrentIndex(0);
       setCurrentValue("");
+      if (response.questions.length === 0) {
+        setQuestion("");
+        setSelectedCategory("");
+        setUiState("start");
+        return;
+      }
       setUiState("questioning");
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "분류를 확정하지 못했습니다.");
