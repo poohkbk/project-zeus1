@@ -55,7 +55,7 @@ function Header() {
         <Link href="/" className="brand" aria-label="법률사무소 제우 홈">
           <span className="brand-logo">
             <Image
-              src="/images/brand/zeu-logo.png"
+              src="/favicon.png"
               alt=""
               width={42}
               height={42}

@@ -3116,7 +3116,10 @@ svg {
 
 .brand-logo {
   background: var(--white);
-  border: 1px solid var(--border-gray);
+  border: 2px solid rgba(199, 146, 43, 0.46);
+  border-radius: 999px;
+  box-shadow: 0 8px 22px rgba(0, 27, 54, 0.12);
+  padding: 6px;
 }
 
 .brand-logo img {
