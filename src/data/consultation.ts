@@ -1,4 +1,4 @@
-import type { ConsultationCategoryOption } from "@/types/consultation";
+import type { ConsultationCategory, ConsultationCategoryOption } from "@/types/consultation";
 
 export const consultationCategories: ConsultationCategoryOption[] = [
   {
@@ -29,4 +29,19 @@ export const consultationCategories: ConsultationCategoryOption[] = [
     icon: "tree",
     accent: "blue",
   },
+  {
+    value: "administrative",
+    label: "행정",
+    description: "영업정지, 행정심판, 행정소송, 처분취소 등",
+    icon: "scale",
+    accent: "teal",
+  },
 ];
+
+export const consultationCategoryLabels: Record<ConsultationCategory, string> = {
+  civil: "민사소송",
+  criminal: "형사소송",
+  divorce: "이혼·가사",
+  inheritance: "상속",
+  administrative: "행정",
+};

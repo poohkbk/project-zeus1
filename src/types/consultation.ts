@@ -1,4 +1,5 @@
-export type ConsultationCategory = "civil" | "criminal" | "divorce" | "inheritance";
+export type ConsultationCategory = "civil" | "criminal" | "divorce" | "inheritance" | "administrative";
+export type ConsultationSubmissionStatus = "new" | "reviewing" | "contacted" | "closed";
 
 export interface ConsultationFormValues {
   name: string;
@@ -21,6 +22,21 @@ export interface ConsultationSubmissionResult {
   success: boolean;
   receptionNumber?: string;
   errorMessage?: string;
+}
+
+export interface ConsultationSubmission {
+  id: string;
+  receptionNumber: string;
+  name: string;
+  phone: string;
+  category: ConsultationCategory;
+  categoryLabel: string;
+  message: string;
+  privacyAgreed: true;
+  status: ConsultationSubmissionStatus;
+  memo: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface ConsultationCategoryOption {

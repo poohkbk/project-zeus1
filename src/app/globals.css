@@ -632,6 +632,202 @@
   font-weight: 900;
 }
 
+.admin-consultation-notice {
+  display: grid;
+  gap: 6px;
+  border-left: 5px solid #b08a3c;
+}
+
+.admin-consultation-notice strong {
+  color: #0f2d52;
+}
+
+.admin-consultation-notice p {
+  margin: 0;
+  color: #526273;
+  line-height: 1.65;
+}
+
+.admin-consultation-layout {
+  display: grid;
+  grid-template-columns: minmax(320px, 0.42fr) minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.admin-consultation-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.admin-consultation-list button {
+  display: grid;
+  gap: 6px;
+  width: 100%;
+  border: 1px solid #dfe6ee;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #0e223d;
+  cursor: pointer;
+  padding: 14px;
+  text-align: left;
+}
+
+.admin-consultation-list button[data-selected="true"] {
+  border-color: #0f7c82;
+  box-shadow: 0 0 0 3px rgba(15, 124, 130, 0.12);
+}
+
+.admin-consultation-list span {
+  width: fit-content;
+  border-radius: 999px;
+  background: rgba(15, 124, 130, 0.1);
+  padding: 5px 9px;
+  color: #0f7c82;
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.admin-consultation-list strong {
+  color: #0f2d52;
+  font-size: 1.08rem;
+}
+
+.admin-consultation-list small,
+.admin-consultation-list em {
+  color: #526273;
+  font-style: normal;
+}
+
+.admin-consultation-detail {
+  display: grid;
+  gap: 18px;
+}
+
+.admin-consultation-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: space-between;
+  align-items: end;
+}
+
+.admin-consultation-actions label,
+.admin-consultation-memo {
+  display: grid;
+  gap: 8px;
+  color: #0f2d52;
+  font-weight: 900;
+}
+
+.admin-consultation-actions select,
+.admin-consultation-memo textarea {
+  border: 1px solid #d8dee6;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #0e223d;
+  font: inherit;
+}
+
+.admin-consultation-actions select {
+  min-height: 44px;
+  padding: 0 12px;
+}
+
+.admin-consultation-actions button {
+  min-height: 44px;
+  border: 0;
+  border-radius: 999px;
+  background: #0f2d52;
+  color: #ffffff;
+  cursor: pointer;
+  padding: 0 16px;
+  font: inherit;
+  font-weight: 900;
+}
+
+.admin-consultation-print {
+  border: 1px solid #dfe6ee;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 24px;
+}
+
+.admin-consultation-print header {
+  border-bottom: 2px solid #0f2d52;
+  margin-bottom: 18px;
+  padding-bottom: 14px;
+}
+
+.admin-consultation-print header p {
+  margin: 0 0 8px;
+  color: #0f7c82;
+  font-weight: 900;
+}
+
+.admin-consultation-print h2 {
+  margin: 0 0 8px;
+  color: #0f2d52;
+}
+
+.admin-consultation-print header span {
+  color: #526273;
+  font-weight: 800;
+}
+
+.admin-consultation-print dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0 0 20px;
+}
+
+.admin-consultation-print dl div {
+  border: 1px solid #e6e8ec;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.admin-consultation-print dt {
+  color: #526273;
+  font-size: 0.86rem;
+  font-weight: 900;
+}
+
+.admin-consultation-print dd {
+  margin: 6px 0 0;
+  color: #0e223d;
+  font-weight: 800;
+}
+
+.admin-consultation-print section {
+  border-top: 1px solid #e6e8ec;
+  padding-top: 16px;
+}
+
+.admin-consultation-print h3 {
+  margin: 0 0 8px;
+  color: #0f2d52;
+}
+
+.admin-consultation-print section p {
+  white-space: pre-wrap;
+  color: #0e223d;
+  line-height: 1.75;
+}
+
+.admin-print-memo {
+  margin-top: 16px;
+}
+
+.admin-consultation-memo textarea {
+  min-height: 120px;
+  padding: 12px;
+  resize: vertical;
+  line-height: 1.65;
+}
+
 .admin-chip-panel div {
   display: flex;
   flex-wrap: wrap;
@@ -746,7 +942,8 @@
 
 @media (max-width: 1080px) {
   .admin-app,
-  .admin-editor-layout {
+  .admin-editor-layout,
+  .admin-consultation-layout {
     grid-template-columns: 1fr;
   }
 
@@ -788,6 +985,7 @@
   .admin-admin-grid,
   .admin-upload-preview,
   .admin-taxonomy-add,
+  .admin-consultation-print dl,
   .admin-featured-row {
     grid-template-columns: 1fr;
   }
@@ -799,6 +997,33 @@
   .admin-card-actions,
   .admin-final-actions {
     justify-content: flex-start;
+  }
+}
+
+@media print {
+  body * {
+    visibility: hidden !important;
+  }
+
+  .admin-consultation-print,
+  .admin-consultation-print * {
+    visibility: visible !important;
+  }
+
+  .admin-consultation-print {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    border: 0;
+    box-shadow: none;
+    padding: 24px;
+  }
+
+  .site-header,
+  .admin-sidebar,
+  .admin-consultation-actions,
+  .admin-consultation-memo {
+    display: none !important;
   }
 }
 

@@ -1,5 +1,6 @@
 import { AdminDashboard } from "@/components/admin/AdminDashboard";
 import { AdminLogin } from "@/components/admin/AdminLogin";
+import { ConsultationsPage } from "@/components/admin/ConsultationsPage";
 import { ContentEditorPage } from "@/components/admin/ContentEditorPage";
 import { ContentListPage } from "@/components/admin/ContentListPage";
 import {
@@ -32,6 +33,7 @@ export default async function AdminPage({ params }: AdminPageProps) {
 
   if (!section) return <AdminDashboard />;
   if (section === "login") return <AdminLogin />;
+  if (section === "consultations") return <ConsultationsPage />;
   if (section === "taxonomy") return <TaxonomyPage />;
   if (section === "media") return <MediaPage />;
   if (section === "trash") return <TrashPage />;

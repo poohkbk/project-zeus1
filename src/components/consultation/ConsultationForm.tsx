@@ -14,11 +14,11 @@ import {
   validatePrivacyAgreement,
 } from "@/lib/consultation-validation";
 import type { ConsultationFormErrors, ConsultationFormValues } from "@/types/consultation";
+import { SimpleIcon } from "@/components/icons/SimpleIcon";
 import { CaseCategorySelector } from "./CaseCategorySelector";
 import { ConsultationField } from "./ConsultationField";
 import { ConsultationSuccess } from "./ConsultationSuccess";
 import { PrivacyConsent } from "./PrivacyConsent";
-import { SimpleIcon } from "@/components/icons/SimpleIcon";
 
 const initialValues: ConsultationFormValues = {
   name: "",

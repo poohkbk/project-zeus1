@@ -5,6 +5,7 @@ import type {
   ConsultationFormValues,
   ConsultationSubmissionResult,
 } from "@/types/consultation";
+import { saveConsultationSubmission } from "./consultation-submissions";
 
 const categoryValues = new Set<string>(consultationCategories.map((category) => category.value));
 
@@ -119,14 +120,15 @@ export async function submitConsultation(
     privacyAgreed: true,
   };
 
-  void payload;
-
   await new Promise((resolve) => {
     window.setTimeout(resolve, 650);
   });
 
+  const receptionNumber = createReceptionNumber();
+  saveConsultationSubmission(payload, receptionNumber);
+
   return {
     success: true,
-    receptionNumber: createReceptionNumber(),
+    receptionNumber,
   };
 }
