@@ -5,6 +5,7 @@ import { aiQuestionFlows } from "@/data/ai/question-flows";
 import type { AiClassificationResult, AiGuideAnswer, AiGuideResult } from "@/types/ai-guide";
 import { getAiRelatedContent } from "./content-retrieval";
 import { getAnswerMap } from "./question-engine";
+import { evaluateSafetyGuidance } from "./safety";
 import { evaluateUrgency } from "./urgency";
 
 const answerFieldLabels: Record<string, string> = {
@@ -86,6 +87,7 @@ export function buildAiGuideResult(
   const category = classification.category === "unclear" ? "civil" : classification.category;
   const answerMap = getAnswerMap(answers);
   const urgency = evaluateUrgency(classification.category, answers, initialQuestionRedacted);
+  const safetyGuidance = evaluateSafetyGuidance(initialQuestionRedacted, answers);
   const relatedContent = getAiRelatedContent(classification, answers);
   const confirmedFacts = answers
     .filter((answer) => answer.value !== null && answer.value !== "" && answer.value !== "unknown")
@@ -108,6 +110,15 @@ export function buildAiGuideResult(
   }
   if (classification.category === "civil" && answerMap.get("writtenAgreementExists") !== "yes") {
     missingInformation.push("차용증이나 계약서를 보완할 대체 증거가 필요합니다.");
+  }
+  if (safetyGuidance.flags.includes("evidence-preservation")) {
+    missingInformation.push("증거는 삭제하거나 숨기지 말고 원본 상태로 보존해야 합니다.");
+  }
+  if (safetyGuidance.flags.includes("truthful-statement")) {
+    missingInformation.push("조사 진술은 사실관계에 맞게 준비하고, 진술 전 법률상담을 받을 수 있습니다.");
+  }
+  if (safetyGuidance.flags.includes("no-outcome-guarantee")) {
+    missingInformation.push("무죄 여부는 증거와 수사기록 전체를 검토한 뒤 판단해야 합니다.");
   }
 
   const recommendedDocuments = aiDocumentChecklists[category];
@@ -147,8 +158,10 @@ export function buildAiGuideResult(
       relatedContentIds,
       generatedAt: new Date().toISOString(),
     },
-    safetyNotice:
+    safetyNotice: [
+      ...safetyGuidance.notices,
       "이 내용은 일반적인 법률정보입니다. 구체적인 사실관계와 자료에 따라 결론은 달라질 수 있으며, 승소 여부나 처분 결과를 단정하지 않습니다.",
+    ].join(" "),
     generatedBy: "rule",
   };
 }
