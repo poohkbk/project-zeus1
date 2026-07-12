@@ -42,7 +42,7 @@ const { buildAiGuideResult } = require("../src/lib/ai/answer-composer.ts");
 const { getAiRelatedContent } = require("../src/lib/ai/content-retrieval.ts");
 
 test("classifies civil debt questions", () => {
-  const result = classifyLegalQuestion("차용증은 없지만 계좌이체와 카톡이 있습니다. 돈을 못 받고 있습니다.");
+  const result = classifyLegalQuestion("돈을 빌려줬는데 못 받고 있습니다. 차용증과 계좌이체가 있습니다.");
   assert.equal(result.category, "civil");
   assert.equal(result.subcategory, "debt");
   assert.ok(result.matchedTags.includes("debt"));
@@ -55,7 +55,7 @@ test("classifies administrative disposition questions", () => {
 });
 
 test("redacts sensitive personal data", () => {
-  const result = redactSensitiveData("홍길동 010-1234-5678 2024가단12345 test@example.com");
+  const result = redactSensitiveData("전화는 010-1234-5678 2024가단2345 test@example.com");
   assert.match(result.redacted, /\[전화번호 삭제\]/);
   assert.match(result.redacted, /\[사건번호 삭제\]/);
   assert.match(result.redacted, /\[이메일 삭제\]/);
@@ -103,14 +103,32 @@ test("builds a safe rule-based result", () => {
   assert.equal(result.urgency.callFirst, true);
 });
 
-test("creates a consultation summary from masked AI answers", () => {
+test("creates a Korean consultation summary from masked AI answers", () => {
   const question = redactSensitiveData("대여금 010-1234-5678 차용증 계좌이체 증거가 있습니다.");
   const classification = classifyLegalQuestion(question.redacted);
   const result = buildAiGuideResult("session-transfer-test", question.redacted, classification, [
     {
-      questionId: "civil-evidence",
-      field: "evidence",
-      value: "contract,message",
+      questionId: "civil-dispute-type",
+      field: "disputeType",
+      value: "debt",
+      answeredAt: new Date().toISOString(),
+    },
+    {
+      questionId: "civil-written-agreement",
+      field: "writtenAgreementExists",
+      value: "no",
+      answeredAt: new Date().toISOString(),
+    },
+    {
+      questionId: "civil-transfer-evidence",
+      field: "transferEvidenceExists",
+      value: "yes",
+      answeredAt: new Date().toISOString(),
+    },
+    {
+      questionId: "civil-message-evidence",
+      field: "messageEvidenceExists",
+      value: "no",
       answeredAt: new Date().toISOString(),
     },
   ]);
@@ -118,4 +136,8 @@ test("creates a consultation summary from masked AI answers", () => {
   assert.equal(result.consultationSummary.userQuestion.includes("010-1234-5678"), false);
   assert.ok(result.consultationSummary.availableEvidence.length > 0);
   assert.ok(result.consultationSummary.relatedContentIds.length > 0);
+  assert.equal(result.consultationSummary.confirmedFacts.some((fact) => fact.includes("writtenAgreementExists")), false);
+  assert.equal(result.consultationSummary.confirmedFacts.some((fact) => fact.includes("disputeType")), false);
+  assert.ok(result.consultationSummary.confirmedFacts.some((fact) => fact.includes("문제 유형")));
+  assert.ok(result.consultationSummary.availableEvidence.some((fact) => fact.includes("계좌이체")));
 });
