@@ -43,6 +43,12 @@ const { getAiRelatedContent, tagsFromAiContext } = require("../src/lib/ai/conten
 const { checkRateLimit, clearRateLimitBuckets } = require("../src/lib/ai/rate-limit.ts");
 const { evaluateSafetyGuidance } = require("../src/lib/ai/safety.ts");
 const { isAiSessionOwner } = require("../src/lib/ai/session-auth.ts");
+const { OpenAiLegalGuideProvider } = require("../src/lib/ai/openai-provider.ts");
+const {
+  canUseGenerativeAi,
+  clearGenerativeUsage,
+  recordGenerativeUsage,
+} = require("../src/lib/ai/provider-usage.ts");
 const {
   createAiSessionId,
   createExpiry,
@@ -241,6 +247,105 @@ test("unit: calculates session expiry and rate limits", () => {
   assert.ok((limited.retryAfterSeconds ?? 0) > 0);
 });
 
+test("unit/provider: OpenAI provider accepts structured JSON success", async () => {
+  const provider = new OpenAiLegalGuideProvider({
+    apiKey: "test-key",
+    fetchImpl: async () =>
+      new Response(
+        JSON.stringify({
+          choices: [
+            {
+              message: {
+                content: JSON.stringify({
+                  category: "civil",
+                  subcategory: "debt",
+                  confidence: 0.82,
+                  reasonSummary: "대여금 관련 표현이 확인됩니다.",
+                  matchedTags: ["civil", "debt"],
+                }),
+              },
+            },
+          ],
+          usage: { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 },
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      ),
+  });
+  const rule = classifyLegalQuestion("대여금 상담입니다.");
+  const response = await provider.classify("대여금 상담입니다.", rule, {
+    sessionId: "provider-success",
+    initialQuestionRedacted: "대여금 상담입니다.",
+    answers: [],
+    promptVersion: "test",
+  });
+  assert.equal(response.data.category, "civil");
+  assert.equal(response.data.subcategory, "debt");
+  assert.equal(response.usage.totalTokens, 15);
+});
+
+test("unit/provider: OpenAI provider fails on timeout and invalid JSON", async () => {
+  const timeoutProvider = new OpenAiLegalGuideProvider({
+    apiKey: "test-key",
+    timeoutMs: 1,
+    maxRetries: 0,
+    fetchImpl: async (_url, init) =>
+      new Promise((resolve, reject) => {
+        init?.signal?.addEventListener("abort", () => reject(Object.assign(new Error("aborted"), { name: "AbortError" })));
+        setTimeout(() => resolve(new Response("{}", { status: 200 })), 20);
+      }),
+  });
+  const rule = classifyLegalQuestion("대여금 상담입니다.");
+  await assert.rejects(
+    () =>
+      timeoutProvider.classify("대여금 상담입니다.", rule, {
+        sessionId: "provider-timeout",
+        initialQuestionRedacted: "대여금 상담입니다.",
+        answers: [],
+        promptVersion: "test",
+      }),
+    /timeout|aborted/i,
+  );
+
+  const invalidJsonProvider = new OpenAiLegalGuideProvider({
+    apiKey: "test-key",
+    maxRetries: 0,
+    fetchImpl: async () =>
+      new Response(
+        JSON.stringify({ choices: [{ message: { content: "{not-json" } }] }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      ),
+  });
+  await assert.rejects(
+    () =>
+      invalidJsonProvider.classify("대여금 상담입니다.", rule, {
+        sessionId: "provider-invalid-json",
+        initialQuestionRedacted: "대여금 상담입니다.",
+        answers: [],
+        promptVersion: "test",
+      }),
+    /invalid_json/i,
+  );
+});
+
+test("unit/provider: generative rate limit and budget limit are enforced", () => {
+  clearGenerativeUsage();
+  const originalDailyLimit = process.env.AI_DAILY_REQUEST_LIMIT;
+  const originalDailyBudget = process.env.AI_DAILY_BUDGET_USD;
+  const originalMonthlyBudget = process.env.AI_MONTHLY_BUDGET_USD;
+  process.env.AI_DAILY_REQUEST_LIMIT = "1";
+  process.env.AI_DAILY_BUDGET_USD = "0.0001";
+  process.env.AI_MONTHLY_BUDGET_USD = "0.0001";
+  assert.equal(canUseGenerativeAi().allowed, true);
+  recordGenerativeUsage({ estimatedCostUsd: 0.0002 });
+  const limited = canUseGenerativeAi();
+  assert.equal(limited.allowed, false);
+  assert.ok(["rate_limit", "daily_budget", "monthly_budget"].includes(limited.reason));
+  process.env.AI_DAILY_REQUEST_LIMIT = originalDailyLimit;
+  process.env.AI_DAILY_BUDGET_USD = originalDailyBudget;
+  process.env.AI_MONTHLY_BUDGET_USD = originalMonthlyBudget;
+  clearGenerativeUsage();
+});
+
 test("integration: creates AI session, stores answers, creates final result and transfer token", async () => {
   const session = await saveAiGuideSession(makeSession());
   assert.ok(getLocalAiGuideSession(session.id));
@@ -373,6 +478,7 @@ test("integration/storage: Supabase-backed AI and consultation write paths exist
   const sessionStore = fs.readFileSync(path.join(projectRoot, "src", "lib", "ai", "session-store.ts"), "utf8");
   const consultationRoute = fs.readFileSync(path.join(projectRoot, "src", "app", "api", "consultations", "route.ts"), "utf8");
   const consultationValidation = fs.readFileSync(path.join(projectRoot, "src", "lib", "consultation-validation.ts"), "utf8");
+  const aiSettingsRoute = fs.readFileSync(path.join(projectRoot, "src", "app", "api", "admin", "ai-settings", "route.ts"), "utf8");
 
   assert.match(sessionStore, /ai_guide_sessions/);
   assert.match(sessionStore, /ai_guide_answers/);
@@ -381,6 +487,7 @@ test("integration/storage: Supabase-backed AI and consultation write paths exist
   assert.match(consultationRoute, /consultations/);
   assert.match(consultationRoute, /ai_session_id/);
   assert.match(consultationValidation, /\/api\/consultations/);
+  assert.match(aiSettingsRoute, /generativeEnabled/);
 });
 
 test("screen-contract: AI guide includes fallback, transfer, and responsive CSS hooks", () => {

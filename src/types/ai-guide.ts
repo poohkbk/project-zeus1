@@ -140,6 +140,7 @@ export interface AiGuideResult {
   consultationSummary: AiConsultationSummary;
   safetyWarnings: string[];
   safetyNotice: string;
+  aiProviderNotice?: string;
   generatedBy: "rule" | "ai" | "hybrid";
 }
 

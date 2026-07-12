@@ -3,8 +3,9 @@ import { classifyLegalQuestion } from "@/lib/ai/classifier";
 import { checkRateLimit } from "@/lib/ai/rate-limit";
 import { evaluateSafetyGuidance } from "@/lib/ai/safety";
 import { attachAiSessionCookie } from "@/lib/ai/session-auth";
-import { createAiSessionId, createExpiry, saveAiGuideSession } from "@/lib/ai/session-store";
+import { createAiSessionId, createExpiry, saveAiGuideSession, updateAiGuideSession } from "@/lib/ai/session-store";
 import { redactSensitiveData } from "@/lib/ai/redaction";
+import { enhanceClassificationWithProvider } from "@/lib/ai/provider-runtime";
 import type { AiLegalCategory } from "@/types/ai-guide";
 
 export const dynamic = "force-dynamic";
@@ -31,21 +32,26 @@ export async function POST(request: NextRequest) {
   };
   const question = String(body.question ?? "").slice(0, Number(process.env.AI_MAX_INPUT_CHARS ?? 2000));
   const redacted = redactSensitiveData(question);
-  const classification = classifyLegalQuestion(redacted.redacted, body.category);
+  const ruleClassification = classifyLegalQuestion(redacted.redacted, body.category);
   const safetyGuidance = evaluateSafetyGuidance(redacted.redacted);
   const now = new Date().toISOString();
-  const session = await saveAiGuideSession({
-    id: createAiSessionId(),
+  const sessionId = createAiSessionId();
+  const baseSession = await saveAiGuideSession({
+    id: sessionId,
     publicToken: Math.random().toString(36).slice(2, 18),
     status: "started",
     initialQuestionRedacted: redacted.redacted,
-    classification,
+    classification: ruleClassification,
     answers: [],
     consentToTransfer: false,
     createdAt: now,
     updatedAt: now,
     expiresAt: createExpiry(Number(process.env.AI_SESSION_RETENTION_DAYS ?? 30)),
   });
+  const classification = await enhanceClassificationWithProvider(sessionId, redacted.redacted, ruleClassification);
+  const session = classification === ruleClassification
+    ? baseSession
+    : await updateAiGuideSession({ ...baseSession, classification });
 
   return attachAiSessionCookie(NextResponse.json({
     sessionId: session.id,

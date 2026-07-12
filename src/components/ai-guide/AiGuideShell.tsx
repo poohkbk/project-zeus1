@@ -388,6 +388,10 @@ export function AiGuideShell() {
               </section>
             ) : null}
 
+            {result.aiProviderNotice ? (
+              <p className="ai-safety-note">{result.aiProviderNotice}</p>
+            ) : null}
+
             <div className="ai-result-grid">
               <ResultList title="현재 확인된 내용" items={result.confirmedFacts} />
               <ResultList title="추가 확인이 필요한 사항" items={result.missingInformation} />
