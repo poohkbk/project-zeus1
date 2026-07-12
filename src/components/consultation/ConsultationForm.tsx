@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useMemo, useRef, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { siteConfig } from "@/config/site";
 import {
   formatKoreanMobilePhone,
@@ -26,6 +26,7 @@ const initialValues: ConsultationFormValues = {
   category: "",
   message: "",
   privacyAgreed: false,
+  source: "direct",
 };
 
 const fieldOrder: Array<keyof ConsultationFormErrors> = [
@@ -36,17 +37,98 @@ const fieldOrder: Array<keyof ConsultationFormErrors> = [
   "privacyAgreed",
 ];
 
-export function ConsultationForm() {
+interface ConsultationFormProps {
+  aiTransferToken?: string;
+}
+
+const aiCategoryToConsultationCategory = {
+  civil: "civil",
+  criminal: "criminal",
+  divorce: "divorce",
+  inheritance: "inheritance",
+  administrative: "administrative",
+} as const;
+
+function formatAiSummaryMessage(summary: NonNullable<ConsultationFormValues["aiSummary"]>) {
+  const lines = [
+    "[AI 법률안내 상담요약]",
+    `분야: ${summary.categoryLabel}${summary.subcategoryLabel ? ` / ${summary.subcategoryLabel}` : ""}`,
+    `긴급도: ${summary.urgencyLevel}`,
+    "",
+    "상황 요약",
+    summary.situationSummary,
+    "",
+    "확인된 내용",
+    ...(summary.confirmedFacts.length > 0 ? summary.confirmedFacts : ["아직 확인된 내용이 부족합니다."]),
+    "",
+    "보유 증거",
+    ...(summary.availableEvidence.length > 0 ? summary.availableEvidence : ["추가 확인이 필요합니다."]),
+    "",
+    "추가 확인 필요",
+    ...(summary.missingInformation.length > 0 ? summary.missingInformation : ["상담 시 구체적으로 확인하겠습니다."]),
+    "",
+    "주요 쟁점",
+    ...(summary.keyIssues.length > 0 ? summary.keyIssues : ["사안 확인 후 정리하겠습니다."]),
+  ];
+
+  return lines.join("\n").slice(0, 3000);
+}
+
+export function ConsultationForm({ aiTransferToken }: ConsultationFormProps) {
   const [values, setValues] = useState<ConsultationFormValues>(initialValues);
   const [errors, setErrors] = useState<ConsultationFormErrors>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [receptionNumber, setReceptionNumber] = useState("");
   const [submitFailed, setSubmitFailed] = useState(false);
+  const [aiTransferNotice, setAiTransferNotice] = useState("");
   const formRef = useRef<HTMLFormElement>(null);
 
   const messageLength = useMemo(() => values.message.length, [values.message]);
   const hasErrors = Object.keys(errors).some((key) => Boolean(errors[key as keyof ConsultationFormErrors]));
+
+  useEffect(() => {
+    if (!aiTransferToken) return;
+
+    let ignore = false;
+    const token = aiTransferToken;
+    async function loadAiSummary() {
+      try {
+        const response = await fetch(`/api/ai-guide/transfer?token=${encodeURIComponent(token)}`, {
+          cache: "no-store",
+        });
+        if (!response.ok) throw new Error("AI summary not found");
+        const data = (await response.json()) as {
+          summary?: ConsultationFormValues["aiSummary"] & {
+            category?: keyof typeof aiCategoryToConsultationCategory | "unclear";
+          };
+        };
+        const summary = data.summary;
+        if (ignore || !summary) return;
+
+        const category =
+          summary.category && summary.category !== "unclear"
+            ? aiCategoryToConsultationCategory[summary.category]
+            : "";
+        setValues((current) => ({
+          ...current,
+          category: current.category || category,
+          message: current.message || formatAiSummaryMessage(summary),
+          source: "ai-guide",
+          aiTransferToken: token,
+          aiSummary: summary,
+        }));
+        setAiTransferNotice("AI 법률안내 요약을 상담신청서에 불러왔습니다. 내용은 제출 전에 직접 수정할 수 있습니다.");
+      } catch {
+        if (!ignore) setAiTransferNotice("AI 요약을 불러오지 못했습니다. 일반 상담신청으로 계속 작성할 수 있습니다.");
+      }
+    }
+
+    loadAiSummary();
+    return () => {
+      ignore = true;
+    };
+  }, [aiTransferToken]);
 
   function updateErrors(nextValues: ConsultationFormValues) {
     const nextErrors = validateConsultationForm(nextValues);
@@ -54,7 +136,7 @@ export function ConsultationForm() {
     return nextErrors;
   }
 
-  function validateField(name: keyof ConsultationFormValues, nextValues = values) {
+  function validateField(name: keyof ConsultationFormErrors, nextValues = values) {
     setTouched((current) => ({ ...current, [name]: true }));
 
     const nextErrors = { ...errors };
@@ -178,6 +260,12 @@ export function ConsultationForm() {
             </button>
             <a href={siteConfig.phoneHref}>전화상담</a>
           </div>
+        </div>
+      ) : null}
+
+      {aiTransferNotice ? (
+        <div className="consultation-ai-transfer-notice" role="status">
+          {aiTransferNotice}
         </div>
       ) : null}
 

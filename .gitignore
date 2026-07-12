@@ -5,6 +5,7 @@ node_modules
 # next
 .next
 out
+tsconfig.tsbuildinfo
 
 # production
 dist
@@ -24,6 +25,7 @@ yarn-error.log*
 # local analytics preview data
 data/analytics-visits.json
 data/blocked-ips.json
+data/ai-guide-sessions.json
 
 # system
 .DS_Store

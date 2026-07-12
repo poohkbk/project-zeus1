@@ -18,14 +18,24 @@ export const metadata: Metadata = {
   },
 };
 
-export default function ConsultationPage() {
+interface ConsultationPageProps {
+  searchParams?: Promise<{
+    aiTransfer?: string;
+  }>;
+}
+
+export default async function ConsultationPage({ searchParams }: ConsultationPageProps) {
+  const resolvedSearchParams = await searchParams;
+  const aiTransferToken =
+    typeof resolvedSearchParams?.aiTransfer === "string" ? resolvedSearchParams.aiTransfer : undefined;
+
   return (
     <main className="consultation-page">
       <ConsultationHero />
       <div className="site-shell consultation-layout">
         <div>
           <ConsultationNotice />
-          <ConsultationForm />
+          <ConsultationForm aiTransferToken={aiTransferToken} />
         </div>
         <aside className="consultation-side-panel" aria-labelledby="consultation-side-title">
           <span className="section-kicker">Urgent</span>

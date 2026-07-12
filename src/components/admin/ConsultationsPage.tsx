@@ -15,6 +15,23 @@ function formatPhone(value: string) {
   return `${value.slice(0, 3)}-${value.slice(3, 7)}-${value.slice(7)}`;
 }
 
+function SummaryList({ title, items }: { title: string; items: string[] }) {
+  return (
+    <div>
+      <strong>{title}</strong>
+      {items.length > 0 ? (
+        <ul>
+          {items.map((item) => (
+            <li key={item}>{item}</li>
+          ))}
+        </ul>
+      ) : (
+        <p>추가 확인이 필요합니다.</p>
+      )}
+    </div>
+  );
+}
+
 export function ConsultationsPage() {
   const [submissions, setSubmissions] = useState<ConsultationSubmission[]>([]);
   const [selectedId, setSelectedId] = useState("");
@@ -173,6 +190,35 @@ export function ConsultationsPage() {
                   <h3>상담 내용</h3>
                   <p>{selected.message}</p>
                 </section>
+
+                {selected.aiSummary ? (
+                  <section className="admin-ai-summary-panel">
+                    <h3>AI 법률안내 요약</h3>
+                    <dl>
+                      <div>
+                        <dt>분야</dt>
+                        <dd>
+                          {selected.aiSummary.categoryLabel}
+                          {selected.aiSummary.subcategoryLabel
+                            ? ` / ${selected.aiSummary.subcategoryLabel}`
+                            : ""}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt>긴급도</dt>
+                        <dd>{selected.aiSummary.urgencyLevel}</dd>
+                      </div>
+                    </dl>
+                    <p>{selected.aiSummary.situationSummary}</p>
+                    <SummaryList title="확인된 내용" items={selected.aiSummary.confirmedFacts} />
+                    <SummaryList title="보유 증거" items={selected.aiSummary.availableEvidence} />
+                    <SummaryList title="추가 확인 필요" items={selected.aiSummary.missingInformation} />
+                    <SummaryList title="주요 쟁점" items={selected.aiSummary.keyIssues} />
+                    {selected.aiSummary.urgencyReasons.length > 0 ? (
+                      <SummaryList title="긴급 사유" items={selected.aiSummary.urgencyReasons} />
+                    ) : null}
+                  </section>
+                ) : null}
 
                 <section className="admin-print-memo">
                   <h3>관리 메모</h3>

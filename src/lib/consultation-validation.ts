@@ -118,6 +118,9 @@ export async function submitConsultation(
     category: values.category as ConsultationCategory,
     message: trimAndNormalizeSpaces(values.message),
     privacyAgreed: true,
+    source: values.source ?? "direct",
+    aiTransferToken: values.aiTransferToken,
+    aiSummary: values.aiSummary,
   };
 
   await new Promise((resolve) => {

@@ -7,6 +7,21 @@ export interface ConsultationFormValues {
   category: ConsultationCategory | "";
   message: string;
   privacyAgreed: boolean;
+  source?: "direct" | "ai-guide";
+  aiTransferToken?: string;
+  aiSummary?: {
+    category?: string;
+    categoryLabel: string;
+    subcategoryLabel?: string;
+    situationSummary: string;
+    confirmedFacts: string[];
+    availableEvidence: string[];
+    missingInformation: string[];
+    keyIssues: string[];
+    urgencyLevel: string;
+    urgencyReasons: string[];
+    generatedAt: string;
+  };
 }
 
 export interface ConsultationFormErrors {
@@ -33,6 +48,9 @@ export interface ConsultationSubmission {
   categoryLabel: string;
   message: string;
   privacyAgreed: true;
+  source: "direct" | "ai-guide";
+  aiTransferToken?: string;
+  aiSummary?: ConsultationFormValues["aiSummary"];
   status: ConsultationSubmissionStatus;
   memo: string;
   createdAt: string;
