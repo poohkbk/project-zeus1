@@ -5,6 +5,7 @@ export const cmsCategoryLabels: Record<CmsCategory, string> = {
   criminal: "형사",
   divorce: "이혼·가사",
   inheritance: "상속",
+  administrative: "행정",
 };
 
 export const cmsTypeLabels: Record<CmsContentType, string> = {
@@ -12,6 +13,25 @@ export const cmsTypeLabels: Record<CmsContentType, string> = {
   guide: "법률가이드",
   faq: "FAQ",
 };
+
+export const cmsDefaultTags = [
+  "대여금",
+  "계약",
+  "손해배상",
+  "경찰조사",
+  "구속영장",
+  "재산분할",
+  "양육권",
+  "상간소송",
+  "상속재산분할",
+  "유류분",
+  "상속포기",
+  "한정승인",
+  "영업정지",
+  "행정심판",
+  "행정소송",
+  "처분취소",
+];
 
 export const cmsSeedItems: CmsContentItem[] = [
   {

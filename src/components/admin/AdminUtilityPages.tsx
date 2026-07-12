@@ -1,32 +1,105 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { cmsCategoryLabels } from "@/data/cms-seed";
-import { loadCmsAdmins, loadCmsItems, saveCmsAdmins, saveCmsItems } from "@/lib/admin/cms-store";
+import {
+  loadCmsAdmins,
+  loadCmsItems,
+  loadCmsTaxonomy,
+  saveCmsAdmins,
+  saveCmsItems,
+  saveCmsTaxonomy,
+} from "@/lib/admin/cms-store";
 import type { CmsAdminUser, CmsContentItem } from "@/types/cms";
 import { statusLabel } from "./AdminDashboard";
 
 export function TaxonomyPage() {
+  const [tags, setTags] = useState<string[]>([]);
+  const [newTag, setNewTag] = useState("");
+  const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    setTags(loadCmsTaxonomy().tags);
+  }, []);
+
+  function saveTags(nextTags: string[], nextMessage: string) {
+    const normalized = Array.from(new Set(nextTags.map((tag) => tag.trim()).filter(Boolean)));
+    setTags(normalized);
+    saveCmsTaxonomy({ tags: normalized });
+    setMessage(nextMessage);
+  }
+
+  function addTag(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const value = newTag.trim();
+    if (!value) {
+      setMessage("추가할 태그를 입력해 주세요.");
+      return;
+    }
+    if (tags.includes(value)) {
+      setMessage("이미 등록된 태그입니다.");
+      return;
+    }
+    saveTags([...tags, value], `"${value}" 태그를 추가했습니다.`);
+    setNewTag("");
+  }
+
+  function removeTag(tag: string) {
+    saveTags(tags.filter((item) => item !== tag), `"${tag}" 태그를 삭제했습니다.`);
+  }
+
   return (
     <div className="admin-screen">
       <header className="admin-page-title">
         <div>
           <span>분류 관리</span>
           <h1>분야·태그</h1>
-          <p>관리자가 자주 쓰는 분야와 태그를 한눈에 확인합니다.</p>
+          <p>사건 분야를 확인하고, 자주 쓰는 추천태그를 직접 추가하거나 삭제합니다.</p>
         </div>
       </header>
+
       <section className="admin-panel admin-chip-panel">
         <h2>사건 분야</h2>
+        <p>새 글 작성 화면의 사건 분야 선택 목록에 표시됩니다.</p>
         <div>
           {Object.values(cmsCategoryLabels).map((label) => (
             <span key={label}>{label}</span>
           ))}
         </div>
-        <h2>추천 태그</h2>
-        <div>
-          {["대여금", "계약", "손해배상", "경찰조사", "재산분할", "상속재산분할", "유류분", "상간소송"].map((tag) => (
-            <span key={tag}>{tag}</span>
+      </section>
+
+      <section className="admin-panel admin-chip-panel">
+        <div className="admin-panel-title">
+          <h2>추천태그</h2>
+          <p>필요한 태그가 생기면 아래에서 바로 추가하세요.</p>
+        </div>
+
+        <form className="admin-taxonomy-add" onSubmit={addTag}>
+          <label>
+            새 추천태그
+            <input
+              value={newTag}
+              onChange={(event) => setNewTag(event.target.value)}
+              placeholder="예: 행정심판, 영업정지, 학교폭력"
+            />
+          </label>
+          <button type="submit">태그 추가</button>
+        </form>
+
+        {message ? (
+          <p className="admin-taxonomy-message" role="status" aria-live="polite">
+            {message}
+          </p>
+        ) : null}
+
+        <div className="admin-editable-tags">
+          {tags.map((tag) => (
+            <span key={tag}>
+              {tag}
+              <button type="button" onClick={() => removeTag(tag)} aria-label={`${tag} 태그 삭제`}>
+                삭제
+              </button>
+            </span>
           ))}
         </div>
       </section>
@@ -46,7 +119,10 @@ export function MediaPage() {
       </header>
       <section className="admin-panel admin-upload-box">
         <h2>이미지 업로드</h2>
-        <p>현재는 Supabase Storage 연결 전 미리보기입니다. 운영 연결 후 파일 선택, 진행률, 교체, 삭제가 활성화됩니다.</p>
+        <p>
+          현재는 Supabase Storage 연결 전 미리보기입니다. 운영 연결 후 파일 선택,
+          진행률, 교체, 삭제가 활성화됩니다.
+        </p>
         <label>
           파일 선택
           <input type="file" accept="image/jpeg,image/png,image/webp" />
@@ -91,13 +167,19 @@ export function TrashPage() {
                 <p>{item.summary}</p>
               </div>
               <div className="admin-card-actions">
-                <button type="button" onClick={() => restore(item)}>임시저장으로 복원</button>
-                <button type="button" disabled>영구 삭제</button>
+                <button type="button" onClick={() => restore(item)}>
+                  임시저장으로 복원
+                </button>
+                <button type="button" disabled>
+                  영구 삭제
+                </button>
               </div>
             </article>
           ))
         ) : (
-          <div className="admin-empty"><h3>휴지통이 비어 있습니다.</h3></div>
+          <div className="admin-empty">
+            <h3>휴지통이 비어 있습니다.</h3>
+          </div>
         )}
       </section>
     </div>
@@ -135,7 +217,9 @@ export function AdminUsersPage() {
           <h1>관리자 {admins.filter((admin) => admin.active).length} / 4</h1>
           <p>최고관리자는 비활성화하거나 삭제할 수 없습니다.</p>
         </div>
-        <button className="admin-primary-link" type="button" onClick={invite}>관리자 초대</button>
+        <button className="admin-primary-link" type="button" onClick={invite}>
+          관리자 초대
+        </button>
       </header>
       <section className="admin-panel admin-admin-grid">
         {admins.map((admin) => (
@@ -144,7 +228,9 @@ export function AdminUsersPage() {
             <p>{admin.email}</p>
             <span>{admin.role === "super_admin" ? "최고관리자" : "일반관리자"}</span>
             <small>마지막 로그인: {admin.lastLoginAt}</small>
-            <button type="button" disabled={admin.role === "super_admin"}>비활성화</button>
+            <button type="button" disabled={admin.role === "super_admin"}>
+              비활성화
+            </button>
           </article>
         ))}
       </section>
@@ -163,10 +249,24 @@ export function SiteSettingsPage() {
         </div>
       </header>
       <section className="admin-panel admin-settings-grid">
-        <label>공개 사이트 주소<input value="https://www.jwlaw.co.kr" readOnly /></label>
-        <label>최고관리자 이메일<input value="tglaw-kbk@nate.com" readOnly /></label>
-        <label>AI 작성 도우미<select value="off" disabled><option value="off">연결되지 않음</option></select></label>
-        <label>관리자 최대 인원<input value="4명" readOnly /></label>
+        <label>
+          공개 사이트 주소
+          <input value="https://www.jwlaw.co.kr" readOnly />
+        </label>
+        <label>
+          최고관리자 이메일
+          <input value="tglaw-kbk@nate.com" readOnly />
+        </label>
+        <label>
+          AI 작성 도우미
+          <select value="off" disabled>
+            <option value="off">연결되지 않음</option>
+          </select>
+        </label>
+        <label>
+          관리자 최대 인원
+          <input value="4명" readOnly />
+        </label>
       </section>
     </div>
   );
@@ -183,8 +283,14 @@ export function ProfilePage() {
         </div>
       </header>
       <section className="admin-panel admin-settings-grid">
-        <label>이름<input value="최고관리자" readOnly /></label>
-        <label>이메일<input value="tglaw-kbk@nate.com" readOnly /></label>
+        <label>
+          이름
+          <input value="최고관리자" readOnly />
+        </label>
+        <label>
+          이메일
+          <input value="tglaw-kbk@nate.com" readOnly />
+        </label>
       </section>
     </div>
   );

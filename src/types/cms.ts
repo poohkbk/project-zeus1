@@ -1,6 +1,6 @@
 export type CmsContentType = "case" | "guide" | "faq";
 export type CmsStatus = "draft" | "published" | "private" | "scheduled" | "trash";
-export type CmsCategory = "civil" | "criminal" | "divorce" | "inheritance";
+export type CmsCategory = "civil" | "criminal" | "divorce" | "inheritance" | "administrative";
 export type CmsRole = "super_admin" | "admin";
 
 export interface CmsVisibility {
@@ -38,6 +38,10 @@ export interface CmsAdminUser {
   active: boolean;
   lastLoginAt: string;
   invitedAt?: string;
+}
+
+export interface CmsTaxonomy {
+  tags: string[];
 }
 
 export interface CmsAiSuggestion {

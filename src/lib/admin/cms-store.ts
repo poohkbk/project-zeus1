@@ -1,10 +1,11 @@
 "use client";
 
-import { cmsSeedAdmins, cmsSeedItems } from "@/data/cms-seed";
-import type { CmsAdminUser, CmsContentItem, CmsContentType } from "@/types/cms";
+import { cmsDefaultTags, cmsSeedAdmins, cmsSeedItems } from "@/data/cms-seed";
+import type { CmsAdminUser, CmsContentItem, CmsContentType, CmsTaxonomy } from "@/types/cms";
 
 const CONTENT_KEY = "zeu-cms-content-v1";
 const ADMINS_KEY = "zeu-cms-admins-v1";
+const TAXONOMY_KEY = "zeu-cms-taxonomy-v1";
 
 function readJson<T>(key: string, fallback: T): T {
   if (typeof window === "undefined") return fallback;
@@ -36,6 +37,16 @@ export function loadCmsAdmins() {
 
 export function saveCmsAdmins(admins: CmsAdminUser[]) {
   writeJson(ADMINS_KEY, admins.slice(0, 4));
+}
+
+export function loadCmsTaxonomy() {
+  return readJson<CmsTaxonomy>(TAXONOMY_KEY, { tags: cmsDefaultTags });
+}
+
+export function saveCmsTaxonomy(taxonomy: CmsTaxonomy) {
+  writeJson(TAXONOMY_KEY, {
+    tags: Array.from(new Set(taxonomy.tags.map((tag) => tag.trim()).filter(Boolean))),
+  });
 }
 
 export function createEmptyCmsItem(type: CmsContentType): CmsContentItem {
