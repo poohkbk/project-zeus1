@@ -14,6 +14,15 @@ export interface CmsVisibility {
   featuredEndAt?: string;
 }
 
+export interface CmsSeoSettings {
+  title: string;
+  description: string;
+  canonicalPath: string;
+  index: boolean;
+  openGraphTitle?: string;
+  openGraphDescription?: string;
+}
+
 export interface CmsContentItem {
   id: string;
   type: CmsContentType;
@@ -23,6 +32,7 @@ export interface CmsContentItem {
   status: CmsStatus;
   heroImage?: string;
   heroImageAlt?: string;
+  seo?: CmsSeoSettings;
   body: string;
   tags: string[];
   visibility: CmsVisibility;

@@ -84,6 +84,24 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
     }));
   }
 
+  function updateSeo<K extends keyof NonNullable<CmsContentItem["seo"]>>(
+    key: K,
+    value: NonNullable<CmsContentItem["seo"]>[K],
+  ) {
+    setItem((current) => ({
+      ...current,
+      seo: {
+        title: current.seo?.title ?? "",
+        description: current.seo?.description ?? "",
+        canonicalPath: current.seo?.canonicalPath ?? "",
+        index: current.seo?.index ?? true,
+        openGraphTitle: current.seo?.openGraphTitle,
+        openGraphDescription: current.seo?.openGraphDescription,
+        [key]: value,
+      },
+    }));
+  }
+
   function handleImageChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     setImageError("");
@@ -337,6 +355,46 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
                     onChange={(event) => setVisibility("showOnSearch", event.target.checked)}
                   />{" "}
                   검색 결과에 추천
+                </label>
+              </div>
+              <div className="admin-seo-box">
+                <h3>검색 노출 설정</h3>
+                <p>비워두면 제목과 목록 설명을 기준으로 자동 생성됩니다.</p>
+                <div className="admin-form-grid">
+                  <label>
+                    검색결과 제목
+                    <input
+                      value={item.seo?.title ?? ""}
+                      onChange={(event) => updateSeo("title", event.target.value)}
+                      placeholder={item.title || "검색결과에 보일 제목"}
+                    />
+                  </label>
+                  <label>
+                    canonical 경로
+                    <input
+                      value={item.seo?.canonicalPath ?? ""}
+                      onChange={(event) => updateSeo("canonicalPath", event.target.value)}
+                      placeholder={`/${typePath(type)}/${item.id}`}
+                    />
+                  </label>
+                  <label>
+                    검색엔진 노출
+                    <select
+                      value={item.seo?.index === false ? "noindex" : "index"}
+                      onChange={(event) => updateSeo("index", event.target.value === "index")}
+                    >
+                      <option value="index">index, follow</option>
+                      <option value="noindex">noindex, follow</option>
+                    </select>
+                  </label>
+                </div>
+                <label>
+                  검색결과 설명
+                  <textarea
+                    value={item.seo?.description ?? ""}
+                    onChange={(event) => updateSeo("description", event.target.value)}
+                    placeholder={item.summary || "검색결과에 보일 1~2문장 설명"}
+                  />
                 </label>
               </div>
               {item.visibility.isFeatured ? (

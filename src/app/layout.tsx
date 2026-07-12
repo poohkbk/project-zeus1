@@ -8,13 +8,26 @@ import { BlockedAccess } from "@/components/analytics/BlockedAccess";
 import { VisitTracker } from "@/components/analytics/VisitTracker";
 import { siteConfig } from "@/config/site";
 import { isIpBlocked } from "@/lib/admin/ip-blocklist";
+import { siteUrl } from "@/lib/seo/metadata";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: {
     default: "법률사무소 제우 | 청주 민사·형사·이혼·상속 상담",
     template: "%s | 법률사무소 제우",
   },
   description: siteConfig.description,
+  alternates: {
+    canonical: siteUrl,
+  },
+  verification: {
+    google: process.env.GOOGLE_SITE_VERIFICATION || undefined,
+    other: process.env.NAVER_SITE_VERIFICATION
+      ? {
+          "naver-site-verification": process.env.NAVER_SITE_VERIFICATION,
+        }
+      : undefined,
+  },
   icons: {
     icon: "/favicon.png",
   },

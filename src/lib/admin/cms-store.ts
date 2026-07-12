@@ -58,6 +58,12 @@ export function createEmptyCmsItem(type: CmsContentType): CmsContentItem {
     summary: "",
     category: "civil",
     status: "draft",
+    seo: {
+      title: "",
+      description: "",
+      canonicalPath: "",
+      index: true,
+    },
     body: "",
     tags: [],
     visibility: {
