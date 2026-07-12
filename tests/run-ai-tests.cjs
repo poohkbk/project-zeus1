@@ -48,6 +48,25 @@ test("classifies civil debt questions", () => {
   assert.ok(result.matchedTags.includes("debt"));
 });
 
+test("classifies expanded civil consultation keywords", () => {
+  assert.equal(classifyLegalQuestion("전세금 보증금 임대인이 돌려주지 않고 명도 문제도 있습니다.").category, "civil");
+  assert.equal(classifyLegalQuestion("인테리어 부실공사와 누수 하자보수 때문에 손해배상을 원합니다.").category, "civil");
+  assert.equal(classifyLegalQuestion("지급명령 이후 압류와 강제집행을 하고 싶습니다.").subcategory, "debt");
+});
+
+test("classifies expanded criminal consultation keywords", () => {
+  assert.equal(classifyLegalQuestion("쌍방폭행으로 경찰조사를 받게 되었습니다.").category, "criminal");
+  assert.equal(classifyLegalQuestion("투자사기와 보이스피싱 고소를 하고 싶습니다.").subcategory, "fraud");
+  assert.equal(classifyLegalQuestion("음주운전 혈중알코올농도 문제로 면허취소가 걱정됩니다.").subcategory, "dui");
+});
+
+test("classifies expanded divorce and inheritance keywords", () => {
+  assert.equal(classifyLegalQuestion("상간녀 상간소송과 위자료 문제로 상담받고 싶습니다.").category, "divorce");
+  assert.equal(classifyLegalQuestion("양육권 친권 양육비와 면접교섭이 문제입니다.").subcategory, "custody");
+  assert.equal(classifyLegalQuestion("유류분반환 유류분청구와 자필유언 문제가 있습니다.").category, "inheritance");
+  assert.equal(classifyLegalQuestion("상속등기 상속세 가족관계와 상속재산분할을 알고 싶습니다.").category, "inheritance");
+});
+
 test("classifies administrative disposition questions", () => {
   const result = classifyLegalQuestion("식당 영업정지 처분서를 받았습니다.");
   assert.equal(result.category, "administrative");
