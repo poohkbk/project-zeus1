@@ -165,6 +165,109 @@
   font-size: 0.88rem;
 }
 
+.admin-analytics-stats {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.admin-analytics-stats small {
+  display: block;
+  margin-top: 6px;
+  color: #0f7c82;
+  font-weight: 900;
+}
+
+.admin-analytics-layout {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  align-items: start;
+}
+
+.admin-analytics-layout > .admin-panel {
+  min-width: 0;
+}
+
+.admin-bar-list,
+.admin-ip-list {
+  display: grid;
+  gap: 12px;
+}
+
+.admin-bar-row {
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr) 44px;
+  gap: 12px;
+  align-items: center;
+}
+
+.admin-bar-row span,
+.admin-bar-row strong {
+  color: #0f2d52;
+  font-weight: 900;
+}
+
+.admin-bar-row div {
+  overflow: hidden;
+  height: 12px;
+  border-radius: 999px;
+  background: #eef3f7;
+}
+
+.admin-bar-row i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #0f7c82, #b08a3c);
+}
+
+.admin-ip-list div {
+  display: grid;
+  gap: 5px;
+  border: 1px solid #e6e8ec;
+  border-radius: 8px;
+  background: #f9fbfc;
+  padding: 14px;
+}
+
+.admin-ip-list strong {
+  color: #0f2d52;
+}
+
+.admin-ip-list span {
+  color: #0f7c82;
+  font-weight: 900;
+}
+
+.admin-ip-list small,
+.admin-muted {
+  color: #526273;
+}
+
+.admin-table-wrap {
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+.admin-analytics-table {
+  width: 100%;
+  min-width: 560px;
+  border-collapse: collapse;
+}
+
+.admin-analytics-table th,
+.admin-analytics-table td {
+  border-bottom: 1px solid #e6e8ec;
+  padding: 12px 10px;
+  color: #0e223d;
+  text-align: left;
+  vertical-align: top;
+}
+
+.admin-analytics-table th {
+  color: #0f2d52;
+  font-weight: 900;
+}
+
 .admin-panel {
   padding: 24px;
   margin-bottom: 18px;
@@ -960,7 +1063,8 @@
 @media (max-width: 1080px) {
   .admin-app,
   .admin-editor-layout,
-  .admin-consultation-layout {
+  .admin-consultation-layout,
+  .admin-analytics-layout {
     grid-template-columns: 1fr;
   }
 
@@ -1010,6 +1114,10 @@
 
   .admin-page-title {
     display: grid;
+  }
+
+  .admin-bar-row {
+    grid-template-columns: 1fr;
   }
 
   .admin-card-actions,

@@ -21,6 +21,9 @@ pnpm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# local analytics preview data
+data/analytics-visits.json
+
 # system
 .DS_Store
 Thumbs.db

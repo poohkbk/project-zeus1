@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import "./globals.css";
+import { VisitTracker } from "@/components/analytics/VisitTracker";
 import { siteConfig } from "@/config/site";
 
 export const metadata: Metadata = {
@@ -88,6 +89,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="ko">
       <body>
+        <VisitTracker />
         <Header />
         {children}
         <Footer />

@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 
 const navItems = [
   { href: "/admin", label: "첫 화면" },
+  { href: "/admin/analytics", label: "접속통계" },
   { href: "/admin/consultations", label: "상담신청" },
   { href: "/admin/cases", label: "승소사례" },
   { href: "/admin/guides", label: "법률가이드" },
