@@ -108,7 +108,10 @@ test("unit: recalculates conditional questions after editing previous answers", 
   assert.equal(divorceWithCustody.some((question) => question.field === "custodyConcern"), true);
 
   const criminalTrial = upsertAnswer([], answer("criminal-stage", "investigationStage", "trial"));
-  assert.equal(getQuestionsForCategory("criminal", criminalTrial).some((question) => question.field === "criminalCaseNumber"), true);
+  const criminalTrialQuestions = getQuestionsForCategory("criminal", criminalTrial);
+  const caseNumberQuestion = criminalTrialQuestions.find((question) => question.field === "criminalCaseNumber");
+  assert.ok(caseNumberQuestion);
+  assert.match(caseNumberQuestion.helpText ?? "", /모른다/);
   const criminalComplaint = upsertAnswer(criminalTrial, answer("criminal-stage", "investigationStage", "complaint"));
   assert.equal(getQuestionsForCategory("criminal", criminalComplaint).some((question) => question.field === "criminalCaseNumber"), false);
 });

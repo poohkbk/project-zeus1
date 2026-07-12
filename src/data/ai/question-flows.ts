@@ -102,7 +102,8 @@ export const aiQuestionFlows: Record<Exclude<AiLegalCategory, "unclear">, AiGuid
       field: "criminalCaseNumber",
       type: "short_text",
       question: "재판 중인 사건번호를 알고 있다면 입력해주세요.",
-      helpText: "예: 청주지방법원 2026고단012345, 대전지방법원 2024고합156482, 서울중앙지방법원 2025노31543",
+      helpText:
+        "예: 청주지방법원 2026고단012345, 대전지방법원 2024고합156482, 서울중앙지방법원 2025노31543. 모른다면 입력하지 않으시거나, '모른다'라고 입력하여 주세요.",
       required: false,
       showWhen: { field: "investigationStage", operator: "equals", value: "trial" },
     },
