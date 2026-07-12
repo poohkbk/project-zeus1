@@ -39,7 +39,7 @@ const { redactSensitiveData } = require("../src/lib/ai/redaction.ts");
 const { getQuestionsForCategory, upsertAnswer } = require("../src/lib/ai/question-engine.ts");
 const { evaluateUrgency } = require("../src/lib/ai/urgency.ts");
 const { buildAiGuideResult } = require("../src/lib/ai/answer-composer.ts");
-const { getAiRelatedContent } = require("../src/lib/ai/content-retrieval.ts");
+const { getAiRelatedContent, tagsFromAiContext } = require("../src/lib/ai/content-retrieval.ts");
 
 test("classifies civil debt questions", () => {
   const result = classifyLegalQuestion("돈을 빌려줬는데 못 받고 있습니다. 차용증과 계좌이체가 있습니다.");
@@ -86,6 +86,31 @@ test("marks urgent criminal attendance dates", () => {
     },
   ]);
   assert.equal(urgency.callFirst, true);
+});
+
+test("shows criminal case number only for trial-stage matters", () => {
+  const base = getQuestionsForCategory("criminal", []);
+  const roleQuestion = base.find((question) => question.field === "partyRole");
+  assert.ok(roleQuestion?.options?.some((option) => option.label.includes("피고인")));
+  assert.equal(base.some((question) => question.field === "criminalCaseNumber"), false);
+
+  const trialAnswers = upsertAnswer([], {
+    questionId: "criminal-stage",
+    field: "investigationStage",
+    value: "trial",
+    answeredAt: new Date().toISOString(),
+  });
+  const trialQuestions = getQuestionsForCategory("criminal", trialAnswers);
+  assert.equal(trialQuestions.some((question) => question.field === "criminalCaseNumber"), true);
+
+  const complaintAnswers = upsertAnswer([], {
+    questionId: "criminal-stage",
+    field: "investigationStage",
+    value: "complaint",
+    answeredAt: new Date().toISOString(),
+  });
+  const complaintQuestions = getQuestionsForCategory("criminal", complaintAnswers);
+  assert.equal(complaintQuestions.some((question) => question.field === "criminalCaseNumber"), false);
 });
 
 test("returns real related content without inventing cases", () => {
@@ -140,4 +165,35 @@ test("creates a Korean consultation summary from masked AI answers", () => {
   assert.equal(result.consultationSummary.confirmedFacts.some((fact) => fact.includes("disputeType")), false);
   assert.ok(result.consultationSummary.confirmedFacts.some((fact) => fact.includes("문제 유형")));
   assert.ok(result.consultationSummary.availableEvidence.some((fact) => fact.includes("계좌이체")));
+});
+
+test("includes criminal court case number with a Korean label", () => {
+  const classification = classifyLegalQuestion("형사 재판 진행 중입니다.");
+  const result = buildAiGuideResult("session-criminal-trial", "형사 재판 진행 중입니다.", classification, [
+    {
+      questionId: "criminal-stage",
+      field: "investigationStage",
+      value: "trial",
+      answeredAt: new Date().toISOString(),
+    },
+    {
+      questionId: "criminal-case-number",
+      field: "criminalCaseNumber",
+      value: "청주지방법원 2026고단012345",
+      answeredAt: new Date().toISOString(),
+    },
+  ]);
+
+  assert.ok(result.consultationSummary.confirmedFacts.some((fact) => fact.includes("재판 중인 사건번호")));
+  assert.equal(result.consultationSummary.confirmedFacts.some((fact) => fact.includes("criminalCaseNumber")), false);
+
+  const tags = tagsFromAiContext(classification, [
+    {
+      questionId: "criminal-case-number",
+      field: "criminalCaseNumber",
+      value: "청주지방법원 2026고단012345",
+      answeredAt: new Date().toISOString(),
+    },
+  ]);
+  assert.equal(tags.some((tag) => tag.includes("2026고단012345")), false);
 });

@@ -15,6 +15,7 @@ const answerFieldLabels: Record<string, string> = {
   courtDocumentReceived: "법원 서류 또는 내용증명 수령",
   partyRole: "현재 입장",
   investigationStage: "진행 단계",
+  criminalCaseNumber: "재판 중인 사건번호",
   attendanceDate: "조사·출석 예정일",
   detained: "체포·구속·압수수색 등 긴급 상황",
   currentStatus: "현재 이혼 절차",

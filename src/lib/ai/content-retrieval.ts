@@ -9,9 +9,12 @@ function uniqueTags(tags: string[]) {
   return Array.from(new Set(tags.map(normalizeTag).filter(Boolean)));
 }
 
+const privateAnswerFields = new Set(["criminalCaseNumber"]);
+
 export function tagsFromAiContext(classification: AiClassificationResult, answers: AiGuideAnswer[]) {
   const categoryTags = classification.category !== "unclear" ? aiCategoryBaseTags[classification.category] : [];
   const answerTags = answers
+    .filter((answer) => !privateAnswerFields.has(answer.field) && !answer.field.toLowerCase().includes("date"))
     .map((answer) => String(answer.value ?? ""))
     .filter((value) => value !== "yes" && value !== "no" && value !== "unknown" && value !== "none");
 
