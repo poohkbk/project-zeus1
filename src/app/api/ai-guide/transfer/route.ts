@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isAiSessionOwner } from "@/lib/ai/session-auth";
 import {
   createTransferToken,
   getAiGuideSessionByTransferToken,
   getLocalAiGuideSession,
+  saveAiGuideEvent,
   updateAiGuideSession,
 } from "@/lib/ai/session-store";
 
@@ -20,6 +22,10 @@ export async function POST(request: NextRequest) {
   if (!session || !session.result) {
     return NextResponse.json({ message: "전달할 AI 요약이 없습니다." }, { status: 404 });
   }
+  if (!isAiSessionOwner(request, session)) {
+    return NextResponse.json({ message: "세션에 접근할 수 없습니다." }, { status: 403 });
+  }
+
   const transferToken = createTransferToken();
   await updateAiGuideSession({
     ...session,
@@ -27,6 +33,7 @@ export async function POST(request: NextRequest) {
     consentToTransfer: true,
     transferToken,
   });
+  await saveAiGuideEvent(session.id, "transfer_token_created", { consent: true });
 
   return NextResponse.json({ transferToken });
 }

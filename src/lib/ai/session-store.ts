@@ -1,37 +1,11 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import path from "path";
+import { hasSupabaseConfig, supabaseRequest } from "@/lib/supabase-rest";
 import type { AiGuideResult, AiGuideSessionRecord } from "@/types/ai-guide";
 
 const DATA_DIR = path.join(process.cwd(), "data");
 const STORE_FILE = path.join(DATA_DIR, "ai-guide-sessions.json");
 const sessionStore = new Map<string, AiGuideSessionRecord>();
-
-function hasSupabaseConfig() {
-  return Boolean(
-    process.env.NEXT_PUBLIC_SUPABASE_URL &&
-      (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY),
-  );
-}
-
-async function supabaseRequest(pathname: string, init: RequestInit) {
-  const baseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!baseUrl || !key) return undefined;
-
-  const response = await fetch(`${baseUrl.replace(/\/$/, "")}/rest/v1/${pathname}`, {
-    ...init,
-    headers: {
-      apikey: key,
-      Authorization: `Bearer ${key}`,
-      "Content-Type": "application/json",
-      Prefer: "return=representation",
-      ...(init.headers ?? {}),
-    },
-  });
-
-  if (!response.ok) return undefined;
-  return response.json().catch(() => undefined) as Promise<unknown>;
-}
 
 function readFileStore() {
   try {
@@ -81,6 +55,10 @@ export async function saveAiGuideSession(record: AiGuideSessionRecord) {
   }
 
   persistLocal(record);
+  await saveAiGuideEvent(record.id, "session_started", {
+    category: record.classification.category,
+    subcategory: record.classification.subcategory,
+  });
   return record;
 }
 
@@ -118,6 +96,18 @@ export async function updateAiGuideSession(record: AiGuideSessionRecord) {
   return updated;
 }
 
+export async function linkAiGuideSessionToConsultation(sessionId: string, consultationId: string) {
+  if (!hasSupabaseConfig()) return;
+  await supabaseRequest(`ai_guide_sessions?id=eq.${encodeURIComponent(sessionId)}`, {
+    method: "PATCH",
+    body: JSON.stringify({
+      status: "transferred",
+      consultation_id: consultationId,
+      updated_at: new Date().toISOString(),
+    }),
+  });
+}
+
 export async function saveAiGuideResult(sessionId: string, result: AiGuideResult) {
   if (!hasSupabaseConfig()) return;
   await supabaseRequest("ai_guide_results", {
@@ -130,6 +120,22 @@ export async function saveAiGuideResult(sessionId: string, result: AiGuideResult
       related_content: result.relatedContent,
       prompt_version: process.env.AI_PROMPT_VERSION ?? "zeu-ai-guide-v1",
       model_name: "rule",
+    }),
+  });
+  await saveAiGuideEvent(sessionId, "result_created", {
+    category: result.classification.category,
+    urgency: result.urgency.level,
+  });
+}
+
+export async function saveAiGuideEvent(sessionId: string | undefined, eventName: string, eventMetadata = {}) {
+  if (!hasSupabaseConfig()) return;
+  await supabaseRequest("ai_guide_events", {
+    method: "POST",
+    body: JSON.stringify({
+      session_id: sessionId,
+      event_name: eventName,
+      event_metadata: eventMetadata,
     }),
   });
 }

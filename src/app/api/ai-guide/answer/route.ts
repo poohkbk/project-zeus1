@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { redactSensitiveData } from "@/lib/ai/redaction";
 import { getNextQuestion, getQuestionsForCategory, upsertAnswer } from "@/lib/ai/question-engine";
-import { getLocalAiGuideSession, updateAiGuideSession } from "@/lib/ai/session-store";
+import { isAiSessionOwner } from "@/lib/ai/session-auth";
+import { getLocalAiGuideSession, saveAiGuideEvent, updateAiGuideSession } from "@/lib/ai/session-store";
 import type { AiGuideAnswer } from "@/types/ai-guide";
 
 export const dynamic = "force-dynamic";
@@ -16,6 +17,9 @@ export async function POST(request: NextRequest) {
   }
   const session = getLocalAiGuideSession(body.sessionId);
   if (!session) return NextResponse.json({ message: "세션을 찾을 수 없습니다." }, { status: 404 });
+  if (!isAiSessionOwner(request, session)) {
+    return NextResponse.json({ message: "세션에 접근할 수 없습니다." }, { status: 403 });
+  }
 
   const value =
     typeof body.answer.value === "string"
@@ -26,12 +30,18 @@ export async function POST(request: NextRequest) {
     value,
     answeredAt: new Date().toISOString(),
   });
-  const validQuestionIds = new Set(getQuestionsForCategory(session.classification.category, nextAnswers).map((question) => question.id));
+  const validQuestionIds = new Set(
+    getQuestionsForCategory(session.classification.category, nextAnswers).map((question) => question.id),
+  );
   const filteredAnswers = nextAnswers.filter((answer) => validQuestionIds.has(answer.questionId));
   const updated = await updateAiGuideSession({
     ...session,
     status: "questioning",
     answers: filteredAnswers,
+  });
+  await saveAiGuideEvent(updated.id, "answer_saved", {
+    questionId: body.answer.questionId,
+    field: body.answer.field,
   });
 
   const questions = getQuestionsForCategory(updated.classification.category, updated.answers);

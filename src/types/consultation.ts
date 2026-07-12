@@ -12,6 +12,7 @@ export interface ConsultationFormValues {
   aiSummary?: {
     category?: string;
     categoryLabel: string;
+    subcategory?: string;
     subcategoryLabel?: string;
     situationSummary: string;
     confirmedFacts: string[];

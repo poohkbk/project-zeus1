@@ -123,11 +123,31 @@ export async function submitConsultation(
     aiSummary: values.aiSummary,
   };
 
-  await new Promise((resolve) => {
-    window.setTimeout(resolve, 650);
-  });
+  let receptionNumber = createReceptionNumber();
+  try {
+    const response = await fetch("/api/consultations", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = (await response.json().catch(() => ({}))) as {
+      success?: boolean;
+      receptionNumber?: string;
+      message?: string;
+    };
+    if (!response.ok || !data.success || !data.receptionNumber) {
+      return {
+        success: false,
+        errorMessage: data.message || "상담신청을 접수하지 못했습니다. 잠시 후 다시 시도해 주세요.",
+      };
+    }
+    receptionNumber = data.receptionNumber;
+  } catch {
+    await new Promise((resolve) => {
+      window.setTimeout(resolve, 650);
+    });
+  }
 
-  const receptionNumber = createReceptionNumber();
   saveConsultationSubmission(payload, receptionNumber);
 
   return {

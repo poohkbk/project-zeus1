@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { buildAiGuideResult } from "@/lib/ai/answer-composer";
+import { isAiSessionOwner } from "@/lib/ai/session-auth";
 import { getLocalAiGuideSession, updateAiGuideSession } from "@/lib/ai/session-store";
 
 export const dynamic = "force-dynamic";
@@ -9,6 +10,9 @@ export async function POST(request: NextRequest) {
   if (!body.sessionId) return NextResponse.json({ message: "세션이 없습니다." }, { status: 400 });
   const session = getLocalAiGuideSession(body.sessionId);
   if (!session) return NextResponse.json({ message: "세션을 찾을 수 없습니다." }, { status: 404 });
+  if (!isAiSessionOwner(request, session)) {
+    return NextResponse.json({ message: "세션에 접근할 수 없습니다." }, { status: 403 });
+  }
 
   const result = buildAiGuideResult(
     session.id,

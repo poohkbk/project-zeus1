@@ -42,6 +42,7 @@ const { buildAiGuideResult } = require("../src/lib/ai/answer-composer.ts");
 const { getAiRelatedContent, tagsFromAiContext } = require("../src/lib/ai/content-retrieval.ts");
 const { checkRateLimit, clearRateLimitBuckets } = require("../src/lib/ai/rate-limit.ts");
 const { evaluateSafetyGuidance } = require("../src/lib/ai/safety.ts");
+const { isAiSessionOwner } = require("../src/lib/ai/session-auth.ts");
 const {
   createAiSessionId,
   createExpiry,
@@ -321,6 +322,34 @@ test("integration/security: blocks invalid, expired, and non-consented transfer 
   assert.equal(Boolean(noConsentSession?.consentToTransfer), false);
 });
 
+test("integration/security: blocks another browser from reusing a session id", () => {
+  const session = makeSession({
+    id: "11111111-1111-4111-8111-111111111111",
+    publicToken: "owner-browser-token",
+  });
+  const ownerRequest = {
+    cookies: {
+      get: (name) =>
+        name === `zeu_ai_session_${session.id}` ? { value: "owner-browser-token" } : undefined,
+    },
+  };
+  const otherBrowserRequest = {
+    cookies: {
+      get: () => undefined,
+    },
+  };
+  const forgedBrowserRequest = {
+    cookies: {
+      get: (name) =>
+        name === `zeu_ai_session_${session.id}` ? { value: "wrong-token" } : undefined,
+    },
+  };
+
+  assert.equal(isAiSessionOwner(ownerRequest, session), true);
+  assert.equal(isAiSessionOwner(otherBrowserRequest, session), false);
+  assert.equal(isAiSessionOwner(forgedBrowserRequest, session), false);
+});
+
 test("integration/security: Supabase RLS migration protects AI and consultation data", () => {
   const migration = fs.readFileSync(path.join(projectRoot, "supabase", "migrations", "010_ai_guide_core.sql"), "utf8");
   for (const table of [
@@ -328,6 +357,7 @@ test("integration/security: Supabase RLS migration protects AI and consultation 
     "ai_guide_sessions",
     "ai_guide_answers",
     "ai_guide_results",
+    "ai_guide_events",
     "ai_guide_feedback",
     "ai_safety_events",
   ]) {
@@ -337,6 +367,20 @@ test("integration/security: Supabase RLS migration protects AI and consultation 
   assert.match(migration, /active admins manage consultations/);
   assert.doesNotMatch(migration, /anonymous read ai sessions/i);
   assert.doesNotMatch(migration, /anonymous read ai results/i);
+});
+
+test("integration/storage: Supabase-backed AI and consultation write paths exist", () => {
+  const sessionStore = fs.readFileSync(path.join(projectRoot, "src", "lib", "ai", "session-store.ts"), "utf8");
+  const consultationRoute = fs.readFileSync(path.join(projectRoot, "src", "app", "api", "consultations", "route.ts"), "utf8");
+  const consultationValidation = fs.readFileSync(path.join(projectRoot, "src", "lib", "consultation-validation.ts"), "utf8");
+
+  assert.match(sessionStore, /ai_guide_sessions/);
+  assert.match(sessionStore, /ai_guide_answers/);
+  assert.match(sessionStore, /ai_guide_results/);
+  assert.match(sessionStore, /ai_guide_events/);
+  assert.match(consultationRoute, /consultations/);
+  assert.match(consultationRoute, /ai_session_id/);
+  assert.match(consultationValidation, /\/api\/consultations/);
 });
 
 test("screen-contract: AI guide includes fallback, transfer, and responsive CSS hooks", () => {

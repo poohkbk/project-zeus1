@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { classifyLegalQuestion } from "@/lib/ai/classifier";
 import { checkRateLimit } from "@/lib/ai/rate-limit";
 import { evaluateSafetyGuidance } from "@/lib/ai/safety";
+import { attachAiSessionCookie } from "@/lib/ai/session-auth";
 import { createAiSessionId, createExpiry, saveAiGuideSession } from "@/lib/ai/session-store";
 import { redactSensitiveData } from "@/lib/ai/redaction";
 import type { AiLegalCategory } from "@/types/ai-guide";
@@ -46,10 +47,10 @@ export async function POST(request: NextRequest) {
     expiresAt: createExpiry(Number(process.env.AI_SESSION_RETENTION_DAYS ?? 30)),
   });
 
-  return NextResponse.json({
+  return attachAiSessionCookie(NextResponse.json({
     sessionId: session.id,
     classification: session.classification,
     redactionFindings: redacted.findings,
     safetyGuidance,
-  });
+  }), session);
 }
