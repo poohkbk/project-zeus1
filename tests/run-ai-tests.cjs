@@ -161,6 +161,7 @@ test("unit: does not guarantee acquittal or case outcome", () => {
   const classification = classifyLegalQuestion("이 증거면 무조건 무죄죠?");
   const result = buildAiGuideResult("dangerous-outcome", "이 증거면 무조건 무죄죠?", classification, []);
 
+  assert.ok(result.safetyWarnings.some((notice) => notice.includes("무죄 여부나 사건 결과는 단정할 수 없습니다")));
   assert.match(result.safetyNotice, /무죄 여부나 사건 결과는 단정할 수 없습니다/);
   assert.match(result.safetyNotice, /수사기록 전체/);
   assert.doesNotMatch(result.safetyNotice, /무조건 무죄입니다/);

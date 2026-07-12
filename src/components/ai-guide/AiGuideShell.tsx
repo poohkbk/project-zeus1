@@ -27,6 +27,10 @@ type SessionResponse = {
   sessionId: string;
   classification: AiClassificationResult;
   redactionFindings: string[];
+  safetyGuidance?: {
+    flags: string[];
+    notices: string[];
+  };
 };
 
 type ClassifyResponse = {
@@ -135,6 +139,10 @@ export function AiGuideShell() {
       setSessionId(response.sessionId);
       setClassification(response.classification);
       setRedactionFindings(response.redactionFindings);
+      if (response.safetyGuidance?.flags.length) {
+        await createResult(response.sessionId);
+        return;
+      }
       setUiState("confirming_category");
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "AI 안내를 시작하지 못했습니다.");
@@ -190,10 +198,11 @@ export function AiGuideShell() {
     }
   }
 
-  async function createResult() {
+  async function createResult(targetSessionId = sessionId) {
+    if (!targetSessionId) return;
     setUiState("analyzing");
     try {
-      const response = await postJson<{ result: AiGuideResult }>("/api/ai-guide/result", { sessionId });
+      const response = await postJson<{ result: AiGuideResult }>("/api/ai-guide/result", { sessionId: targetSessionId });
       setResult(response.result);
       setUiState(response.result.urgency.callFirst ? "urgent" : "completed");
     } catch (error) {
@@ -367,6 +376,17 @@ export function AiGuideShell() {
               </h2>
               <p>{result.situationSummary}</p>
             </header>
+
+            {(result.safetyWarnings?.length ?? 0) > 0 ? (
+              <section className="ai-safety-alert" aria-label="안전 안내">
+                <strong>안전 안내</strong>
+                <ul>
+                  {result.safetyWarnings.map((notice) => (
+                    <li key={notice}>{notice}</li>
+                  ))}
+                </ul>
+              </section>
+            ) : null}
 
             <div className="ai-result-grid">
               <ResultList title="현재 확인된 내용" items={result.confirmedFacts} />

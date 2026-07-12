@@ -158,6 +158,7 @@ export function buildAiGuideResult(
       relatedContentIds,
       generatedAt: new Date().toISOString(),
     },
+    safetyWarnings: safetyGuidance.notices,
     safetyNotice: [
       ...safetyGuidance.notices,
       "이 내용은 일반적인 법률정보입니다. 구체적인 사실관계와 자료에 따라 결론은 달라질 수 있으며, 승소 여부나 처분 결과를 단정하지 않습니다.",

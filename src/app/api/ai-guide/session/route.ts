@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { classifyLegalQuestion } from "@/lib/ai/classifier";
 import { checkRateLimit } from "@/lib/ai/rate-limit";
+import { evaluateSafetyGuidance } from "@/lib/ai/safety";
 import { createAiSessionId, createExpiry, saveAiGuideSession } from "@/lib/ai/session-store";
 import { redactSensitiveData } from "@/lib/ai/redaction";
 import type { AiLegalCategory } from "@/types/ai-guide";
@@ -30,6 +31,7 @@ export async function POST(request: NextRequest) {
   const question = String(body.question ?? "").slice(0, Number(process.env.AI_MAX_INPUT_CHARS ?? 2000));
   const redacted = redactSensitiveData(question);
   const classification = classifyLegalQuestion(redacted.redacted, body.category);
+  const safetyGuidance = evaluateSafetyGuidance(redacted.redacted);
   const now = new Date().toISOString();
   const session = await saveAiGuideSession({
     id: createAiSessionId(),
@@ -48,5 +50,6 @@ export async function POST(request: NextRequest) {
     sessionId: session.id,
     classification: session.classification,
     redactionFindings: redacted.findings,
+    safetyGuidance,
   });
 }

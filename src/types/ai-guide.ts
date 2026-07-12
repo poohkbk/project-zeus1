@@ -138,6 +138,7 @@ export interface AiGuideResult {
     faqs: AiRelatedContent[];
   };
   consultationSummary: AiConsultationSummary;
+  safetyWarnings: string[];
   safetyNotice: string;
   generatedBy: "rule" | "ai" | "hybrid";
 }
