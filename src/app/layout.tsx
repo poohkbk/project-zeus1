@@ -44,6 +44,7 @@ const navItems = [
   { label: "승소사례", href: siteConfig.links.cases },
   { label: "법률가이드", href: siteConfig.links.legalGuide },
   { label: "변호사 소개", href: siteConfig.links.lawyer },
+  { label: "오시는 길", href: siteConfig.links.location },
   { label: "상담예약", href: siteConfig.links.consultation },
 ];
 
@@ -95,6 +96,7 @@ function Footer() {
           <span>{siteConfig.address}</span>
           <a href={siteConfig.phoneHref}>{siteConfig.phone}</a>
           <span>Mobile {siteConfig.mobile}</span>
+          <Link href={siteConfig.links.location}>오시는 길</Link>
         </address>
       </div>
     </footer>

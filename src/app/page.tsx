@@ -3,6 +3,7 @@ import { AiGuideSection } from "@/components/home/AiGuideSection";
 import { CTASection } from "@/components/home/CTASection";
 import { FeaturedCases } from "@/components/home/FeaturedCases";
 import { Hero } from "@/components/home/Hero";
+import { HomeLocationSection } from "@/components/location/HomeLocationSection";
 import { LawyerSection } from "@/components/home/LawyerSection";
 import { LegalGuides } from "@/components/home/LegalGuides";
 import { PracticeAreas } from "@/components/home/PracticeAreas";
@@ -26,6 +27,7 @@ export default function Home() {
       <LegalGuides />
       <LawyerSection />
       <CTASection />
+      <HomeLocationSection />
       <MobileQuickBar />
     </main>
   );

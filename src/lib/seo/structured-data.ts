@@ -3,14 +3,15 @@ import type { LocalSeoPage } from "@/types/seo";
 import { absoluteUrl, siteUrl } from "./metadata";
 
 export function organizationJsonLd() {
-  return {
+  const legalService = {
     "@context": "https://schema.org",
     "@type": "LegalService",
     "@id": `${siteUrl}/#legalservice`,
     name: siteConfig.name,
-    alternateName: "LAW OFFICE ZEU",
+    alternateName: siteConfig.englishName,
     url: siteUrl,
     telephone: siteConfig.phone,
+    email: siteConfig.email,
     address: {
       "@type": "PostalAddress",
       addressCountry: "KR",
@@ -28,6 +29,19 @@ export function organizationJsonLd() {
       },
     },
   };
+
+  if (siteConfig.location.latitude && siteConfig.location.longitude) {
+    return {
+      ...legalService,
+      geo: {
+        "@type": "GeoCoordinates",
+        latitude: siteConfig.location.latitude,
+        longitude: siteConfig.location.longitude,
+      },
+    };
+  }
+
+  return legalService;
 }
 
 export function websiteJsonLd() {
