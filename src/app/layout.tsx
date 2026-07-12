@@ -96,6 +96,7 @@ function Footer() {
           <span>{siteConfig.address}</span>
           <a href={siteConfig.phoneHref}>{siteConfig.phone}</a>
           <span>Mobile {siteConfig.mobile}</span>
+          <a href={`mailto:${siteConfig.email}`}>E-mail : {siteConfig.email}</a>
           <Link href={siteConfig.links.location}>오시는 길</Link>
         </address>
       </div>
