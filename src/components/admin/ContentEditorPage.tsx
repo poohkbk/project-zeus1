@@ -195,6 +195,12 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
                 <div>
                   <h3>대표 이미지</h3>
                   <p>새 글 작성 중 바로 이미지를 추가하고 미리볼 수 있습니다.</p>
+                  <ul className="admin-upload-guide">
+                    <li>권장 크기: 1200 x 800px</li>
+                    <li>권장 비율: 가로형 3:2 또는 4:3</li>
+                    <li>파일 형식: JPG, PNG, WebP</li>
+                    <li>최대 용량: 5MB 이하</li>
+                  </ul>
                 </div>
                 <label className="admin-upload-drop">
                   <input
@@ -203,7 +209,7 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
                     onChange={handleImageChange}
                   />
                   <strong>이미지 선택</strong>
-                  <span>JPG, PNG, WebP · 최대 5MB</span>
+                  <span>권장 1200 x 800px · JPG, PNG, WebP · 최대 5MB</span>
                 </label>
                 {item.heroImage ? (
                   <figure className="admin-upload-preview">

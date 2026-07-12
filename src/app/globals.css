@@ -440,6 +440,25 @@
   margin: 4px 0 0;
 }
 
+.admin-upload-guide {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.admin-upload-guide li {
+  border: 1px solid #dfe6ee;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 9px 10px;
+  color: #526273;
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
 .admin-upload-drop {
   display: grid;
   min-height: 132px;
@@ -984,6 +1003,7 @@
   .admin-review-grid,
   .admin-admin-grid,
   .admin-upload-preview,
+  .admin-upload-guide,
   .admin-taxonomy-add,
   .admin-consultation-print dl,
   .admin-featured-row {
