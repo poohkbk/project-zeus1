@@ -213,7 +213,6 @@
 .admin-editor-panel textarea,
 .admin-settings-grid input,
 .admin-settings-grid select,
-.admin-upload-box input,
 .admin-login-card input {
   width: 100%;
   min-height: 48px;
@@ -928,7 +927,6 @@
   font-size: 0.82rem;
 }
 
-.admin-upload-box,
 .admin-settings-grid {
   display: grid;
   gap: 14px;

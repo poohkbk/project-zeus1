@@ -11,7 +11,6 @@ const navItems = [
   { href: "/admin/guides", label: "법률가이드" },
   { href: "/admin/faqs", label: "FAQ" },
   { href: "/admin/taxonomy", label: "분야·태그" },
-  { href: "/admin/media", label: "이미지" },
   { href: "/admin/trash", label: "휴지통" },
   { href: "/admin/settings/admins", label: "관리자" },
   { href: "/admin/settings/site", label: "사이트 설정" },

@@ -107,32 +107,6 @@ export function TaxonomyPage() {
   );
 }
 
-export function MediaPage() {
-  return (
-    <div className="admin-screen">
-      <header className="admin-page-title">
-        <div>
-          <span>이미지 관리</span>
-          <h1>콘텐츠 이미지</h1>
-          <p>JPG, PNG, WebP 이미지를 5MB 이하로 올리는 흐름입니다.</p>
-        </div>
-      </header>
-      <section className="admin-panel admin-upload-box">
-        <h2>이미지 업로드</h2>
-        <p>
-          현재는 Supabase Storage 연결 전 미리보기입니다. 운영 연결 후 파일 선택,
-          진행률, 교체, 삭제가 활성화됩니다.
-        </p>
-        <label>
-          파일 선택
-          <input type="file" accept="image/jpeg,image/png,image/webp" />
-        </label>
-        <small>이미지가 크면 1200x800px 안팎으로 줄이면 페이지가 더 빠르게 표시됩니다.</small>
-      </section>
-    </div>
-  );
-}
-
 export function TrashPage() {
   const [items, setItems] = useState<CmsContentItem[]>([]);
 

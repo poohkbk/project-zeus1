@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { AdminDashboard } from "@/components/admin/AdminDashboard";
 import { AdminLogin } from "@/components/admin/AdminLogin";
 import { ConsultationsPage } from "@/components/admin/ConsultationsPage";
@@ -5,7 +6,6 @@ import { ContentEditorPage } from "@/components/admin/ContentEditorPage";
 import { ContentListPage } from "@/components/admin/ContentListPage";
 import {
   AdminUsersPage,
-  MediaPage,
   ProfilePage,
   SiteSettingsPage,
   TaxonomyPage,
@@ -35,7 +35,7 @@ export default async function AdminPage({ params }: AdminPageProps) {
   if (section === "login") return <AdminLogin />;
   if (section === "consultations") return <ConsultationsPage />;
   if (section === "taxonomy") return <TaxonomyPage />;
-  if (section === "media") return <MediaPage />;
+  if (section === "media") redirect("/admin");
   if (section === "trash") return <TrashPage />;
   if (section === "profile") return <ProfilePage />;
   if (section === "settings" && actionOrId === "admins") return <AdminUsersPage />;
