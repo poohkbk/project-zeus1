@@ -34,9 +34,12 @@ export async function POST(request: NextRequest) {
     answers: filteredAnswers,
   });
 
+  const questions = getQuestionsForCategory(updated.classification.category, updated.answers);
+
   return NextResponse.json({
     answers: updated.answers,
     nextQuestion: getNextQuestion(updated.classification.category, updated.answers),
-    totalQuestions: getQuestionsForCategory(updated.classification.category, updated.answers).length,
+    questions,
+    totalQuestions: questions.length,
   });
 }

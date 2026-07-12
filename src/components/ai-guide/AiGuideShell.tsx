@@ -37,6 +37,7 @@ type ClassifyResponse = {
 type AnswerResponse = {
   answers: AiGuideAnswer[];
   nextQuestion?: AiGuideQuestion;
+  questions: AiGuideQuestion[];
   totalQuestions: number;
 };
 
@@ -175,7 +176,8 @@ export function AiGuideShell() {
         },
       });
       setAnswers(response.answers);
-      const nextIndex = questions.findIndex((item) => item.id === response.nextQuestion?.id);
+      setQuestions(response.questions);
+      const nextIndex = response.questions.findIndex((item) => item.id === response.nextQuestion?.id);
       if (nextIndex >= 0) {
         setCurrentIndex(nextIndex);
         const nextExisting = response.answers.find((answer) => answer.questionId === response.nextQuestion?.id);
