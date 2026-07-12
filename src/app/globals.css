@@ -3860,6 +3860,18 @@ svg {
   font-size: 1.25rem;
 }
 
+.footer-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.footer-brand img {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+}
+
 .site-footer p {
   max-width: 520px;
   line-height: 1.7;

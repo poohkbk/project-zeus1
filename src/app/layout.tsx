@@ -87,7 +87,10 @@ function Footer() {
     <footer className="site-footer">
       <div className="site-shell footer-grid">
         <div>
-          <strong>{siteConfig.name}</strong>
+          <span className="footer-brand">
+            <Image src="/favicon.png" alt="" width={28} height={28} aria-hidden="true" />
+            <strong>{siteConfig.name}</strong>
+          </span>
           <p>
             의뢰인의 이야기를 충분히 듣고 사건의 쟁점을 세밀하게 검토합니다.
           </p>
