@@ -6,8 +6,11 @@ import type { AiGuideResult, AiGuideSessionRecord } from "@/types/ai-guide";
 const DATA_DIR = path.join(process.cwd(), "data");
 const STORE_FILE = path.join(DATA_DIR, "ai-guide-sessions.json");
 const sessionStore = new Map<string, AiGuideSessionRecord>();
+const canUseFileStore = !process.env.VERCEL;
 
 function readFileStore() {
+  if (!canUseFileStore) return [];
+
   try {
     if (!existsSync(STORE_FILE)) return [];
     const parsed = JSON.parse(readFileSync(STORE_FILE, "utf8")) as AiGuideSessionRecord[];
@@ -18,8 +21,14 @@ function readFileStore() {
 }
 
 function writeFileStore(records: AiGuideSessionRecord[]) {
-  if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
-  writeFileSync(STORE_FILE, JSON.stringify(records, null, 2));
+  if (!canUseFileStore) return;
+
+  try {
+    if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
+    writeFileSync(STORE_FILE, JSON.stringify(records, null, 2));
+  } catch {
+    // Serverless deployments can be read-only; keep the in-memory session as a fallback.
+  }
 }
 
 function loadLocalSessions() {
