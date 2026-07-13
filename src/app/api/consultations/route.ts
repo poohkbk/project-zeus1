@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
     await linkAiGuideSessionToConsultation(transferSession.id, inserted.id);
   }
 
-  await notifyAdminOfConsultation({
+  const emailNotification = await notifyAdminOfConsultation({
     receptionNumber,
     name: normalized.name,
     phone: normalized.phone,
@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
     message: normalized.message,
     source,
     aiSummary,
-  }).catch(() => undefined);
+  }).catch(() => ({ sent: false, reason: "email_exception" as const }));
 
-  return NextResponse.json({ success: true, receptionNumber });
+  return NextResponse.json({ success: true, receptionNumber, emailSent: emailNotification.sent });
 }
