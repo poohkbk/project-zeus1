@@ -23,6 +23,17 @@ function fallbackReason() {
   return "지도를 불러올 수 없습니다.";
 }
 
+function hasRenderedMapTiles(container: HTMLDivElement | null) {
+  if (!container) return false;
+
+  const visibleTileImages = Array.from(container.querySelectorAll("img")).filter((image) => {
+    const rect = image.getBoundingClientRect();
+    return rect.width >= 64 && rect.height >= 64 && image.complete && image.naturalWidth > 0;
+  });
+
+  return visibleTileImages.length >= 2;
+}
+
 export function OfficeMap({ compact = false }: OfficeMapProps) {
   const mapRef = useRef<HTMLDivElement | null>(null);
   const initializedRef = useRef(false);
@@ -82,13 +93,7 @@ export function OfficeMap({ compact = false }: OfficeMapProps) {
       initializedRef.current = true;
       setStatus("ready");
       const timer = window.setTimeout(() => {
-        const mapText = mapRef.current?.innerText ?? "";
-        const hasVisibleMapSignal =
-          mapText.includes("NAVER") ||
-          mapText.includes("100m") ||
-          Boolean(mapRef.current?.querySelector("img[src*='naver'], img[src*='map'], canvas"));
-
-        if (!hasVisibleMapSignal) setStatus("error");
+        if (!hasRenderedMapTiles(mapRef.current)) setStatus("error");
       }, 4500);
 
       return () => window.clearTimeout(timer);
