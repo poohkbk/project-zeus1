@@ -4046,6 +4046,13 @@ svg {
   position: absolute;
   inset: 0;
   z-index: 1;
+  min-height: inherit;
+  background: #eef6f8;
+}
+
+.office-map-canvas > div {
+  width: 100% !important;
+  height: 100% !important;
 }
 
 .office-map-canvas img {

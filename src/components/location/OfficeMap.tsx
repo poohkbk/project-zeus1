@@ -4,7 +4,7 @@ import Script from "next/script";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { siteConfig } from "@/config/site";
 
-type MapStatus = "missing-config" | "loading" | "ready" | "error";
+type MapStatus = "missing-config" | "loading" | "ready" | "auth-error" | "error";
 
 type OfficeMapProps = {
   compact?: boolean;
@@ -16,12 +16,33 @@ function hasValidCoordinate(value: number | null) {
   return typeof value === "number" && Number.isFinite(value);
 }
 
-function fallbackReason() {
+function escapeHtml(value: string) {
+  return value.replace(/[&<>"']/g, (character) => {
+    return {
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#039;",
+    }[character] as string;
+  });
+}
+
+function getStatusTitle(status: MapStatus) {
+  if (status === "loading") return "네이버 지도를 불러오고 있습니다.";
+  if (status === "auth-error") return "네이버 지도 인증을 확인해 주세요.";
+  return "지도를 불러오지 못했습니다.";
+}
+
+function getStatusDescription(status: MapStatus) {
+  if (status === "loading") return "잠시만 기다려 주세요.";
+  if (status === "auth-error") {
+    return "네이버 클라우드 Maps의 Web 서비스 URL과 Client ID 설정을 확인해 주세요.";
+  }
   if (!hasValidCoordinate(siteConfig.location.latitude) || !hasValidCoordinate(siteConfig.location.longitude)) {
     return "사무소 좌표가 아직 설정되지 않았습니다.";
   }
-
-  return "브라우저 또는 지도 API 설정 때문에 지도를 불러오지 못했습니다.";
+  return "브라우저 또는 지도 API 설정 문제로 지도를 불러오지 못했습니다.";
 }
 
 export function OfficeMap({ compact = false }: OfficeMapProps) {
@@ -39,6 +60,19 @@ export function OfficeMap({ compact = false }: OfficeMapProps) {
   );
 
   useEffect(() => {
+    window.navermap_authFailure = () => {
+      initializedRef.current = false;
+      setStatus("auth-error");
+    };
+
+    if (window.naver?.maps) setScriptReady(true);
+
+    return () => {
+      if (window.navermap_authFailure) delete window.navermap_authFailure;
+    };
+  }, []);
+
+  useEffect(() => {
     if (!canLoadMap) {
       setStatus("missing-config");
       return;
@@ -46,7 +80,9 @@ export function OfficeMap({ compact = false }: OfficeMapProps) {
 
     if (scriptReady && !window.naver?.maps) {
       const timer = window.setTimeout(() => {
-        if (!window.naver?.maps) setStatus("error");
+        if (!window.naver?.maps) {
+          setStatus((current) => (current === "auth-error" ? current : "error"));
+        }
       }, 4000);
 
       return () => window.clearTimeout(timer);
@@ -55,6 +91,8 @@ export function OfficeMap({ compact = false }: OfficeMapProps) {
     if (!scriptReady || !window.naver?.maps || !mapRef.current || initializedRef.current) return;
 
     try {
+      mapRef.current.innerHTML = "";
+
       const position = new window.naver.maps.LatLng(latitude as number, longitude as number);
       const map = new window.naver.maps.Map(mapRef.current, {
         center: position,
@@ -70,7 +108,7 @@ export function OfficeMap({ compact = false }: OfficeMapProps) {
         title: siteConfig.name,
       });
       const infoWindow = new window.naver.maps.InfoWindow({
-        content: `<div class="naver-map-info"><strong>${siteConfig.name}</strong><span>${siteConfig.location.address}</span><span>${siteConfig.phone}</span></div>`,
+        content: `<div class="naver-map-info"><strong>${escapeHtml(siteConfig.name)}</strong><span>${escapeHtml(siteConfig.location.address)}</span><span>${escapeHtml(siteConfig.phone)}</span></div>`,
         maxWidth: 260,
       });
 
@@ -83,7 +121,7 @@ export function OfficeMap({ compact = false }: OfficeMapProps) {
       initializedRef.current = true;
       setStatus("ready");
 
-      const refreshTimers = [300, 900, 1800].map((delay) =>
+      const refreshTimers = [250, 800, 1600].map((delay) =>
         window.setTimeout(() => {
           map.refresh();
           map.setCenter(position);
@@ -106,7 +144,7 @@ export function OfficeMap({ compact = false }: OfficeMapProps) {
           onLoad={() => {
             initializedRef.current = false;
             setScriptReady(true);
-            setStatus("loading");
+            setStatus((current) => (current === "auth-error" ? current : "loading"));
           }}
           onError={() => setStatus("error")}
         />
@@ -116,8 +154,8 @@ export function OfficeMap({ compact = false }: OfficeMapProps) {
 
       {status !== "ready" ? (
         <div className="office-map-fallback" aria-live="polite">
-          <strong>{status === "loading" ? "지도를 불러오고 있습니다." : "지도를 불러오지 못했습니다."}</strong>
-          <p>{status === "loading" ? "잠시만 기다려주세요." : fallbackReason()}</p>
+          <strong>{getStatusTitle(status)}</strong>
+          <p>{getStatusDescription(status)}</p>
           <p>{siteConfig.location.address}</p>
           <div className="location-action-row">
             <a className="btn btn-secondary" href={siteConfig.location.naverMapUrl} target="_blank" rel="noopener noreferrer">

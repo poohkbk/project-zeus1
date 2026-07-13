@@ -2,6 +2,7 @@ export {};
 
 declare global {
   interface Window {
+    navermap_authFailure?: () => void;
     naver?: {
       maps?: {
         LatLng: new (latitude: number, longitude: number) => unknown;
