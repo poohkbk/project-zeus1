@@ -1,8 +1,7 @@
 export const siteConfig = {
   name: "법률사무소 제우",
   englishName: "LAW OFFICE ZEU",
-  description:
-    "청주 민사, 형사, 이혼, 상속 사건을 상담하는 법률사무소 제우입니다.",
+  description: "청주 민사, 형사, 이혼, 상속 사건을 상담하는 법률사무소 제우입니다.",
   phone: "043-296-3901",
   phoneHref: "tel:0432963901",
   mobile: "010-3096-1629",
@@ -21,7 +20,7 @@ export const siteConfig = {
       : 127.466455,
     naverMapUrl:
       process.env.NEXT_PUBLIC_NAVER_MAP_URL ||
-      `https://map.naver.com/p/search/${encodeURIComponent("법률사무소 제우 청주")}`,
+      "https://map.naver.com/p/entry/place/36364453?c=15.00,0,0,0,dh&isCorrectAnswer=true&placePath=%2Fhome%3Ffrom%3Dmap%26fromPanelNum%3D1%26additionalHeight%3D76%26timestamp%3D202607122310%26locale%3Dko%26svcName%3Dmap_pcv5",
     parkingDescription: "본건물 지하주차장을 이용하실 수 있으며, 무료 주차 시간은 2시간입니다.",
   },
   links: {
