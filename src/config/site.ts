@@ -15,10 +15,10 @@ export const siteConfig = {
     building: "산성미소시티블루1",
     latitude: process.env.NEXT_PUBLIC_OFFICE_LATITUDE
       ? Number(process.env.NEXT_PUBLIC_OFFICE_LATITUDE)
-      : null,
+      : 36.61269,
     longitude: process.env.NEXT_PUBLIC_OFFICE_LONGITUDE
       ? Number(process.env.NEXT_PUBLIC_OFFICE_LONGITUDE)
-      : null,
+      : 127.466455,
     naverMapUrl:
       process.env.NEXT_PUBLIC_NAVER_MAP_URL ||
       `https://map.naver.com/p/search/${encodeURIComponent("법률사무소 제우 청주")}`,

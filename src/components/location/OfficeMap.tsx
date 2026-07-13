@@ -10,12 +10,13 @@ type OfficeMapProps = {
   compact?: boolean;
 };
 
+const defaultNaverMapsClientId = "0bxkgbpdjy";
+
 function hasValidCoordinate(value: number | null) {
   return typeof value === "number" && Number.isFinite(value);
 }
 
 function fallbackReason() {
-  if (!process.env.NEXT_PUBLIC_NAVER_MAPS_CLIENT_ID) return "Naver 지도 Client ID가 아직 설정되지 않았습니다.";
   if (!hasValidCoordinate(siteConfig.location.latitude) || !hasValidCoordinate(siteConfig.location.longitude)) {
     return "사무소 좌표가 아직 설정되지 않았습니다.";
   }
@@ -27,7 +28,7 @@ export function OfficeMap({ compact = false }: OfficeMapProps) {
   const initializedRef = useRef(false);
   const [status, setStatus] = useState<MapStatus>("missing-config");
   const [scriptReady, setScriptReady] = useState(false);
-  const clientId = process.env.NEXT_PUBLIC_NAVER_MAPS_CLIENT_ID;
+  const clientId = process.env.NEXT_PUBLIC_NAVER_MAPS_CLIENT_ID || defaultNaverMapsClientId;
   const latitude = siteConfig.location.latitude;
   const longitude = siteConfig.location.longitude;
   const canLoadMap = Boolean(clientId && hasValidCoordinate(latitude) && hasValidCoordinate(longitude));
