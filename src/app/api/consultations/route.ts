@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAiGuideSessionByTransferToken, linkAiGuideSessionToConsultation } from "@/lib/ai/session-store";
 import { createConsultation } from "@/lib/data/consultations";
+import { notifyAdminOfConsultation } from "@/lib/notifications/consultation-email";
 import type { ConsultationCategory, ConsultationFormValues } from "@/types/consultation";
 
 export const dynamic = "force-dynamic";
@@ -80,6 +81,16 @@ export async function POST(request: NextRequest) {
   if (inserted?.id && transferSession?.id) {
     await linkAiGuideSessionToConsultation(transferSession.id, inserted.id);
   }
+
+  await notifyAdminOfConsultation({
+    receptionNumber,
+    name: normalized.name,
+    phone: normalized.phone,
+    category: normalized.category,
+    message: normalized.message,
+    source,
+    aiSummary,
+  }).catch(() => undefined);
 
   return NextResponse.json({ success: true, receptionNumber });
 }
