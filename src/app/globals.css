@@ -3960,12 +3960,12 @@ svg {
   display: grid;
   grid-template-columns: minmax(0, 1.45fr) minmax(340px, 0.85fr);
   gap: 28px;
-  align-items: stretch;
+  align-items: start;
 }
 
 .office-map {
   position: relative;
-  min-height: 560px;
+  height: 560px;
   overflow: hidden;
   border: 1px solid rgba(0, 27, 54, 0.12);
   border-radius: 20px;
@@ -3976,7 +3976,7 @@ svg {
 }
 
 .office-map.compact {
-  min-height: 430px;
+  height: 430px;
 }
 
 .office-map-frame {
@@ -4057,7 +4057,6 @@ svg {
   position: absolute;
   inset: 0;
   z-index: 1;
-  min-height: inherit;
   background: #eef6f8;
 }
 
@@ -4248,11 +4247,11 @@ svg {
   }
 
   .office-map {
-    min-height: 420px;
+    height: 420px;
   }
 
   .office-map.compact {
-    min-height: 380px;
+    height: 380px;
   }
 }
 
@@ -4264,7 +4263,7 @@ svg {
 
   .office-map,
   .office-map.compact {
-    min-height: 340px;
+    height: 340px;
     border-radius: 16px;
   }
 
