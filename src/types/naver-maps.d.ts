@@ -15,7 +15,10 @@ declare global {
               position: unknown;
             };
           },
-        ) => unknown;
+        ) => {
+          refresh: () => void;
+          setCenter: (position: unknown) => void;
+        };
         Marker: new (options: { position: unknown; map: unknown; title?: string }) => unknown;
         InfoWindow: new (options: { content: string; maxWidth?: number }) => {
           open: (map: unknown, marker: unknown) => void;

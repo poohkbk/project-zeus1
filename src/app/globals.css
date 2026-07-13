@@ -4002,6 +4002,10 @@ svg {
   z-index: 1;
 }
 
+.office-map-canvas img {
+  max-width: none !important;
+}
+
 .office-map-fallback {
   position: absolute;
   inset: 0;
