@@ -3965,7 +3965,7 @@ svg {
 
 .office-map {
   position: relative;
-  height: 560px;
+  min-height: 560px;
   overflow: hidden;
   border: 1px solid rgba(0, 27, 54, 0.12);
   border-radius: 20px;
@@ -3976,7 +3976,7 @@ svg {
 }
 
 .office-map.compact {
-  height: 430px;
+  min-height: 430px;
 }
 
 .office-map-frame {
@@ -4057,6 +4057,7 @@ svg {
   position: absolute;
   inset: 0;
   z-index: 1;
+  min-height: inherit;
   background: #eef6f8;
 }
 
@@ -4247,11 +4248,11 @@ svg {
   }
 
   .office-map {
-    height: 420px;
+    min-height: 420px;
   }
 
   .office-map.compact {
-    height: 380px;
+    min-height: 380px;
   }
 }
 
@@ -4263,7 +4264,7 @@ svg {
 
   .office-map,
   .office-map.compact {
-    height: 340px;
+    min-height: 340px;
     border-radius: 16px;
   }
 
