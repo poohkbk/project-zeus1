@@ -102,6 +102,25 @@ export function OfficeMap({ compact = false }: OfficeMapProps) {
     }
   }, [canLoadMap, latitude, longitude, scriptReady]);
 
+  if (compact) {
+    return (
+      <div className="office-map compact office-map-static" aria-label="법률사무소 제우 위치 안내">
+        <span className="office-map-static-kicker">LOCATION</span>
+        <strong>{siteConfig.name}</strong>
+        <p>{siteConfig.location.address}</p>
+        <p>{siteConfig.phone}</p>
+        <div className="office-map-static-actions">
+          <a className="btn btn-primary" href={siteConfig.location.naverMapUrl} target="_blank" rel="noopener noreferrer">
+            Naver 지도에서 길찾기
+          </a>
+          <a className="btn btn-secondary" href={siteConfig.phoneHref}>
+            전화상담
+          </a>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={compact ? "office-map compact" : "office-map"} aria-label="법률사무소 제우 위치 지도">
       {canLoadMap ? (
