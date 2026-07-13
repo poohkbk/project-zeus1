@@ -23,6 +23,7 @@ Apply migrations in this order:
 1. `supabase/migrations/001_zeu_cms.sql`
 2. `supabase/migrations/010_ai_guide_core.sql`
 3. `supabase/migrations/020_content_foundation.sql`
+4. `supabase/migrations/030_admin_auth.sql`
 
 The foundation migration adds:
 
@@ -81,4 +82,13 @@ If Supabase is unavailable or empty, public content pages keep using the existin
 
 ## Admin TODO
 
-This foundation does not finish Supabase-backed admin editing. Future work should connect the existing CMS screens to authenticated server actions after admin authentication and permission policy are finalized.
+Create a Supabase Auth user for the admin email before using `/admin/login`.
+
+Recommended first admin:
+
+- Email: `tglaw-kbk@nate.com`
+- Profile role: `super_admin`
+
+The `030_admin_auth.sql` migration inserts the matching `profiles` row. You still need to create the Supabase Auth user in Authentication > Users, or invite the user there.
+
+This foundation protects the admin shell and admin APIs. Future work should connect the CMS editing screens to authenticated server actions backed by Supabase content tables.

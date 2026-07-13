@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
+import { AdminLogoutButton } from "@/components/admin/AdminLogoutButton";
 
 const navItems = [
   { href: "/admin", label: "첫 화면" },
@@ -42,6 +43,9 @@ export function AdminShell({ children }: { children: ReactNode }) {
             </Link>
           ))}
         </nav>
+        <div className="admin-sidebar-footer">
+          <AdminLogoutButton />
+        </div>
       </aside>
       <section className="admin-main">{children}</section>
     </main>

@@ -1,13 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireAdminApi } from "@/lib/admin/auth";
 import { blockIp, loadBlockedIps, unblockIp } from "@/lib/admin/ip-blocklist";
 
 export const dynamic = "force-dynamic";
 
-export function GET() {
+export async function GET() {
+  const { response } = await requireAdminApi();
+  if (response) return response;
+
   return NextResponse.json({ blockedIps: loadBlockedIps() });
 }
 
 export async function POST(request: NextRequest) {
+  const { response } = await requireAdminApi();
+  if (response) return response;
+
   const body = (await request.json().catch(() => ({}))) as { ip?: string; reason?: string };
   if (!body.ip?.trim()) {
     return NextResponse.json({ message: "차단할 IP를 입력해주세요." }, { status: 400 });
@@ -17,6 +24,9 @@ export async function POST(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
+  const { response } = await requireAdminApi();
+  if (response) return response;
+
   const body = (await request.json().catch(() => ({}))) as { ip?: string };
   if (!body.ip?.trim()) {
     return NextResponse.json({ message: "해제할 IP를 입력해주세요." }, { status: 400 });
