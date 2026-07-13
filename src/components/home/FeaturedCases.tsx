@@ -2,10 +2,10 @@ import Link from "next/link";
 import { Reveal } from "@/components/animation/Reveal";
 import { SimpleIcon } from "@/components/icons/SimpleIcon";
 import { siteConfig } from "@/config/site";
-import { getFeaturedCases } from "@/lib/case-selectors";
+import { getFeaturedCases } from "@/lib/data/cases";
 
-export function FeaturedCases() {
-  const featuredCases = getFeaturedCases({ placement: "home", limit: 6 });
+export async function FeaturedCases() {
+  const featuredCases = await getFeaturedCases({ placement: "home", limit: 6 });
 
   return (
     <section className="section" aria-labelledby="cases-title">

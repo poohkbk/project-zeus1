@@ -4,7 +4,7 @@ import { CasesListHero } from "@/components/cases/CasesListHero";
 import { FeaturedCases } from "@/components/cases/FeaturedCases";
 import { PracticeCTA } from "@/components/practice/PracticeCTA";
 import { getPracticeAreas } from "@/data/practice";
-import { getFeaturedCases, getPublishedCases } from "@/lib/case-selectors";
+import { getFeaturedCases, getPublishedCases } from "@/lib/data/cases";
 
 export const metadata: Metadata = {
   title: "승소사례",
@@ -23,9 +23,9 @@ type CasesPageProps = {
 
 export default async function CasesPage({ searchParams }: CasesPageProps) {
   const params = await searchParams;
-  const cases = getPublishedCases();
-  const featured = getFeaturedCases({ placement: "category", limit: 6 });
-  const searchRecommendations = getFeaturedCases({ placement: "search", limit: 3 });
+  const cases = await getPublishedCases();
+  const featured = await getFeaturedCases({ placement: "category", limit: 6 });
+  const searchRecommendations = await getFeaturedCases({ placement: "search", limit: 3 });
   const fallbackPractice = getPracticeAreas()[0];
 
   return (
