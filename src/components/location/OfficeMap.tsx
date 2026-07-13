@@ -43,6 +43,14 @@ export function OfficeMap({ compact = false }: OfficeMapProps) {
       return;
     }
 
+    if (scriptReady && !window.naver?.maps) {
+      const timer = window.setTimeout(() => {
+        if (!window.naver?.maps) setStatus("error");
+      }, 3500);
+
+      return () => window.clearTimeout(timer);
+    }
+
     if (!scriptReady || !window.naver?.maps || !mapRef.current || initializedRef.current) return;
 
     try {
@@ -73,6 +81,17 @@ export function OfficeMap({ compact = false }: OfficeMapProps) {
       infoWindow.open(map, marker);
       initializedRef.current = true;
       setStatus("ready");
+      const timer = window.setTimeout(() => {
+        const mapText = mapRef.current?.innerText ?? "";
+        const hasVisibleMapSignal =
+          mapText.includes("NAVER") ||
+          mapText.includes("100m") ||
+          Boolean(mapRef.current?.querySelector("img[src*='naver'], img[src*='map'], canvas"));
+
+        if (!hasVisibleMapSignal) setStatus("error");
+      }, 4500);
+
+      return () => window.clearTimeout(timer);
     } catch {
       setStatus("error");
     }
