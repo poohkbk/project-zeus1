@@ -11,8 +11,12 @@ import { loadBlockedIps } from "./ip-blocklist";
 const ANALYTICS_DIR = path.join(process.cwd(), "data");
 const ANALYTICS_FILE = path.join(ANALYTICS_DIR, "analytics-visits.json");
 const MAX_VISITS = 5000;
+const canUseFileStore = !process.env.VERCEL;
+const memoryVisits: AnalyticsVisit[] = [];
 
 function readVisits(): AnalyticsVisit[] {
+  if (!canUseFileStore) return memoryVisits;
+
   try {
     if (!existsSync(ANALYTICS_FILE)) return [];
     const raw = readFileSync(ANALYTICS_FILE, "utf8");
@@ -24,10 +28,21 @@ function readVisits(): AnalyticsVisit[] {
 }
 
 function writeVisits(visits: AnalyticsVisit[]) {
-  if (!existsSync(ANALYTICS_DIR)) {
-    mkdirSync(ANALYTICS_DIR, { recursive: true });
+  const recentVisits = visits.slice(-MAX_VISITS);
+
+  if (!canUseFileStore) {
+    memoryVisits.splice(0, memoryVisits.length, ...recentVisits);
+    return;
   }
-  writeFileSync(ANALYTICS_FILE, JSON.stringify(visits.slice(-MAX_VISITS), null, 2));
+
+  try {
+    if (!existsSync(ANALYTICS_DIR)) {
+      mkdirSync(ANALYTICS_DIR, { recursive: true });
+    }
+    writeFileSync(ANALYTICS_FILE, JSON.stringify(recentVisits, null, 2));
+  } catch {
+    memoryVisits.splice(0, memoryVisits.length, ...recentVisits);
+  }
 }
 
 function formatDateKey(date: Date) {

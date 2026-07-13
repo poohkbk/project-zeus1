@@ -17,11 +17,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ recorded: false });
   }
 
-  const visit = recordAnalyticsVisit({
-    ip: getClientIp(request),
-    path: visitPath,
-    userAgent: request.headers.get("user-agent") ?? "unknown",
-  });
+  const visit = (() => {
+    try {
+      return recordAnalyticsVisit({
+        ip: getClientIp(request),
+        path: visitPath,
+        userAgent: request.headers.get("user-agent") ?? "unknown",
+      });
+    } catch {
+      return undefined;
+    }
+  })();
 
-  return NextResponse.json({ recorded: true, visitId: visit.id });
+  return NextResponse.json({ recorded: Boolean(visit), visitId: visit?.id });
 }
