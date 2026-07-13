@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { legalGuideContents } from "@/data/legal-guides";
+import { getPublishedLegalGuides } from "@/lib/data/legal-guides";
 import { absoluteUrl } from "@/lib/seo/metadata";
 
 export const metadata: Metadata = {
@@ -13,7 +13,9 @@ export const metadata: Metadata = {
   },
 };
 
-export default function LegalGuidePage() {
+export default async function LegalGuidePage() {
+  const legalGuideContents = await getPublishedLegalGuides();
+
   return (
     <main className="list-page">
       <section className="practice-hero list-hero">

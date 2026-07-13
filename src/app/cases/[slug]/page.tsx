@@ -3,7 +3,8 @@ import { notFound } from "next/navigation";
 import { CaseDetailHero } from "@/components/cases/CaseDetailHero";
 import { CaseDetailSections } from "@/components/cases/CaseDetailSections";
 import { caseContents } from "@/data/cases";
-import { getPublishedCaseBySlug, isPublishedCase } from "@/lib/case-selectors";
+import { getCaseBySlug } from "@/lib/data/cases";
+import { isPublishedCase } from "@/lib/case-selectors";
 import { getRelatedLegalGuides, getRelatedPracticeAreas, getSimilarCases } from "@/lib/case-relations";
 
 type CaseDetailPageProps = {
@@ -18,7 +19,7 @@ export function generateStaticParams() {
 
 export async function generateMetadata({ params }: CaseDetailPageProps): Promise<Metadata> {
   const { slug } = await params;
-  const caseItem = getPublishedCaseBySlug(slug);
+  const caseItem = await getCaseBySlug(slug);
   if (!caseItem) return { title: "승소사례를 찾을 수 없습니다" };
 
   return {
@@ -36,7 +37,7 @@ export async function generateMetadata({ params }: CaseDetailPageProps): Promise
 
 export default async function CaseDetailPage({ params }: CaseDetailPageProps) {
   const { slug } = await params;
-  const caseItem = getPublishedCaseBySlug(slug);
+  const caseItem = await getCaseBySlug(slug);
   if (!caseItem) notFound();
 
   const practices = getRelatedPracticeAreas(caseItem.tags, caseItem.category, 2);

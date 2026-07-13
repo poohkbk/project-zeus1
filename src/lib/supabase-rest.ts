@@ -1,16 +1,15 @@
+import { getSupabasePublishableKey, getSupabaseServiceRoleKey, getSupabaseUrl } from "@/lib/supabase/env";
+
 export function hasSupabaseConfig() {
-  return Boolean(
-    process.env.NEXT_PUBLIC_SUPABASE_URL &&
-      (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY),
-  );
+  return Boolean(getSupabaseUrl() && (getSupabaseServiceRoleKey() || getSupabasePublishableKey()));
 }
 
 export async function supabaseRequest(pathname: string, init: RequestInit) {
-  const baseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const baseUrl = getSupabaseUrl();
+  const key = getSupabaseServiceRoleKey() || getSupabasePublishableKey();
   if (!baseUrl || !key) return undefined;
 
-  const response = await fetch(`${baseUrl.replace(/\/$/, "")}/rest/v1/${pathname}`, {
+  const response = await fetch(`${baseUrl}/rest/v1/${pathname}`, {
     ...init,
     headers: {
       apikey: key,

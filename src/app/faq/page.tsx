@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { localSeoPages } from "@/data/local-seo-pages";
+import { getPublishedFaqs } from "@/lib/data/faqs";
 import { absoluteUrl } from "@/lib/seo/metadata";
 
 export const metadata: Metadata = {
@@ -13,7 +13,9 @@ export const metadata: Metadata = {
   },
 };
 
-export default function FaqPage() {
+export default async function FaqPage() {
+  const faqs = await getPublishedFaqs();
+
   return (
     <main className="list-page">
       <section className="practice-hero list-hero">
@@ -31,11 +33,10 @@ export default function FaqPage() {
 
       <section className="practice-section">
         <div className="site-shell faq-seo-list">
-          {localSeoPages.map((page) => (
-            <section key={page.slug}>
-              <h2>{page.primaryKeyword}</h2>
+          <section>
+            <h2>자주 묻는 질문</h2>
               <div className="faq-list">
-                {page.faqs.map((faq) => (
+                {faqs.map((faq) => (
                   <article key={faq.question} className="faq-item">
                     <button type="button" aria-expanded="true">
                       {faq.question}
@@ -47,8 +48,7 @@ export default function FaqPage() {
                   </article>
                 ))}
               </div>
-            </section>
-          ))}
+          </section>
         </div>
       </section>
     </main>

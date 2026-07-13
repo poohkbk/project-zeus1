@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAiGuideSessionByTransferToken, linkAiGuideSessionToConsultation } from "@/lib/ai/session-store";
-import { hasSupabaseConfig, supabaseRequest } from "@/lib/supabase-rest";
+import { createConsultation } from "@/lib/data/consultations";
 import type { ConsultationCategory, ConsultationFormValues } from "@/types/consultation";
 
 export const dynamic = "force-dynamic";
@@ -61,29 +61,24 @@ export async function POST(request: NextRequest) {
     : undefined;
   const aiSummary = transferSession?.result?.consultationSummary ?? body.aiSummary;
 
-  if (hasSupabaseConfig()) {
-    const inserted = (await supabaseRequest("consultations", {
-      method: "POST",
-      body: JSON.stringify({
-        reception_number: receptionNumber,
-        name: normalized.name,
-        phone: normalized.phone,
-        category: normalized.category,
-        message: normalized.message,
-        source,
-        ai_session_id: transferSession?.id,
-        ai_summary: aiSummary,
-        ai_urgency_level: aiSummary?.urgencyLevel,
-        ai_category: aiSummary?.category,
-        ai_subcategory: aiSummary?.subcategory,
-        ai_transfer_consent: Boolean(transferSession?.consentToTransfer),
-      }),
-    })) as Array<{ id?: string }> | undefined;
+  const inserted = await createConsultation({
+    reception_number: receptionNumber,
+    name: normalized.name,
+    phone: normalized.phone,
+    category: normalized.category,
+    message: normalized.message,
+    privacy_agreed: true,
+    source,
+    ai_session_id: transferSession?.id,
+    ai_summary: aiSummary,
+    ai_urgency_level: aiSummary?.urgencyLevel,
+    ai_category: aiSummary?.category,
+    ai_subcategory: aiSummary?.subcategory,
+    ai_transfer_consent: Boolean(transferSession?.consentToTransfer),
+  });
 
-    const consultationId = inserted?.[0]?.id;
-    if (consultationId && transferSession?.id) {
-      await linkAiGuideSessionToConsultation(transferSession.id, consultationId);
-    }
+  if (inserted?.id && transferSession?.id) {
+    await linkAiGuideSessionToConsultation(transferSession.id, inserted.id);
   }
 
   return NextResponse.json({ success: true, receptionNumber });
