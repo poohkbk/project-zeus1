@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { cmsCategoryLabels, cmsTypeLabels } from "@/data/cms-seed";
-import { loadCmsItems, saveCmsItems } from "@/lib/admin/cms-store";
+import { loadCmsItems, loadCmsItemsFromServer, saveCmsItems, saveCmsItemToServer } from "@/lib/admin/cms-store";
 import type { CmsContentItem, CmsContentType } from "@/types/cms";
 import { statusLabel, typePath } from "./AdminDashboard";
 
@@ -12,9 +12,20 @@ export function ContentListPage({ type }: { type: CmsContentType }) {
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("all");
   const [category, setCategory] = useState("all");
+  const [syncMessage, setSyncMessage] = useState("");
 
   useEffect(() => {
-    setItems(loadCmsItems());
+    const localItems = loadCmsItems();
+    setItems(localItems);
+
+    loadCmsItemsFromServer()
+      .then((serverItems) => {
+        if (serverItems.length === 0) return;
+        setItems(serverItems);
+        saveCmsItems(serverItems);
+        setSyncMessage("Supabase 저장소와 연결되었습니다.");
+      })
+      .catch(() => setSyncMessage("브라우저 임시저장 목록을 표시하고 있습니다."));
   }, []);
 
   const visibleItems = useMemo(
@@ -32,11 +43,15 @@ export function ContentListPage({ type }: { type: CmsContentType }) {
   );
 
   function updateStatus(item: CmsContentItem, nextStatus: CmsContentItem["status"]) {
+    const updatedItem = { ...item, status: nextStatus, updatedAt: new Date().toISOString() };
     const nextItems = items.map((entry) =>
-      entry.id === item.id ? { ...entry, status: nextStatus, updatedAt: new Date().toISOString() } : entry,
+      entry.id === item.id ? updatedItem : entry,
     );
     setItems(nextItems);
     saveCmsItems(nextItems);
+    saveCmsItemToServer(updatedItem)
+      .then(() => setSyncMessage("변경사항이 Supabase에 저장되었습니다."))
+      .catch(() => setSyncMessage("브라우저에는 저장됐지만 Supabase 저장은 실패했습니다."));
   }
 
   function duplicateItem(item: CmsContentItem) {
@@ -50,6 +65,9 @@ export function ContentListPage({ type }: { type: CmsContentType }) {
     const nextItems = [copy, ...items];
     setItems(nextItems);
     saveCmsItems(nextItems);
+    saveCmsItemToServer(copy)
+      .then(() => setSyncMessage("복제한 글이 Supabase에 저장되었습니다."))
+      .catch(() => setSyncMessage("복제한 글은 브라우저에만 임시저장되었습니다."));
   }
 
   return (
@@ -68,6 +86,7 @@ export function ContentListPage({ type }: { type: CmsContentType }) {
       {type === "case" ? <FeaturedManager items={items} setItems={setItems} /> : null}
 
       <section className="admin-panel">
+        {syncMessage ? <p className="admin-sync-message">{syncMessage}</p> : null}
         <div className="admin-toolbar">
           <label>
             검색
@@ -163,6 +182,9 @@ function FeaturedManager({
     );
     setItems(nextItems);
     saveCmsItems(nextItems);
+    void Promise.all(
+      nextItems.filter((entry) => orderMap.has(entry.id)).map((entry) => saveCmsItemToServer(entry)),
+    );
   }
 
   return (

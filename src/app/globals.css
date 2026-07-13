@@ -934,6 +934,17 @@
   margin-bottom: 18px;
 }
 
+.admin-sync-message {
+  margin: 0 0 16px;
+  border: 1px solid rgba(0, 116, 130, 0.18);
+  border-radius: 8px;
+  background: rgba(0, 116, 130, 0.08);
+  color: #006f7b;
+  padding: 10px 12px;
+  font-size: 0.92rem;
+  font-weight: 800;
+}
+
 .admin-page-title {
   display: flex;
   gap: 18px;

@@ -6,8 +6,10 @@ import { cmsCategoryLabels, cmsTypeLabels } from "@/data/cms-seed";
 import { createLocalAiSuggestion } from "@/lib/admin/ai/draft-service";
 import {
   createEmptyCmsItem,
+  loadCmsItemsFromServer,
   loadCmsItems,
   normalizeTags,
+  saveCmsItemToServer,
   saveCmsItems,
 } from "@/lib/admin/cms-store";
 import type { CmsContentItem, CmsContentType, CmsStatus } from "@/types/cms";
@@ -33,6 +35,19 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
     setItems(loaded);
     const found = id ? loaded.find((entry) => entry.id === id) : undefined;
     setItem(found ?? createEmptyCmsItem(type));
+
+    loadCmsItemsFromServer()
+      .then((serverItems) => {
+        if (serverItems.length === 0) return;
+        itemsRef.current = serverItems;
+        setItems(serverItems);
+        saveCmsItems(serverItems);
+        const serverFound = id ? serverItems.find((entry) => entry.id === id) : undefined;
+        if (serverFound) setItem(serverFound);
+        else if (!id) setItem(createEmptyCmsItem(type));
+        setSaveState("Supabase 연결됨");
+      })
+      .catch(() => setSaveState("브라우저 임시저장 모드"));
   }, [type, id]);
 
   useEffect(() => {
@@ -46,6 +61,9 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
       itemsRef.current = nextItems;
       setItems(nextItems);
       saveCmsItems(nextItems);
+      saveCmsItemToServer(nextItem)
+        .then(() => setSaveState("Supabase 자동저장됨"))
+        .catch(() => setSaveState("브라우저에만 임시저장됨"));
       setSaveState("자동저장됨");
     }, 900);
 
@@ -67,6 +85,9 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
     setItems(nextItems);
     saveCmsItems(nextItems);
     setSaveState(message);
+    saveCmsItemToServer(nextItem)
+      .then(() => setSaveState(`${message} · Supabase 반영됨`))
+      .catch(() => setSaveState(`${message} · 브라우저에만 임시저장됨`));
   }
 
   function update<K extends keyof CmsContentItem>(key: K, value: CmsContentItem[K]) {

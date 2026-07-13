@@ -31,6 +31,22 @@ export function saveCmsItems(items: CmsContentItem[]) {
   writeJson(CONTENT_KEY, items);
 }
 
+export async function loadCmsItemsFromServer() {
+  const response = await fetch("/api/admin/content", { cache: "no-store" });
+  if (!response.ok) throw new Error("Failed to load CMS items.");
+  const data = (await response.json()) as { items?: CmsContentItem[] };
+  return data.items ?? [];
+}
+
+export async function saveCmsItemToServer(item: CmsContentItem) {
+  const response = await fetch("/api/admin/content", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ item }),
+  });
+  if (!response.ok) throw new Error("Failed to save CMS item.");
+}
+
 export function loadCmsAdmins() {
   return readJson<CmsAdminUser[]>(ADMINS_KEY, cmsSeedAdmins);
 }
