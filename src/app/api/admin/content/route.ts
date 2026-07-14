@@ -12,8 +12,9 @@ export async function GET() {
   try {
     const items = await listCmsContentItems();
     return NextResponse.json({ items: items ?? [] });
-  } catch {
-    return NextResponse.json({ message: "콘텐츠를 불러오지 못했습니다." }, { status: 500 });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "콘텐츠를 불러오지 못했습니다.";
+    return NextResponse.json({ message }, { status: 500 });
   }
 }
 
@@ -29,7 +30,8 @@ export async function POST(request: NextRequest) {
   try {
     await upsertCmsContentItem(body.item);
     return NextResponse.json({ success: true });
-  } catch {
-    return NextResponse.json({ message: "콘텐츠를 저장하지 못했습니다." }, { status: 500 });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "콘텐츠를 저장하지 못했습니다.";
+    return NextResponse.json({ message }, { status: 500 });
   }
 }

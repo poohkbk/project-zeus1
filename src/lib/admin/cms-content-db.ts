@@ -179,6 +179,26 @@ function omitCmsId<T extends { cms_id?: string | null }>(row: T) {
   return rest;
 }
 
+function omitKeys<T extends Record<string, unknown>>(row: T, keys: string[]) {
+  const rest = { ...row };
+  keys.forEach((key) => {
+    delete rest[key];
+  });
+  return rest;
+}
+
+function toBasicCaseRow(item: CmsContentItem) {
+  return omitKeys(toCaseRow(item), ["cms_id", "slug", "content", "published_at"]);
+}
+
+function toBasicGuideRow(item: CmsContentItem) {
+  return omitKeys(toGuideRow(item), ["cms_id", "slug", "content", "published_at"]);
+}
+
+function toBasicFaqRow(item: CmsContentItem) {
+  return omitKeys(toFaqRow(item), ["cms_id", "content", "published_at"]);
+}
+
 export async function listCmsContentItems() {
   const supabase = createAdminClient();
   if (!supabase) return undefined;
@@ -196,7 +216,7 @@ export async function listCmsContentItems() {
 
 export async function upsertCmsContentItem(item: CmsContentItem) {
   const supabase = createAdminClient();
-  if (!supabase) return undefined;
+  if (!supabase) throw new Error("Supabase 관리자 키가 설정되어 있지 않습니다.");
   const admin = supabase;
 
   async function runWithCmsId() {
@@ -221,13 +241,25 @@ export async function upsertCmsContentItem(item: CmsContentItem) {
     return query.select("id").maybeSingle();
   }
 
-  let { data, error } = await runWithCmsId();
-  if (error) {
-    const fallbackResult = await runWithLegacyKey();
-    data = fallbackResult.data;
-    error = fallbackResult.error;
+  async function runWithBasicLegacyKey() {
+    const query =
+      item.type === "case"
+        ? admin.from("cases").upsert(toBasicCaseRow(item), { onConflict: "page_address" })
+        : item.type === "guide"
+          ? admin.from("legal_guides").upsert(toBasicGuideRow(item), { onConflict: "page_address" })
+          : admin.from("faqs").upsert(toBasicFaqRow(item), { onConflict: "question" });
+
+    return query.select("id").maybeSingle();
   }
 
-  if (error) throw error;
-  return data as { id: string } | null;
+  const attempts = [runWithCmsId, runWithLegacyKey, runWithBasicLegacyKey];
+  const errors: string[] = [];
+
+  for (const attempt of attempts) {
+    const { data, error } = await attempt();
+    if (!error) return data as { id: string } | null;
+    errors.push(error.message);
+  }
+
+  throw new Error(errors.at(-1) ?? "콘텐츠를 Supabase에 저장하지 못했습니다.");
 }
