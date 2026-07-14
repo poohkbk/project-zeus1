@@ -32,6 +32,7 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
   const [preview, setPreview] = useState<"pc" | "tablet" | "mobile">("pc");
   const [imageStatus, setImageStatus] = useState("");
   const [imageError, setImageError] = useState("");
+  const [actionPending, setActionPending] = useState<string | undefined>();
   const itemsRef = useRef<CmsContentItem[]>([]);
 
   useEffect(() => {
@@ -80,21 +81,27 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
     [type, aiInput],
   );
 
-  function persist(message = "저장됨", itemOverride?: CmsContentItem) {
+  async function persist(message = "저장됨", itemOverride?: CmsContentItem) {
     const nextItem = { ...(itemOverride ?? item), updatedAt: new Date().toISOString() };
     const currentItems = itemsRef.current.length > 0 ? itemsRef.current : items;
     const exists = currentItems.some((entry) => entry.id === nextItem.id);
     const nextItems = exists
       ? currentItems.map((entry) => (entry.id === nextItem.id ? nextItem : entry))
       : [nextItem, ...currentItems];
+    setActionPending(message);
     itemsRef.current = nextItems;
     setItem(nextItem);
     setItems(nextItems);
     saveCmsItems(nextItems);
     setSaveState(message);
-    saveCmsItemToServer(nextItem)
-      .then(() => setSaveState(`${message} · Supabase 반영됨`))
-      .catch(() => setSaveState(`${message} · 브라우저에만 임시저장됨`));
+    try {
+      await saveCmsItemToServer(nextItem);
+      setSaveState(`${message} · Supabase 반영됨`);
+    } catch {
+      setSaveState(`${message} · 브라우저에만 임시저장됨`);
+    } finally {
+      setActionPending(undefined);
+    }
   }
 
   function update<K extends keyof CmsContentItem>(key: K, value: CmsContentItem[K]) {
@@ -172,7 +179,7 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
 
   function publish(nextStatus: CmsStatus) {
     const nextItem = { ...item, status: nextStatus };
-    persist(nextStatus === "published" ? "공개됨" : "예약 공개로 저장됨", nextItem);
+    void persist(nextStatus === "published" ? "공개됨" : "예약 공개로 저장됨", nextItem);
   }
 
   return (
@@ -499,16 +506,19 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
                 <button type="button" onClick={() => setStep(3)}>
                   이전으로
                 </button>
-                <button type="button" onClick={() => persist("임시저장됨")}>
-                  임시저장
+                <button type="button" disabled={Boolean(actionPending)} onClick={() => void persist("임시저장됨")}>
+                  {actionPending === "임시저장됨" ? "저장 중..." : "임시저장"}
                 </button>
-                <button type="button" onClick={() => publish("published")}>
-                  지금 공개
+                <button type="button" disabled={Boolean(actionPending)} onClick={() => publish("published")}>
+                  {actionPending === "공개됨" ? "공개 중..." : "지금 공개"}
                 </button>
-                <button type="button" onClick={() => publish("scheduled")}>
-                  예약 공개
+                <button type="button" disabled={Boolean(actionPending)} onClick={() => publish("scheduled")}>
+                  {actionPending === "예약 공개로 저장됨" ? "예약 중..." : "예약 공개"}
                 </button>
               </div>
+              <p className="admin-action-message" aria-live="polite">
+                {actionPending ? `${actionPending} 처리 중입니다.` : saveState}
+              </p>
             </section>
           ) : null}
         </section>
@@ -547,8 +557,8 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
               <small>{item.tags.join(" · ") || "태그 없음"}</small>
             </article>
           </div>
-          <button type="button" onClick={() => persist("수동 저장됨")}>
-            지금 저장
+          <button type="button" disabled={Boolean(actionPending)} onClick={() => void persist("수동 저장됨")}>
+            {actionPending === "수동 저장됨" ? "저장 중..." : "지금 저장"}
           </button>
           <button type="button" onClick={() => setStep(4)}>
             공개 확인으로

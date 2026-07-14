@@ -173,6 +173,12 @@ function toFaqRow(item: CmsContentItem) {
   };
 }
 
+function omitCmsId<T extends { cms_id?: string | null }>(row: T) {
+  const rest = { ...row };
+  delete rest.cms_id;
+  return rest;
+}
+
 export async function listCmsContentItems() {
   const supabase = createAdminClient();
   if (!supabase) return undefined;
@@ -191,15 +197,36 @@ export async function listCmsContentItems() {
 export async function upsertCmsContentItem(item: CmsContentItem) {
   const supabase = createAdminClient();
   if (!supabase) return undefined;
+  const admin = supabase;
 
-  const query =
-    item.type === "case"
-      ? supabase.from("cases").upsert(toCaseRow(item), { onConflict: "cms_id" })
-      : item.type === "guide"
-        ? supabase.from("legal_guides").upsert(toGuideRow(item), { onConflict: "cms_id" })
-        : supabase.from("faqs").upsert(toFaqRow(item), { onConflict: "cms_id" });
+  async function runWithCmsId() {
+    const query =
+      item.type === "case"
+        ? admin.from("cases").upsert(toCaseRow(item), { onConflict: "cms_id" })
+        : item.type === "guide"
+          ? admin.from("legal_guides").upsert(toGuideRow(item), { onConflict: "cms_id" })
+          : admin.from("faqs").upsert(toFaqRow(item), { onConflict: "cms_id" });
 
-  const { data, error } = await query.select("id").maybeSingle();
+    return query.select("id").maybeSingle();
+  }
+
+  async function runWithLegacyKey() {
+    const query =
+      item.type === "case"
+        ? admin.from("cases").upsert(omitCmsId(toCaseRow(item)), { onConflict: "page_address" })
+        : item.type === "guide"
+          ? admin.from("legal_guides").upsert(omitCmsId(toGuideRow(item)), { onConflict: "page_address" })
+          : admin.from("faqs").upsert(omitCmsId(toFaqRow(item)), { onConflict: "question" });
+
+    return query.select("id").maybeSingle();
+  }
+
+  let { data, error } = await runWithCmsId();
+  if (error) {
+    const fallbackResult = await runWithLegacyKey();
+    data = fallbackResult.data;
+    error = fallbackResult.error;
+  }
 
   if (error) throw error;
   return data as { id: string } | null;
