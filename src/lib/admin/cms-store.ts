@@ -67,6 +67,7 @@ export function saveCmsTaxonomy(taxonomy: CmsTaxonomy) {
 
 export function createEmptyCmsItem(type: CmsContentType): CmsContentItem {
   const now = new Date().toISOString();
+  const isCase = type === "case";
   return {
     id: `${type}-${Date.now()}`,
     type,
@@ -83,11 +84,12 @@ export function createEmptyCmsItem(type: CmsContentType): CmsContentItem {
     body: "",
     tags: [],
     visibility: {
-      isFeatured: false,
-      showOnHome: false,
-      showOnCategory: false,
-      showOnPractice: false,
+      isFeatured: isCase,
+      showOnHome: isCase,
+      showOnCategory: isCase,
+      showOnPractice: isCase,
       showOnSearch: true,
+      featuredOrder: isCase ? 1 : undefined,
     },
     updatedAt: now,
     updatedBy: "최고관리자",

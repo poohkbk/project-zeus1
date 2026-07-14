@@ -11,7 +11,7 @@ type CaseDetailPageProps = {
   params: Promise<{ slug: string }>;
 };
 
-export const dynamicParams = false;
+export const dynamicParams = true;
 
 export function generateStaticParams() {
   return caseContents.filter((item) => isPublishedCase(item)).map((item) => ({ slug: item.slug }));

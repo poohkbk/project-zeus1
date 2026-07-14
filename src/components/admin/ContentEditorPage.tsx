@@ -178,7 +178,27 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
   }
 
   function publish(nextStatus: CmsStatus) {
-    const nextItem = { ...item, status: nextStatus };
+    const shouldExposeNewCase =
+      nextStatus === "published" &&
+      item.type === "case" &&
+      !item.visibility.showOnHome &&
+      !item.visibility.showOnCategory &&
+      !item.visibility.showOnPractice;
+    const nextItem = {
+      ...item,
+      status: nextStatus,
+      visibility: shouldExposeNewCase
+        ? {
+            ...item.visibility,
+            isFeatured: true,
+            showOnHome: true,
+            showOnCategory: true,
+            showOnPractice: true,
+            showOnSearch: true,
+            featuredOrder: item.visibility.featuredOrder ?? 1,
+          }
+        : item.visibility,
+    };
     void persist(nextStatus === "published" ? "공개됨" : "예약 공개로 저장됨", nextItem);
   }
 
