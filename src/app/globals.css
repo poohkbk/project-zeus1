@@ -981,6 +981,15 @@
   font-weight: 900;
 }
 
+.admin-field-guide {
+  display: block;
+  margin-top: 2px;
+  color: #6c7a89;
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
 .admin-toolbar input,
 .admin-toolbar select,
 .admin-editor-panel input,

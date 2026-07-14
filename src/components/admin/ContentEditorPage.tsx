@@ -17,6 +17,11 @@ import { typePath } from "./AdminDashboard";
 
 const acceptedImageTypes = ["image/jpeg", "image/png", "image/webp"];
 const maxImageSize = 5 * 1024 * 1024;
+const bodyLengthGuide: Record<CmsContentType, string> = {
+  case: "권장 800~1,500자. 사건 배경, 쟁점, 대응, 결과 순서로 적어주세요.",
+  guide: "권장 1,200~2,000자. 소제목을 나누면 검색과 가독성에 좋습니다.",
+  faq: "권장 300~700자. 질문에 대한 핵심 답변을 먼저 적어주세요.",
+};
 
 export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: string }) {
   const [items, setItems] = useState<CmsContentItem[]>([]);
@@ -204,6 +209,7 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
                     onChange={(event) => update("title", event.target.value)}
                     placeholder="예: 계약금 반환 승소사례"
                   />
+                  <small className="admin-field-guide">권장 25~45자. 핵심 사건유형과 결과가 보이게 적어주세요.</small>
                 </label>
                 <label>
                   사건 분야 <span>*</span>
@@ -228,6 +234,7 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
                   onChange={(event) => update("summary", event.target.value)}
                   placeholder="제목 아래에 표시될 짧은 설명입니다."
                 />
+                <small className="admin-field-guide">권장 80~140자. 목록 카드와 검색 미리보기에 쓰입니다.</small>
               </label>
 
               <div className="admin-image-uploader">
@@ -262,6 +269,7 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
                           onChange={(event) => update("heroImageAlt", event.target.value)}
                           placeholder="예: 상담 자료를 검토하는 변호사"
                         />
+                        <small className="admin-field-guide">권장 20~45자. 이미지를 보지 못하는 사람도 이해할 수 있게 적어주세요.</small>
                       </label>
                       <button type="button" onClick={removeImage}>
                         이미지 제거
@@ -294,6 +302,7 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
                       : "질문에 대한 짧은 답변과 상세 답변을 적어주세요."
                 }
               />
+              <small className="admin-field-guide">{bodyLengthGuide[type]}</small>
               <label>
                 추천 태그
                 <input
@@ -301,6 +310,7 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
                   onChange={(event) => update("tags", normalizeTags(event.target.value))}
                   placeholder="예: 계약금, 손해배상, 민사"
                 />
+                <small className="admin-field-guide">권장 3~8개. 쉼표로 구분하고, 태그 하나는 한글 2~8자 정도가 좋습니다.</small>
               </label>
               <div className="admin-ai-box">
                 <h3>AI 작성 도우미</h3>
@@ -389,6 +399,7 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
                       onChange={(event) => updateSeo("title", event.target.value)}
                       placeholder={item.title || "검색결과에 보일 제목"}
                     />
+                    <small className="admin-field-guide">권장 25~35자. 비워두면 글 제목을 사용합니다.</small>
                   </label>
                   <label>
                     canonical 경로
@@ -397,6 +408,7 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
                       onChange={(event) => updateSeo("canonicalPath", event.target.value)}
                       placeholder={`/${typePath(type)}/${item.id}`}
                     />
+                    <small className="admin-field-guide">권장 20~60자. 영어 소문자, 숫자, 하이픈 중심으로 적어주세요.</small>
                   </label>
                   <label>
                     검색엔진 노출
@@ -416,6 +428,7 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
                     onChange={(event) => updateSeo("description", event.target.value)}
                     placeholder={item.summary || "검색결과에 보일 1~2문장 설명"}
                   />
+                  <small className="admin-field-guide">권장 70~110자. 검색결과에서 클릭할 이유가 보이게 적어주세요.</small>
                 </label>
               </div>
               {item.visibility.isFeatured ? (
