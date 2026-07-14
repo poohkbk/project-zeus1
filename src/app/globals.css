@@ -1770,6 +1770,41 @@
   font-size: 0.82rem;
 }
 
+.admin-tag-picker {
+  display: grid;
+  gap: 10px;
+  margin-top: -6px;
+}
+
+.admin-tag-picker > strong {
+  color: #0f2d52;
+  font-size: 0.92rem;
+}
+
+.admin-tag-picker div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-tag-picker button {
+  min-height: 36px;
+  border: 1px solid #d8dee6;
+  border-radius: 999px;
+  background: #eef6f8;
+  color: #0f2d52;
+  cursor: pointer;
+  padding: 0 12px;
+  font: inherit;
+  font-weight: 900;
+}
+
+.admin-tag-picker button[aria-pressed="true"] {
+  border-color: #0f2d52;
+  background: #0f2d52;
+  color: #ffffff;
+}
+
 .admin-settings-grid {
   display: grid;
   gap: 14px;

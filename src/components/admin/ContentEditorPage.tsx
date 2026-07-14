@@ -8,6 +8,7 @@ import {
   createEmptyCmsItem,
   loadCmsItemsFromServer,
   loadCmsItems,
+  loadCmsTaxonomy,
   normalizeTags,
   saveCmsItemToServer,
   saveCmsItems,
@@ -33,9 +34,11 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
   const [imageStatus, setImageStatus] = useState("");
   const [imageError, setImageError] = useState("");
   const [actionPending, setActionPending] = useState<string | undefined>();
+  const [recommendedTags, setRecommendedTags] = useState<string[]>([]);
   const itemsRef = useRef<CmsContentItem[]>([]);
 
   useEffect(() => {
+    setRecommendedTags(loadCmsTaxonomy().tags);
     const loaded = loadCmsItems();
     itemsRef.current = loaded;
     setItems(loaded);
@@ -107,6 +110,18 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
 
   function update<K extends keyof CmsContentItem>(key: K, value: CmsContentItem[K]) {
     setItem((current) => ({ ...current, [key]: value }));
+  }
+
+  function toggleTag(tag: string) {
+    setItem((current) => {
+      const normalized = tag.trim();
+      if (!normalized) return current;
+      const hasTag = current.tags.includes(normalized);
+      const nextTags = hasTag
+        ? current.tags.filter((itemTag) => itemTag !== normalized)
+        : [...current.tags, normalized].slice(0, 12);
+      return { ...current, tags: nextTags };
+    });
   }
 
   function setVisibility(key: keyof CmsContentItem["visibility"], checked: boolean) {
@@ -342,6 +357,26 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
                 />
                 <small className="admin-field-guide">권장 3~8개. 쉼표로 구분하고, 태그 하나는 한글 2~8자 정도가 좋습니다.</small>
               </label>
+              {recommendedTags.length ? (
+                <div className="admin-tag-picker" aria-label="추천태그 빠른 선택">
+                  <strong>추천태그 빠른 선택</strong>
+                  <div>
+                    {recommendedTags.map((tag) => {
+                      const selected = item.tags.includes(tag);
+                      return (
+                        <button
+                          key={tag}
+                          type="button"
+                          aria-pressed={selected}
+                          onClick={() => toggleTag(tag)}
+                        >
+                          {tag}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : null}
               <div className="admin-ai-box">
                 <h3>AI 작성 도우미</h3>
                 <p>
