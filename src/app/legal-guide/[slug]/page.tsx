@@ -63,11 +63,11 @@ export default async function LegalGuideDetailPage({ params }: LegalGuideDetailP
   const guide = await getLegalGuideBySlug(slug);
   if (!guide) notFound();
 
-  const sections = guide.sections ?? {
-    checkCases: guide.excerpt,
-    legalView: "",
-    process: "",
-    cautions: "",
+  const sections = {
+    checkCases: guide.sections?.checkCases || guide.excerpt,
+    legalView: guide.sections?.legalView || guide.excerpt,
+    process: guide.sections?.process || "사안의 내용을 정리한 뒤 필요한 자료를 확인하고, 상담을 통해 대응 방향을 정합니다.",
+    cautions: guide.sections?.cautions || "구체적인 판단은 사실관계와 증거에 따라 달라질 수 있으므로, 관련 자료를 보관한 뒤 상담을 받는 것이 좋습니다.",
   };
 
   return (
