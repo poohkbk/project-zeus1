@@ -104,6 +104,7 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
   const [imageStatus, setImageStatus] = useState("");
   const [imageError, setImageError] = useState("");
   const [actionPending, setActionPending] = useState<string | undefined>();
+  const [completedAction, setCompletedAction] = useState<"draft" | "published" | "scheduled" | undefined>();
   const [recommendedTags, setRecommendedTags] = useState<string[]>([]);
   const itemsRef = useRef<CmsContentItem[]>([]);
 
@@ -154,13 +155,18 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
     [type, aiInput],
   );
 
-  async function persist(message = "저장됨", itemOverride?: CmsContentItem) {
+  async function persist(
+    message = "저장됨",
+    itemOverride?: CmsContentItem,
+    completed?: "draft" | "published" | "scheduled",
+  ) {
     const nextItem = { ...(itemOverride ?? item), updatedAt: new Date().toISOString() };
     const currentItems = itemsRef.current.length > 0 ? itemsRef.current : items;
     const exists = currentItems.some((entry) => entry.id === nextItem.id);
     const nextItems = exists
       ? currentItems.map((entry) => (entry.id === nextItem.id ? nextItem : entry))
       : [nextItem, ...currentItems];
+    setCompletedAction(undefined);
     setActionPending(message);
     itemsRef.current = nextItems;
     setItem(nextItem);
@@ -174,6 +180,7 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
       const detail = error instanceof Error ? error.message : "Supabase 저장에 실패했습니다.";
       setSaveState(`${message} · ${detail}`);
     } finally {
+      if (completed) setCompletedAction(completed);
       setActionPending(undefined);
     }
   }
@@ -385,7 +392,11 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
           }
         : item.visibility,
     };
-    void persist(nextStatus === "published" ? "공개됨" : "예약 공개로 저장됨", nextItem);
+    void persist(
+      nextStatus === "published" ? "공개됨" : "예약 공개로 저장됨",
+      nextItem,
+      nextStatus === "published" ? "published" : "scheduled",
+    );
   }
 
   const caseDetail = getCaseDetail(item);
@@ -607,6 +618,13 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
                   </div>
                 </>
               )}
+              {step < reviewStep ? (
+                <div className="admin-step-actions">
+                  <button type="button" onClick={() => setStep(step + 1)}>
+                    다음
+                  </button>
+                </div>
+              ) : null}
             </section>
           ) : null}
 
@@ -816,6 +834,11 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
                 </div>
               ) : null}
               {tagAndAiTools}
+              <div className="admin-step-actions">
+                <button type="button" onClick={() => setStep(settingsStep)}>
+                  다음
+                </button>
+              </div>
             </section>
           ) : null}
 
@@ -941,6 +964,11 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
                   </label>
                 </div>
               ) : null}
+              <div className="admin-step-actions">
+                <button type="button" onClick={() => setStep(reviewStep)}>
+                  다음
+                </button>
+              </div>
             </section>
           ) : null}
 
@@ -982,14 +1010,14 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
                 <button type="button" onClick={() => setStep(settingsStep)}>
                   이전으로
                 </button>
-                <button type="button" disabled={Boolean(actionPending)} onClick={() => void persist("임시저장됨")}>
-                  {actionPending === "임시저장됨" ? "저장 중..." : "임시저장"}
+                <button type="button" disabled={Boolean(actionPending)} onClick={() => void persist("임시저장됨", undefined, "draft")}>
+                  {actionPending === "임시저장됨" ? "저장 중..." : completedAction === "draft" ? "저장완료" : "임시저장"}
                 </button>
                 <button type="button" disabled={Boolean(actionPending)} onClick={() => publish("published")}>
-                  {actionPending === "공개됨" ? "공개 중..." : "지금 공개"}
+                  {actionPending === "공개됨" ? "공개 중..." : completedAction === "published" ? "공개완료" : "지금 공개"}
                 </button>
                 <button type="button" disabled={Boolean(actionPending)} onClick={() => publish("scheduled")}>
-                  {actionPending === "예약 공개로 저장됨" ? "예약 중..." : "예약 공개"}
+                  {actionPending === "예약 공개로 저장됨" ? "예약 중..." : completedAction === "scheduled" ? "예약완료" : "예약 공개"}
                 </button>
               </div>
               <p className="admin-action-message" aria-live="polite">

@@ -1147,6 +1147,7 @@
 .admin-card-actions button,
 .admin-featured-row button,
 .admin-final-actions button,
+.admin-step-actions button,
 .admin-editor-side button,
 .admin-ai-result button,
 .admin-admin-grid button {
@@ -1163,6 +1164,7 @@
 }
 
 .admin-final-actions button:disabled,
+.admin-step-actions button:disabled,
 .admin-editor-side button:disabled {
   cursor: progress;
   opacity: 0.65;
@@ -1511,6 +1513,18 @@
   flex-wrap: wrap;
   gap: 10px;
   justify-content: flex-end;
+}
+
+.admin-step-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 18px;
+}
+
+.admin-step-actions button {
+  min-width: 120px;
+  background: #0f2d52;
+  color: #ffffff;
 }
 
 .admin-editor-side {
@@ -2016,6 +2030,7 @@
   }
 
   .admin-card-actions,
+  .admin-step-actions,
   .admin-final-actions {
     justify-content: flex-start;
   }
