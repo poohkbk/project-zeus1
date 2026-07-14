@@ -73,14 +73,6 @@ export function ConsultationsPage() {
         </div>
       </header>
 
-      <section className="admin-panel admin-consultation-notice">
-        <strong>운영 연결 전 안내</strong>
-        <p>
-          현재는 Supabase 연결 전이라 같은 브라우저 안의 임시 저장소에 상담글을 보관합니다.
-          실제 운영에서는 서버 DB에 저장되도록 연결해야 합니다.
-        </p>
-      </section>
-
       <section className="admin-consultation-layout">
         <div className="admin-panel">
           <div className="admin-toolbar">
