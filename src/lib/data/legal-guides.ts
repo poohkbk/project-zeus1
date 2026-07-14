@@ -56,6 +56,7 @@ function toLegalGuide(row: LegalGuideRow): LegalGuideContent {
       publishedAt: row.published_at ?? row.created_at,
       featured: row.is_featured,
       readingTime: "5분",
+      showOnHome: item.visibility?.showOnHome ?? row.show_on_home,
       sections: item.guideDetail,
     };
   }
@@ -71,6 +72,7 @@ function toLegalGuide(row: LegalGuideRow): LegalGuideContent {
     tags: row.tags ?? [],
     publishedAt: row.published_at ?? row.created_at,
     featured: row.is_featured,
+    showOnHome: row.show_on_home,
   };
 }
 
@@ -94,6 +96,18 @@ async function fetchPublishedRows() {
 export async function getPublishedLegalGuides(): Promise<LegalGuideContent[]> {
   const rows = await fetchPublishedRows();
   return rows?.map(toLegalGuide) ?? fallbackGuides;
+}
+
+export async function getHomeLegalGuides(limit = 4): Promise<LegalGuideContent[]> {
+  const guides = await getPublishedLegalGuides();
+  return guides
+    .filter((guide) => guide.showOnHome !== false)
+    .sort((a, b) => {
+      const featured = Number(Boolean(b.featured)) - Number(Boolean(a.featured));
+      if (featured !== 0) return featured;
+      return (b.publishedAt ?? "").localeCompare(a.publishedAt ?? "");
+    })
+    .slice(0, limit);
 }
 
 export async function getLegalGuidesByCategory(category: string): Promise<LegalGuideContent[]> {

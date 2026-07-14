@@ -2,9 +2,11 @@ import Link from "next/link";
 import { Reveal } from "@/components/animation/Reveal";
 import { SimpleIcon } from "@/components/icons/SimpleIcon";
 import { siteConfig } from "@/config/site";
-import { legalGuides } from "@/data/home";
+import { getHomeLegalGuides } from "@/lib/data/legal-guides";
 
-export function LegalGuides() {
+export async function LegalGuides() {
+  const legalGuides = await getHomeLegalGuides(4);
+
   return (
     <section className="section" aria-labelledby="guide-title">
       <div className="site-shell">
@@ -19,9 +21,9 @@ export function LegalGuides() {
               <Link className="guide-card" href={guide.href}>
                 <span className="guide-thumb">{guide.category}</span>
                 <strong>{guide.title}</strong>
-                <p>{guide.summary}</p>
+                <p>{guide.excerpt}</p>
                 <em>
-                  {guide.meta}
+                  {guide.readingTime ?? "5분"} 읽기
                   <SimpleIcon name="arrow" />
                 </em>
               </Link>
