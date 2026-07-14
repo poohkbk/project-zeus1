@@ -6,6 +6,8 @@ import type { CmsAdminUser, CmsContentItem, CmsContentType, CmsTaxonomy } from "
 const CONTENT_KEY = "zeu-cms-content-v1";
 const ADMINS_KEY = "zeu-cms-admins-v1";
 const TAXONOMY_KEY = "zeu-cms-taxonomy-v1";
+const SAVE_TIMEOUT_MS = 15000;
+const MAX_INLINE_IMAGE_CHARS = 750000;
 
 function readJson<T>(key: string, fallback: T): T {
   if (typeof window === "undefined") return fallback;
@@ -39,12 +41,40 @@ export async function loadCmsItemsFromServer() {
 }
 
 export async function saveCmsItemToServer(item: CmsContentItem) {
-  const response = await fetch("/api/admin/content", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ item }),
-  });
-  if (!response.ok) throw new Error("Failed to save CMS item.");
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), SAVE_TIMEOUT_MS);
+  const serverItem = prepareItemForServer(item);
+
+  try {
+    const response = await fetch("/api/admin/content", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ item: serverItem }),
+      signal: controller.signal,
+    });
+    if (!response.ok) {
+      const data = (await response.json().catch(() => ({}))) as { message?: string };
+      throw new Error(data.message || "Supabase 저장에 실패했습니다.");
+    }
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new Error("Supabase 저장 응답이 지연되어 브라우저 임시저장으로 전환했습니다.");
+    }
+    throw error;
+  } finally {
+    window.clearTimeout(timeout);
+  }
+}
+
+function prepareItemForServer(item: CmsContentItem): CmsContentItem {
+  if (!item.heroImage?.startsWith("data:") || item.heroImage.length <= MAX_INLINE_IMAGE_CHARS) {
+    return item;
+  }
+
+  return {
+    ...item,
+    heroImage: "",
+  };
 }
 
 export function loadCmsAdmins() {

@@ -97,8 +97,9 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
     try {
       await saveCmsItemToServer(nextItem);
       setSaveState(`${message} · Supabase 반영됨`);
-    } catch {
-      setSaveState(`${message} · 브라우저에만 임시저장됨`);
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : "Supabase 저장에 실패했습니다.";
+      setSaveState(`${message} · ${detail}`);
     } finally {
       setActionPending(undefined);
     }
