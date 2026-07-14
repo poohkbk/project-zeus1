@@ -162,25 +162,107 @@ export function TrashPage() {
 
 export function AdminUsersPage() {
   const [admins, setAdmins] = useState<CmsAdminUser[]>([]);
+  const [message, setMessage] = useState("");
 
-  useEffect(() => setAdmins(loadCmsAdmins()), []);
+  useEffect(() => {
+    const localAdmins = loadCmsAdmins();
+    setAdmins(localAdmins);
 
-  function invite() {
-    if (admins.filter((admin) => admin.active).length >= 4) return;
-    const nextAdmins = [
-      ...admins,
-      {
-        id: `admin-${Date.now()}`,
-        name: "초대 대기",
-        email: "new-admin@example.com",
-        role: "admin" as const,
-        active: true,
-        lastLoginAt: "-",
-        invitedAt: new Date().toISOString(),
-      },
-    ].slice(0, 4);
+    fetch("/api/admin/users", { cache: "no-store" })
+      .then((response) => {
+        if (!response.ok) throw new Error("failed");
+        return response.json() as Promise<{ admins?: CmsAdminUser[] }>;
+      })
+      .then((data) => {
+        if (!data.admins?.length) return;
+        setAdmins(data.admins);
+        saveCmsAdmins(data.admins);
+        setMessage("Supabase 관리자 목록과 연결되었습니다.");
+      })
+      .catch(() => setMessage("브라우저 임시 관리자 목록을 표시하고 있습니다."));
+  }, []);
+
+  function persistAdmins(nextAdmins: CmsAdminUser[], nextMessage: string) {
     setAdmins(nextAdmins);
     saveCmsAdmins(nextAdmins);
+    setMessage(nextMessage);
+  }
+
+  function validateEmail(email: string) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+  }
+
+  async function saveAdmin(admin: CmsAdminUser) {
+    if (admin.role === "super_admin") return;
+    if (!admin.name.trim() || !validateEmail(admin.email)) {
+      setMessage("관리자 이름과 이메일을 확인해 주세요.");
+      return;
+    }
+
+    persistAdmins(
+      admins.map((entry) => (entry.id === admin.id ? { ...admin, email: admin.email.trim().toLowerCase() } : entry)),
+      "관리자 정보를 저장했습니다.",
+    );
+
+    await fetch("/api/admin/users", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: admin.id, name: admin.name, email: admin.email }),
+    })
+      .then((response) => {
+        if (!response.ok) throw new Error("failed");
+        setMessage("관리자 정보가 Supabase에 저장되었습니다.");
+      })
+      .catch(() => setMessage("브라우저에는 저장됐지만 Supabase 저장은 실패했습니다."));
+  }
+
+  async function deleteAdmin(admin: CmsAdminUser) {
+    if (admin.role === "super_admin") return;
+    const nextAdmins = admins.filter((entry) => entry.id !== admin.id);
+    persistAdmins(nextAdmins, "관리자를 삭제했습니다.");
+
+    await fetch(`/api/admin/users?id=${encodeURIComponent(admin.id)}`, { method: "DELETE" })
+      .then((response) => {
+        if (!response.ok) throw new Error("failed");
+        setMessage("관리자가 Supabase에서 삭제되었습니다.");
+      })
+      .catch(() => setMessage("브라우저에서는 삭제됐지만 Supabase 삭제는 실패했습니다."));
+  }
+
+  function updateAdmin(id: string, updates: Partial<Pick<CmsAdminUser, "name" | "email">>) {
+    const nextAdmins = admins.map((admin) => (admin.id === id ? { ...admin, ...updates } : admin));
+    persistAdmins(nextAdmins, "수정 중입니다. 저장 버튼을 눌러 반영해 주세요.");
+  }
+
+  async function invite() {
+    if (admins.filter((admin) => admin.active).length >= 4) return;
+    const draftAdmin: CmsAdminUser = {
+      id: `admin-${Date.now()}`,
+      name: "초대 대기",
+      email: `admin-${Date.now()}@example.com`,
+      role: "admin",
+      active: true,
+      lastLoginAt: "-",
+      invitedAt: new Date().toISOString(),
+    };
+    const nextAdmins = [...admins, draftAdmin].slice(0, 4);
+    persistAdmins(nextAdmins, "관리자를 추가했습니다. 이메일을 실제 주소로 바꾼 뒤 저장해 주세요.");
+
+    await fetch("/api/admin/users", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: draftAdmin.name, email: draftAdmin.email }),
+    })
+      .then((response) => {
+        if (!response.ok) throw new Error("failed");
+        return response.json() as Promise<{ admin?: CmsAdminUser }>;
+      })
+      .then((data) => {
+        if (!data.admin) return;
+        const syncedAdmins = nextAdmins.map((admin) => (admin.id === draftAdmin.id ? data.admin! : admin));
+        persistAdmins(syncedAdmins, "관리자를 Supabase에 추가했습니다. 이메일을 수정한 뒤 저장해 주세요.");
+      })
+      .catch(() => setMessage("브라우저에는 추가됐지만 Supabase 추가는 실패했습니다."));
   }
 
   return (
@@ -189,22 +271,53 @@ export function AdminUsersPage() {
         <div>
           <span>관리자 설정</span>
           <h1>관리자 {admins.filter((admin) => admin.active).length} / 4</h1>
-          <p>최고관리자는 비활성화하거나 삭제할 수 없습니다.</p>
+          <p>최고관리자는 보호되며, 일반관리자의 이메일 수정과 삭제는 최고관리자만 처리할 수 있습니다.</p>
         </div>
         <button className="admin-primary-link" type="button" onClick={invite}>
           관리자 초대
         </button>
       </header>
+      {message ? (
+        <p className="admin-taxonomy-message" role="status" aria-live="polite">
+          {message}
+        </p>
+      ) : null}
       <section className="admin-panel admin-admin-grid">
         {admins.map((admin) => (
           <article key={admin.id}>
-            <h2>{admin.name}</h2>
-            <p>{admin.email}</p>
+            <label>
+              이름
+              <input
+                value={admin.name}
+                readOnly={admin.role === "super_admin"}
+                onChange={(event) => updateAdmin(admin.id, { name: event.target.value })}
+              />
+            </label>
+            <label>
+              이메일
+              <input
+                type="email"
+                value={admin.email}
+                readOnly={admin.role === "super_admin"}
+                onChange={(event) => updateAdmin(admin.id, { email: event.target.value })}
+              />
+            </label>
             <span>{admin.role === "super_admin" ? "최고관리자" : "일반관리자"}</span>
             <small>마지막 로그인: {admin.lastLoginAt}</small>
-            <button type="button" disabled={admin.role === "super_admin"}>
-              비활성화
-            </button>
+            {admin.role === "super_admin" ? (
+              <button type="button" disabled>
+                보호된 계정
+              </button>
+            ) : (
+              <div className="admin-user-actions">
+                <button type="button" onClick={() => saveAdmin(admin)}>
+                  저장
+                </button>
+                <button type="button" className="danger" onClick={() => deleteAdmin(admin)}>
+                  삭제
+                </button>
+              </div>
+            )}
           </article>
         ))}
       </section>
