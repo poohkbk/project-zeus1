@@ -39,10 +39,12 @@ export default async function FaqPage() {
                 {faqs.map((faq) => (
                   <article key={faq.question} className="faq-item">
                     <button type="button" aria-expanded="true">
+                      <span>질문</span>
                       {faq.question}
                       <strong>Q</strong>
                     </button>
                     <div>
+                      <strong>답변</strong>
                       <p>{faq.answer}</p>
                     </div>
                   </article>

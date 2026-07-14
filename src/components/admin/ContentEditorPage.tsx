@@ -18,12 +18,6 @@ import { typePath } from "./AdminDashboard";
 
 const acceptedImageTypes = ["image/jpeg", "image/png", "image/webp"];
 const maxImageSize = 5 * 1024 * 1024;
-const bodyLengthGuide: Record<CmsContentType, string> = {
-  case: "권장 800~1,500자. 사건 배경, 쟁점, 대응, 결과 순서로 적어주세요.",
-  guide: "권장 1,200~2,000자. 소제목을 나누면 검색과 가독성에 좋습니다.",
-  faq: "권장 300~700자. 질문에 대한 핵심 답변을 먼저 적어주세요.",
-};
-
 function sortRecommendedTags(tags: string[]) {
   return Array.from(new Set(tags.map((tag) => tag.trim()).filter(Boolean))).sort((a, b) =>
     a.localeCompare(b, "ko-KR", { sensitivity: "base" }),
@@ -396,6 +390,73 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
 
   const caseDetail = getCaseDetail(item);
   const guideDetail = getGuideDetail(item);
+  const stepLabels =
+    type === "faq" ? ["질문·답변", "표시 설정", "공개 확인"] : ["기본 내용", "본문 작성", "표시 설정", "공개 확인"];
+  const bodyStep = type === "faq" ? 1 : 2;
+  const settingsStep = type === "faq" ? 2 : 3;
+  const reviewStep = type === "faq" ? 3 : 4;
+
+  const tagAndAiTools = (
+    <>
+      <label>
+        추천 태그
+        <input
+          value={item.tags.join(", ")}
+          onChange={(event) => update("tags", normalizeTags(event.target.value))}
+          placeholder="예: 계약금, 손해배상, 민사"
+        />
+        <small className="admin-field-guide">권장 3~8개. 쉼표로 구분하고, 태그 하나는 한글 2~8자 정도가 좋습니다.</small>
+      </label>
+      {recommendedTags.length ? (
+        <div className="admin-tag-picker" aria-label="추천태그 빠른 선택">
+          <strong>추천태그 빠른 선택</strong>
+          <div>
+            {recommendedTags.map((tag) => {
+              const selected = item.tags.includes(tag);
+              return (
+                <button
+                  key={tag}
+                  type="button"
+                  aria-pressed={selected}
+                  onClick={() => toggleTag(tag)}
+                >
+                  {tag}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
+      <div className="admin-ai-box">
+        <h3>AI 작성 도우미</h3>
+        <p>
+          외부 AI가 연결되지 않은 상태라 로컬 추천만 보여줍니다. 결과는 자동 공개되지
+          않습니다.
+        </p>
+        <textarea
+          value={aiInput}
+          onChange={(event) => setAiInput(event.target.value)}
+          placeholder="주제나 사건 내용을 붙여 넣으면 제목, 요약, 태그를 추천합니다."
+        />
+        {suggestion ? (
+          <div className="admin-ai-result">
+            {suggestion.warning ? <strong>{suggestion.warning}</strong> : null}
+            <p>{suggestion.summary}</p>
+            <div>
+              {suggestion.titles.map((title) => (
+                <button key={title} type="button" onClick={() => update("title", title)}>
+                  제목 적용: {title}
+                </button>
+              ))}
+            </div>
+            <button type="button" onClick={() => update("tags", suggestion.tags)}>
+              추천 태그 모두 적용
+            </button>
+          </div>
+        ) : null}
+      </div>
+    </>
+  );
 
   return (
     <div className="admin-screen">
@@ -413,7 +474,7 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
       <div className="admin-editor-layout">
         <section className="admin-editor">
           <ol className="admin-steps" aria-label="작성 단계">
-            {["기본 내용", "본문 작성", "표시 설정", "공개 확인"].map((label, index) => (
+            {stepLabels.map((label, index) => (
               <li key={label} data-active={step === index + 1}>
                 <button type="button" onClick={() => setStep(index + 1)}>
                   {index + 1}. {label}
@@ -424,102 +485,134 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
 
           {step === 1 ? (
             <section className="admin-editor-panel">
-              <h2>기본 내용</h2>
-              <div className="admin-form-grid">
-                <label>
-                  제목 <span>*</span>
-                  <input
-                    value={item.title}
-                    onChange={(event) => update("title", event.target.value)}
-                    placeholder="예: 계약금 반환 승소사례"
-                  />
-                  <small className="admin-field-guide">권장 25~45자. 핵심 사건유형과 결과가 보이게 적어주세요.</small>
-                </label>
-                <label>
-                  사건 분야 <span>*</span>
-                  <select
-                    value={item.category}
-                    onChange={(event) =>
-                      update("category", event.target.value as CmsContentItem["category"])
-                    }
-                  >
-                    {Object.entries(cmsCategoryLabels).map(([value, label]) => (
-                      <option key={value} value={value}>
-                        {label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-              <label>
-                목록에 보일 짧은 설명
-                <textarea
-                  value={item.summary}
-                  onChange={(event) => update("summary", event.target.value)}
-                  placeholder="제목 아래에 표시될 짧은 설명입니다."
-                />
-                <small className="admin-field-guide">권장 80~140자. 목록 카드와 검색 미리보기에 쓰입니다.</small>
-              </label>
+              <h2>{type === "faq" ? "질문과 답변" : "기본 내용"}</h2>
+              {type === "faq" ? (
+                <>
+                  <div className="admin-guide-outline-editor">
+                    <div className="admin-guide-outline-note">
+                      <strong>FAQ 질문과 답변 작성</strong>
+                      <p>질문과 답변만 입력하면 홈페이지 FAQ 화면에 같은 목차로 표시됩니다.</p>
+                    </div>
+                    <label>
+                      질문
+                      <textarea
+                        value={item.title}
+                        onChange={(event) => update("title", event.target.value)}
+                        placeholder="예: 상담 예약은 어떻게 하나요?"
+                      />
+                      <small className="admin-field-guide">{charCountText(item.title, "20~80자")}</small>
+                    </label>
+                    <label>
+                      답변
+                      <textarea
+                        value={item.body}
+                        onChange={(event) => update("body", event.target.value)}
+                        placeholder="질문에 대한 핵심 답변과 필요한 안내를 적어주세요."
+                      />
+                      <small className="admin-field-guide">{charCountText(item.body, "120~500자")}</small>
+                    </label>
+                  </div>
+                  {tagAndAiTools}
+                </>
+              ) : (
+                <>
+                  <div className="admin-form-grid">
+                    <label>
+                      제목 <span>*</span>
+                      <input
+                        value={item.title}
+                        onChange={(event) => update("title", event.target.value)}
+                        placeholder="예: 계약금 반환 승소사례"
+                      />
+                      <small className="admin-field-guide">권장 25~45자. 핵심 사건유형과 결과가 보이게 적어주세요.</small>
+                    </label>
+                    <label>
+                      사건 분야 <span>*</span>
+                      <select
+                        value={item.category}
+                        onChange={(event) =>
+                          update("category", event.target.value as CmsContentItem["category"])
+                        }
+                      >
+                        {Object.entries(cmsCategoryLabels).map(([value, label]) => (
+                          <option key={value} value={value}>
+                            {label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+                  <label>
+                    목록에 보일 짧은 설명
+                    <textarea
+                      value={item.summary}
+                      onChange={(event) => update("summary", event.target.value)}
+                      placeholder="제목 아래에 표시될 짧은 설명입니다."
+                    />
+                    <small className="admin-field-guide">권장 80~140자. 목록 카드와 검색 미리보기에 쓰입니다.</small>
+                  </label>
 
-              <div className="admin-image-uploader">
-                <div>
-                  <h3>대표 이미지</h3>
-                  <p>새 글 작성 중 바로 이미지를 추가하고 미리볼 수 있습니다.</p>
-                  <ul className="admin-upload-guide">
-                    <li>권장 크기: 1200 x 800px</li>
-                    <li>권장 비율: 가로형 3:2 또는 4:3</li>
-                    <li>파일 형식: JPG, PNG, WebP</li>
-                    <li>최대 용량: 5MB 이하</li>
-                  </ul>
-                </div>
-                <label
-                  className="admin-upload-drop"
-                  onDragEnter={(event) => handleImageDrag(event, true)}
-                  onDragOver={(event) => handleImageDrag(event, true)}
-                  onDragLeave={(event) => handleImageDrag(event, false)}
-                  onDrop={handleImageDrop}
-                >
-                  <input
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp"
-                    onChange={handleImageChange}
-                  />
-                  <strong>이미지 선택</strong>
-                  <span>권장 1200 x 800px · JPG, PNG, WebP · 최대 5MB</span>
-                </label>
-                {item.heroImage ? (
-                  <figure className="admin-upload-preview">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={item.heroImage} alt={item.heroImageAlt || "대표 이미지 미리보기"} />
-                    <figcaption>
-                      <label>
-                        이미지 대체문구
-                        <input
-                          value={item.heroImageAlt ?? ""}
-                          onChange={(event) => update("heroImageAlt", event.target.value)}
-                          placeholder="예: 상담 자료를 검토하는 변호사"
-                        />
-                        <small className="admin-field-guide">권장 20~45자. 이미지를 보지 못하는 사람도 이해할 수 있게 적어주세요.</small>
-                      </label>
-                      <button type="button" onClick={removeImage}>
-                        이미지 제거
-                      </button>
-                    </figcaption>
-                  </figure>
-                ) : null}
-                {imageStatus ? <p className="admin-upload-status">{imageStatus}</p> : null}
-                {imageError ? (
-                  <p className="admin-upload-error" role="alert">
-                    {imageError}
-                  </p>
-                ) : null}
-              </div>
+                  <div className="admin-image-uploader">
+                    <div>
+                      <h3>대표 이미지</h3>
+                      <p>새 글 작성 중 바로 이미지를 추가하고 미리볼 수 있습니다.</p>
+                      <ul className="admin-upload-guide">
+                        <li>권장 크기: 1200 x 800px</li>
+                        <li>권장 비율: 가로형 3:2 또는 4:3</li>
+                        <li>파일 형식: JPG, PNG, WebP</li>
+                        <li>최대 용량: 5MB 이하</li>
+                      </ul>
+                    </div>
+                    <label
+                      className="admin-upload-drop"
+                      onDragEnter={(event) => handleImageDrag(event, true)}
+                      onDragOver={(event) => handleImageDrag(event, true)}
+                      onDragLeave={(event) => handleImageDrag(event, false)}
+                      onDrop={handleImageDrop}
+                    >
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        onChange={handleImageChange}
+                      />
+                      <strong>이미지 선택</strong>
+                      <span>권장 1200 x 800px · JPG, PNG, WebP · 최대 5MB</span>
+                    </label>
+                    {item.heroImage ? (
+                      <figure className="admin-upload-preview">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={item.heroImage} alt={item.heroImageAlt || "대표 이미지 미리보기"} />
+                        <figcaption>
+                          <label>
+                            이미지 대체문구
+                            <input
+                              value={item.heroImageAlt ?? ""}
+                              onChange={(event) => update("heroImageAlt", event.target.value)}
+                              placeholder="예: 상담 자료를 검토하는 변호사"
+                            />
+                            <small className="admin-field-guide">권장 20~45자. 이미지를 보지 못하는 사람도 이해할 수 있게 적어주세요.</small>
+                          </label>
+                          <button type="button" onClick={removeImage}>
+                            이미지 제거
+                          </button>
+                        </figcaption>
+                      </figure>
+                    ) : null}
+                    {imageStatus ? <p className="admin-upload-status">{imageStatus}</p> : null}
+                    {imageError ? (
+                      <p className="admin-upload-error" role="alert">
+                        {imageError}
+                      </p>
+                    ) : null}
+                  </div>
+                </>
+              )}
             </section>
           ) : null}
 
-          {step === 2 ? (
+          {type !== "faq" && step === bodyStep ? (
             <section className="admin-editor-panel">
-              <h2>{type === "faq" ? "답변 작성" : "본문 작성"}</h2>
+              <h2>본문 작성</h2>
               {type === "case" ? (
                 <>
                   <div className="admin-case-simple-editor">
@@ -722,78 +815,11 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
                   </label>
                 </div>
               ) : null}
-              {type === "faq" ? (
-                <>
-                  <textarea
-                    className="admin-body-editor"
-                    value={item.body}
-                    onChange={(event) => update("body", event.target.value)}
-                    placeholder="질문에 대한 짧은 답변과 상세 답변을 적어주세요."
-                  />
-                  <small className="admin-field-guide">{bodyLengthGuide[type]}</small>
-                </>
-              ) : null}
-              <label>
-                추천 태그
-                <input
-                  value={item.tags.join(", ")}
-                  onChange={(event) => update("tags", normalizeTags(event.target.value))}
-                  placeholder="예: 계약금, 손해배상, 민사"
-                />
-                <small className="admin-field-guide">권장 3~8개. 쉼표로 구분하고, 태그 하나는 한글 2~8자 정도가 좋습니다.</small>
-              </label>
-              {recommendedTags.length ? (
-                <div className="admin-tag-picker" aria-label="추천태그 빠른 선택">
-                  <strong>추천태그 빠른 선택</strong>
-                  <div>
-                    {recommendedTags.map((tag) => {
-                      const selected = item.tags.includes(tag);
-                      return (
-                        <button
-                          key={tag}
-                          type="button"
-                          aria-pressed={selected}
-                          onClick={() => toggleTag(tag)}
-                        >
-                          {tag}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              ) : null}
-              <div className="admin-ai-box">
-                <h3>AI 작성 도우미</h3>
-                <p>
-                  외부 AI가 연결되지 않은 상태라 로컬 추천만 보여줍니다. 결과는 자동 공개되지
-                  않습니다.
-                </p>
-                <textarea
-                  value={aiInput}
-                  onChange={(event) => setAiInput(event.target.value)}
-                  placeholder="주제나 사건 내용을 붙여 넣으면 제목, 요약, 태그를 추천합니다."
-                />
-                {suggestion ? (
-                  <div className="admin-ai-result">
-                    {suggestion.warning ? <strong>{suggestion.warning}</strong> : null}
-                    <p>{suggestion.summary}</p>
-                    <div>
-                      {suggestion.titles.map((title) => (
-                        <button key={title} type="button" onClick={() => update("title", title)}>
-                          제목 적용: {title}
-                        </button>
-                      ))}
-                    </div>
-                    <button type="button" onClick={() => update("tags", suggestion.tags)}>
-                      추천 태그 모두 적용
-                    </button>
-                  </div>
-                ) : null}
-              </div>
+              {tagAndAiTools}
             </section>
           ) : null}
 
-          {step === 3 ? (
+          {step === settingsStep ? (
             <section className="admin-editor-panel">
               <h2>페이지 표시 설정</h2>
               <div className="admin-check-grid">
@@ -918,33 +944,42 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
             </section>
           ) : null}
 
-          {step === 4 ? (
+          {step === reviewStep ? (
             <section className="admin-editor-panel">
               <h2>공개 전 확인</h2>
               <div className="admin-review-grid">
                 <article>
-                  <span>제목</span>
+                  <span>{type === "faq" ? "질문" : "제목"}</span>
                   <strong>{item.title || "비어 있음"}</strong>
                 </article>
                 <article>
                   <span>분야</span>
                   <strong>{cmsCategoryLabels[item.category]}</strong>
                 </article>
-                <article>
-                  <span>목록 설명</span>
-                  <strong>{item.summary || "비어 있음"}</strong>
-                </article>
-                <article>
-                  <span>대표 이미지</span>
-                  <strong>{item.heroImage ? "추가됨" : "없음"}</strong>
-                </article>
+                {type === "faq" ? (
+                  <article>
+                    <span>답변</span>
+                    <strong>{item.body || "비어 있음"}</strong>
+                  </article>
+                ) : (
+                  <>
+                    <article>
+                      <span>목록 설명</span>
+                      <strong>{item.summary || "비어 있음"}</strong>
+                    </article>
+                    <article>
+                      <span>대표 이미지</span>
+                      <strong>{item.heroImage ? "추가됨" : "없음"}</strong>
+                    </article>
+                  </>
+                )}
                 <article>
                   <span>노출 위치</span>
                   <strong>{item.visibility.isFeatured ? "대표 노출 포함" : "일반 노출"}</strong>
                 </article>
               </div>
               <div className="admin-final-actions">
-                <button type="button" onClick={() => setStep(3)}>
+                <button type="button" onClick={() => setStep(settingsStep)}>
                   이전으로
                 </button>
                 <button type="button" disabled={Boolean(actionPending)} onClick={() => void persist("임시저장됨")}>
@@ -984,7 +1019,7 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
           </div>
           <div className="admin-preview" data-mode={preview}>
             <article>
-              {item.heroImage ? (
+              {type !== "faq" && item.heroImage ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   className="admin-preview-image"
@@ -994,14 +1029,14 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
               ) : null}
               <span>{cmsCategoryLabels[item.category]}</span>
               <h3>{item.title || "제목이 여기에 표시됩니다"}</h3>
-              <p>{item.summary || "목록 설명이 여기에 표시됩니다."}</p>
+              <p>{type === "faq" ? item.body || "답변이 여기에 표시됩니다." : item.summary || "목록 설명이 여기에 표시됩니다."}</p>
               <small>{item.tags.join(" · ") || "태그 없음"}</small>
             </article>
           </div>
           <button type="button" disabled={Boolean(actionPending)} onClick={() => void persist("수동 저장됨")}>
             {actionPending === "수동 저장됨" ? "저장 중..." : "지금 저장"}
           </button>
-          <button type="button" onClick={() => setStep(4)}>
+          <button type="button" onClick={() => setStep(reviewStep)}>
             공개 확인으로
           </button>
         </aside>
