@@ -112,6 +112,23 @@ export function createEmptyCmsItem(type: CmsContentType): CmsContentItem {
       index: true,
     },
     body: "",
+    caseDetail: isCase
+      ? {
+          facts: ["", "", ""],
+          issues: [
+            { title: "", description: "" },
+            { title: "", description: "" },
+          ],
+          response: [
+            { title: "", description: "" },
+            { title: "", description: "" },
+            { title: "", description: "" },
+          ],
+          resultTitle: "",
+          resultDescription: "",
+          lawyerComment: "",
+        }
+      : undefined,
     tags: [],
     visibility: {
       isFeatured: isCase,

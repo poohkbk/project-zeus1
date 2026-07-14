@@ -13,7 +13,7 @@ import {
   saveCmsItemToServer,
   saveCmsItems,
 } from "@/lib/admin/cms-store";
-import type { CmsContentItem, CmsContentType, CmsStatus } from "@/types/cms";
+import type { CmsCaseDetail, CmsContentItem, CmsContentType, CmsStatus } from "@/types/cms";
 import { typePath } from "./AdminDashboard";
 
 const acceptedImageTypes = ["image/jpeg", "image/png", "image/webp"];
@@ -28,6 +28,28 @@ function sortRecommendedTags(tags: string[]) {
   return Array.from(new Set(tags.map((tag) => tag.trim()).filter(Boolean))).sort((a, b) =>
     a.localeCompare(b, "ko-KR", { sensitivity: "base" }),
   );
+}
+
+function createEmptyCaseDetail(): CmsCaseDetail {
+  return {
+    facts: ["", "", ""],
+    issues: [
+      { title: "", description: "" },
+      { title: "", description: "" },
+    ],
+    response: [
+      { title: "", description: "" },
+      { title: "", description: "" },
+      { title: "", description: "" },
+    ],
+    resultTitle: "",
+    resultDescription: "",
+    lawyerComment: "",
+  };
+}
+
+function getCaseDetail(item: CmsContentItem): CmsCaseDetail {
+  return item.caseDetail ?? createEmptyCaseDetail();
 }
 
 export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: string }) {
@@ -116,6 +138,42 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
 
   function update<K extends keyof CmsContentItem>(key: K, value: CmsContentItem[K]) {
     setItem((current) => ({ ...current, [key]: value }));
+  }
+
+  function updateCaseDetail(updater: (detail: CmsCaseDetail) => CmsCaseDetail) {
+    setItem((current) => ({
+      ...current,
+      caseDetail: updater(getCaseDetail(current)),
+    }));
+  }
+
+  function updateCaseFact(index: number, value: string) {
+    updateCaseDetail((detail) => ({
+      ...detail,
+      facts: detail.facts.map((fact, factIndex) => (factIndex === index ? value : fact)),
+    }));
+  }
+
+  function updateCaseIssue(index: number, key: "title" | "description", value: string) {
+    updateCaseDetail((detail) => ({
+      ...detail,
+      issues: detail.issues.map((issue, issueIndex) =>
+        issueIndex === index ? { ...issue, [key]: value } : issue,
+      ),
+    }));
+  }
+
+  function updateCaseResponse(index: number, key: "title" | "description", value: string) {
+    updateCaseDetail((detail) => ({
+      ...detail,
+      response: detail.response.map((step, stepIndex) =>
+        stepIndex === index ? { ...step, [key]: value } : step,
+      ),
+    }));
+  }
+
+  function updateCaseResult(key: "resultTitle" | "resultDescription" | "lawyerComment", value: string) {
+    updateCaseDetail((detail) => ({ ...detail, [key]: value }));
   }
 
   function toggleTag(tag: string) {
@@ -223,6 +281,8 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
     };
     void persist(nextStatus === "published" ? "공개됨" : "예약 공개로 저장됨", nextItem);
   }
+
+  const caseDetail = getCaseDetail(item);
 
   return (
     <div className="admin-screen">
@@ -341,7 +401,116 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
           {step === 2 ? (
             <section className="admin-editor-panel">
               <h2>{type === "faq" ? "답변 작성" : "본문 작성"}</h2>
+              {type === "case" ? (
+                <div className="admin-case-outline-editor">
+                  <label>
+                    사건 개요
+                    <textarea
+                      className="admin-body-editor"
+                      value={item.body}
+                      onChange={(event) => update("body", event.target.value)}
+                      placeholder="사건의 핵심 배경과 상담자가 확인해야 할 내용을 3~5문장으로 적어주세요."
+                    />
+                    <small className="admin-field-guide">홈페이지 상세 화면의 사건 개요에 표시됩니다. 권장 300~600자.</small>
+                  </label>
+
+                  <div className="admin-outline-group">
+                    <h3>사건의 배경</h3>
+                    {caseDetail.facts.map((fact, index) => (
+                      <label key={`fact-${index}`}>
+                        배경 {index + 1}
+                        <input
+                          value={fact}
+                          onChange={(event) => updateCaseFact(index, event.target.value)}
+                          placeholder="예: 의뢰인은 토지 점유 관계와 인도 의무를 다투고 있었습니다."
+                        />
+                      </label>
+                    ))}
+                  </div>
+
+                  <div className="admin-outline-group">
+                    <h3>핵심 쟁점</h3>
+                    {caseDetail.issues.map((issue, index) => (
+                      <div className="admin-outline-pair" key={`issue-${index}`}>
+                        <label>
+                          쟁점 제목 {index + 1}
+                          <input
+                            value={issue.title}
+                            onChange={(event) => updateCaseIssue(index, "title", event.target.value)}
+                            placeholder="예: 점유 권원의 인정 여부"
+                          />
+                        </label>
+                        <label>
+                          쟁점 설명 {index + 1}
+                          <textarea
+                            value={issue.description}
+                            onChange={(event) => updateCaseIssue(index, "description", event.target.value)}
+                            placeholder="예: 점유가 적법한 권원에 따른 것인지, 인도 청구가 가능한지를 검토했습니다."
+                          />
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="admin-outline-group">
+                    <h3>제우의 대응</h3>
+                    {caseDetail.response.map((stepItem, index) => (
+                      <div className="admin-outline-pair" key={`response-${index}`}>
+                        <label>
+                          대응 제목 {index + 1}
+                          <input
+                            value={stepItem.title}
+                            onChange={(event) => updateCaseResponse(index, "title", event.target.value)}
+                            placeholder="예: 사실관계와 증거 정리"
+                          />
+                        </label>
+                        <label>
+                          대응 설명 {index + 1}
+                          <textarea
+                            value={stepItem.description}
+                            onChange={(event) => updateCaseResponse(index, "description", event.target.value)}
+                            placeholder="예: 계약서, 등기자료, 현장자료를 순서대로 정리해 법원에 제출했습니다."
+                          />
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="admin-outline-group">
+                    <h3>사건 결과</h3>
+                    <div className="admin-form-grid">
+                      <label>
+                        결과 제목
+                        <input
+                          value={caseDetail.resultTitle}
+                          onChange={(event) => updateCaseResult("resultTitle", event.target.value)}
+                          placeholder="예: 토지 인도 청구 방어"
+                        />
+                      </label>
+                      <label>
+                        결과 설명
+                        <textarea
+                          value={caseDetail.resultDescription}
+                          onChange={(event) => updateCaseResult("resultDescription", event.target.value)}
+                          placeholder="예: 구체적인 사실관계와 증거를 바탕으로 의뢰인에게 유리한 판단을 이끌었습니다."
+                        />
+                      </label>
+                    </div>
+                  </div>
+
+                  <label>
+                    변호사 코멘트
+                    <textarea
+                      value={caseDetail.lawyerComment}
+                      onChange={(event) => updateCaseResult("lawyerComment", event.target.value)}
+                      placeholder="예: 인도 사건은 점유 경위와 증거의 시간 순서 정리가 중요합니다."
+                    />
+                    <small className="admin-field-guide">홈페이지 상세 화면의 변호사 코멘트에 표시됩니다.</small>
+                  </label>
+                </div>
+              ) : null}
               <textarea
+                hidden={type === "case"}
                 className="admin-body-editor"
                 value={item.body}
                 onChange={(event) => update("body", event.target.value)}
@@ -353,7 +522,7 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
                       : "질문에 대한 짧은 답변과 상세 답변을 적어주세요."
                 }
               />
-              <small className="admin-field-guide">{bodyLengthGuide[type]}</small>
+              <small hidden={type === "case"} className="admin-field-guide">{bodyLengthGuide[type]}</small>
               <label>
                 추천 태그
                 <input

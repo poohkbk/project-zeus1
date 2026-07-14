@@ -1021,6 +1021,43 @@
   min-height: 360px;
 }
 
+.admin-case-outline-editor,
+.admin-outline-group {
+  display: grid;
+  gap: 16px;
+}
+
+.admin-case-outline-editor {
+  margin-bottom: 18px;
+}
+
+.admin-outline-group {
+  border: 1px solid #e3e9f1;
+  border-radius: 8px;
+  background: #f8fbfd;
+  padding: 16px;
+}
+
+.admin-outline-group h3 {
+  margin: 0;
+  color: #0f2d52;
+  font-size: 1rem;
+}
+
+.admin-outline-pair {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.8fr) minmax(0, 1.2fr);
+  gap: 14px;
+}
+
+.admin-case-outline-editor .admin-body-editor {
+  min-height: 180px;
+}
+
+.admin-outline-pair textarea {
+  min-height: 96px;
+}
+
 .admin-list {
   display: grid;
   gap: 12px;
@@ -1907,7 +1944,8 @@
   .admin-upload-guide,
   .admin-taxonomy-add,
   .admin-consultation-print dl,
-  .admin-featured-row {
+  .admin-featured-row,
+  .admin-outline-pair {
     grid-template-columns: 1fr;
   }
 

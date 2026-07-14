@@ -1,4 +1,5 @@
 import { caseContents, toPublicCaseContent } from "@/data/cases";
+import { cmsCategoryLabels } from "@/data/cms-seed";
 import {
   compareFeaturedCases,
   isPublishedCase,
@@ -8,6 +9,7 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import type { CaseRow } from "@/types/database";
 import type { CaseContent, PublicCaseContent } from "@/types/case";
+import type { CmsContentItem } from "@/types/cms";
 
 const fallbackCases = caseContents.filter((item) => isPublishedCase(item)).map(toPublicCaseContent);
 
@@ -17,6 +19,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function isCaseContent(value: unknown): value is PublicCaseContent {
   return isRecord(value) && typeof value.slug === "string" && typeof value.title === "string";
+}
+
+function isCmsContentItem(value: unknown): value is CmsContentItem {
+  return isRecord(value) && typeof value.id === "string" && value.type === "case";
 }
 
 function normalizeCaseSlug(value?: string | null) {
@@ -43,8 +49,65 @@ function toLocalCategory(value: string): CaseContent["category"] {
   return value === "criminal" || value === "divorce" || value === "inheritance" ? value : "civil";
 }
 
+function filledLines(values: string[] | undefined, fallback: string[] = []) {
+  const lines = values?.map((value) => value.trim()).filter(Boolean) ?? [];
+  return lines.length ? lines : fallback;
+}
+
+function filledPairs<T extends { title: string; description: string }>(values: T[] | undefined) {
+  return values?.filter((value) => value.title.trim() || value.description.trim()) ?? [];
+}
+
+function toPublicCaseFromCmsItem(item: CmsContentItem, row: CaseRow): PublicCaseContent {
+  const slug = normalizeCaseSlug(row.slug) || normalizeCaseSlug(row.page_address) || normalizeCaseSlug(item.seo?.canonicalPath) || item.id;
+  const publishedAt = row.published_at ?? row.created_at;
+  const detail = item.caseDetail;
+  const summary = item.body || item.summary || row.summary || "";
+  const fallbackFact = item.body || item.summary || row.body || row.summary || "";
+  const issues = filledPairs(detail?.issues);
+  const response = filledPairs(detail?.response);
+
+  return {
+    id: row.id,
+    slug,
+    href: `/cases/${slug}`,
+    category: toLocalCategory(item.category),
+    categoryLabel: cmsCategoryLabels[item.category] ?? row.category,
+    subcategory: cmsCategoryLabels[item.category] ?? row.category,
+    title: item.title || row.title,
+    excerpt: item.summary || row.summary || "",
+    heroImage: item.heroImage || row.hero_image_url || undefined,
+    accent: "navy",
+    tags: item.tags ?? row.tags ?? [],
+    visibility: {
+      isFeatured: item.visibility.isFeatured,
+      showOnHome: item.visibility.showOnHome,
+      showOnCategory: item.visibility.showOnCategory,
+      showOnPractice: item.visibility.showOnPractice,
+      showOnSearch: item.visibility.showOnSearch,
+      featuredOrder: item.visibility.featuredOrder ?? row.featured_order ?? undefined,
+      featuredStartAt: item.visibility.featuredStartAt ?? row.featured_start_at ?? undefined,
+      featuredEndAt: item.visibility.featuredEndAt ?? row.featured_end_at ?? undefined,
+      published: row.status === "published",
+      publishedAt,
+      updatedAt: row.updated_at,
+      createdAt: row.created_at,
+    },
+    summary,
+    reconstructedFacts: filledLines(detail?.facts, fallbackFact ? [fallbackFact] : []),
+    issues: issues.length ? issues : [{ title: "핵심 쟁점", description: item.summary || row.summary || "" }],
+    response: response.length ? response : [{ title: "사건 검토", description: item.body || row.body || item.summary || row.summary || "" }],
+    resultTitle: detail?.resultTitle.trim() || item.title || row.title,
+    resultDescription: detail?.resultDescription.trim() || item.summary || row.summary || "",
+    lawyerComment: detail?.lawyerComment.trim() || "구체적인 결과는 사건의 사실관계와 증거에 따라 달라질 수 있습니다.",
+    seoTitle: item.seo?.title || item.title || row.title,
+    seoDescription: item.seo?.description || item.summary || row.summary || "",
+  };
+}
+
 function toPublicCase(row: CaseRow): PublicCaseContent {
   if (isCaseContent(row.content)) return row.content;
+  if (isCmsContentItem(row.content)) return toPublicCaseFromCmsItem(row.content, row);
 
   const slug = getSlug(row);
   const publishedAt = row.published_at ?? row.created_at;

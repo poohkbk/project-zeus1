@@ -23,6 +23,25 @@ export interface CmsSeoSettings {
   openGraphDescription?: string;
 }
 
+export interface CmsCaseIssue {
+  title: string;
+  description: string;
+}
+
+export interface CmsCaseResponseStep {
+  title: string;
+  description: string;
+}
+
+export interface CmsCaseDetail {
+  facts: string[];
+  issues: CmsCaseIssue[];
+  response: CmsCaseResponseStep[];
+  resultTitle: string;
+  resultDescription: string;
+  lawyerComment: string;
+}
+
 export interface CmsContentItem {
   id: string;
   type: CmsContentType;
@@ -34,6 +53,7 @@ export interface CmsContentItem {
   heroImageAlt?: string;
   seo?: CmsSeoSettings;
   body: string;
+  caseDetail?: CmsCaseDetail;
   tags: string[];
   visibility: CmsVisibility;
   updatedAt: string;
