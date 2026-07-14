@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
+import { ChangeEvent, DragEvent, useEffect, useMemo, useRef, useState } from "react";
 import { cmsCategoryLabels, cmsTypeLabels } from "@/data/cms-seed";
 import { createLocalAiSuggestion } from "@/lib/admin/ai/draft-service";
 import {
@@ -54,6 +54,37 @@ function normalizeSimpleCaseDetail(detail: CmsCaseDetail): CmsCaseDetail {
     resultTitle: "",
     resultDescription: "",
   };
+}
+
+function resizeImageFile(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("이미지를 읽지 못했습니다."));
+    reader.onload = () => {
+      const image = new Image();
+      image.onerror = () => reject(new Error("이미지를 처리하지 못했습니다."));
+      image.onload = () => {
+        const maxWidth = 1200;
+        const maxHeight = 800;
+        const scale = Math.min(1, maxWidth / image.width, maxHeight / image.height);
+        const width = Math.max(1, Math.round(image.width * scale));
+        const height = Math.max(1, Math.round(image.height * scale));
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const context = canvas.getContext("2d");
+        if (!context) {
+          reject(new Error("이미지를 처리하지 못했습니다."));
+          return;
+        }
+
+        context.drawImage(image, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", 0.82));
+      };
+      image.src = String(reader.result ?? "");
+    };
+    reader.readAsDataURL(file);
+  });
 }
 
 export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: string }) {
@@ -236,6 +267,8 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
   }
 
   function handleImageChange(event: ChangeEvent<HTMLInputElement>) {
+    void handleDroppedImage(event.target.files?.[0]);
+    event.target.value = "";
     const file = event.target.files?.[0];
     setImageError("");
     setImageStatus("");
@@ -273,6 +306,44 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
     setItem((current) => ({ ...current, heroImage: "", heroImageAlt: "" }));
     setImageStatus("대표 이미지를 제거했습니다.");
     setImageError("");
+  }
+
+  async function handleDroppedImage(file?: File | null) {
+    setImageError("");
+    setImageStatus("");
+    if (!file) return;
+    if (!acceptedImageTypes.includes(file.type)) {
+      setImageError("JPG, PNG, WebP 이미지만 업로드할 수 있습니다.");
+      return;
+    }
+    if (file.size > maxImageSize) {
+      setImageError("이미지는 5MB 이하로 올려 주세요.");
+      return;
+    }
+
+    setImageStatus("이미지를 불러오는 중입니다.");
+    try {
+      const result = await resizeImageFile(file);
+      setItem((current) => ({
+        ...current,
+        heroImage: result,
+        heroImageAlt: current.heroImageAlt || `${current.title || "콘텐츠"} 대표 이미지`,
+      }));
+      setImageStatus("이미지가 추가되었습니다. 저장하면 홈페이지에 반영됩니다.");
+    } catch {
+      setImageError("이미지를 읽지 못했습니다. 다른 파일로 다시 시도해 주세요.");
+    }
+  }
+
+  function handleImageDrop(event: DragEvent<HTMLLabelElement>) {
+    event.preventDefault();
+    event.currentTarget.dataset.dragging = "false";
+    void handleDroppedImage(event.dataTransfer.files?.[0]);
+  }
+
+  function handleImageDrag(event: DragEvent<HTMLLabelElement>, dragging: boolean) {
+    event.preventDefault();
+    event.currentTarget.dataset.dragging = String(dragging);
   }
 
   function publish(nextStatus: CmsStatus) {
@@ -377,7 +448,13 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
                     <li>최대 용량: 5MB 이하</li>
                   </ul>
                 </div>
-                <label className="admin-upload-drop">
+                <label
+                  className="admin-upload-drop"
+                  onDragEnter={(event) => handleImageDrag(event, true)}
+                  onDragOver={(event) => handleImageDrag(event, true)}
+                  onDragLeave={(event) => handleImageDrag(event, false)}
+                  onDrop={handleImageDrop}
+                >
                   <input
                     type="file"
                     accept="image/jpeg,image/png,image/webp"

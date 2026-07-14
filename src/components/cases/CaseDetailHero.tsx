@@ -24,10 +24,17 @@ export function CaseDetailHero({ caseItem }: { caseItem: PublicCaseContent }) {
             ))}
           </ul>
         </div>
-        <div className="case-detail-visual" aria-hidden="true">
-          <span>{caseItem.categoryLabel}</span>
-          <strong>{caseItem.subcategory}</strong>
-        </div>
+        {caseItem.heroImage ? (
+          <figure className="case-detail-visual has-image">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={caseItem.heroImage} alt={`${caseItem.title} 대표 이미지`} />
+          </figure>
+        ) : (
+          <div className="case-detail-visual" aria-hidden="true">
+            <span>{caseItem.categoryLabel}</span>
+            <strong>{caseItem.subcategory}</strong>
+          </div>
+        )}
       </div>
     </section>
   );

@@ -7,7 +7,6 @@ const CONTENT_KEY = "zeu-cms-content-v1";
 const ADMINS_KEY = "zeu-cms-admins-v1";
 const TAXONOMY_KEY = "zeu-cms-taxonomy-v1";
 const SAVE_TIMEOUT_MS = 15000;
-const MAX_INLINE_IMAGE_CHARS = 750000;
 
 function readJson<T>(key: string, fallback: T): T {
   if (typeof window === "undefined") return fallback;
@@ -67,14 +66,7 @@ export async function saveCmsItemToServer(item: CmsContentItem) {
 }
 
 function prepareItemForServer(item: CmsContentItem): CmsContentItem {
-  if (!item.heroImage?.startsWith("data:") || item.heroImage.length <= MAX_INLINE_IMAGE_CHARS) {
-    return item;
-  }
-
-  return {
-    ...item,
-    heroImage: "",
-  };
+  return item;
 }
 
 export function loadCmsAdmins() {
