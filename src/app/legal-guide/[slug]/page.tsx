@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getLegalGuideBySlug, getPublishedLegalGuides } from "@/lib/data/legal-guides";
+import { legalGuideContents } from "@/data/legal-guides";
+import { getLegalGuideBySlug } from "@/lib/data/legal-guides";
 
 type LegalGuideDetailPageProps = {
   params: Promise<{ slug: string }>;
@@ -36,8 +37,7 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export async function generateStaticParams() {
-  const guides = await getPublishedLegalGuides();
-  return guides.map((guide) => ({ slug: guide.slug }));
+  return legalGuideContents.map((guide) => ({ slug: guide.slug }));
 }
 
 export async function generateMetadata({ params }: LegalGuideDetailPageProps): Promise<Metadata> {
