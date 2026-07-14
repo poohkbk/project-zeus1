@@ -8,5 +8,5 @@ export async function GET() {
   const { response } = await requireAdminApi();
   if (response) return response;
 
-  return NextResponse.json(getAnalyticsDashboard());
+  return NextResponse.json(await getAnalyticsDashboard());
 }

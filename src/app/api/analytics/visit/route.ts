@@ -17,9 +17,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ recorded: false });
   }
 
-  const visit = (() => {
+  const visit = await (async () => {
     try {
-      return recordAnalyticsVisit({
+      return await recordAnalyticsVisit({
         ip: getClientIp(request),
         path: visitPath,
         userAgent: request.headers.get("user-agent") ?? "unknown",

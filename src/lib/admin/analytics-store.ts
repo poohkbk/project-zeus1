@@ -6,6 +6,7 @@ import type {
   AnalyticsSummaryMetric,
   AnalyticsVisit,
 } from "@/types/analytics";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { loadBlockedIps } from "./ip-blocklist";
 
 const ANALYTICS_DIR = path.join(process.cwd(), "data");
@@ -114,7 +115,54 @@ function summarizeIps(visits: AnalyticsVisit[]): AnalyticsIpSummary[] {
     .sort((a, b) => b.visits - a.visits || b.lastVisitedAt.localeCompare(a.lastVisitedAt));
 }
 
-export function recordAnalyticsVisit(visit: Omit<AnalyticsVisit, "id" | "visitedAt">) {
+type AnalyticsVisitRow = {
+  id: string;
+  ip: string;
+  path: string;
+  user_agent: string;
+  visited_at: string;
+};
+
+function toVisit(row: AnalyticsVisitRow): AnalyticsVisit {
+  return {
+    id: row.id,
+    ip: row.ip,
+    path: row.path,
+    userAgent: row.user_agent,
+    visitedAt: row.visited_at,
+  };
+}
+
+async function readVisitsFromSupabase() {
+  const supabase = createAdminClient();
+  if (!supabase) return undefined;
+
+  const { data, error } = await supabase
+    .from("analytics_visits")
+    .select("id, ip, path, user_agent, visited_at")
+    .order("visited_at", { ascending: false })
+    .limit(MAX_VISITS);
+
+  if (error) return undefined;
+  return ((data ?? []) as AnalyticsVisitRow[]).map(toVisit);
+}
+
+export async function recordAnalyticsVisit(visit: Omit<AnalyticsVisit, "id" | "visitedAt">) {
+  const supabase = createAdminClient();
+  if (supabase) {
+    const { data, error } = await supabase
+      .from("analytics_visits")
+      .insert({
+        ip: visit.ip,
+        path: visit.path,
+        user_agent: visit.userAgent,
+      })
+      .select("id, ip, path, user_agent, visited_at")
+      .maybeSingle();
+
+    if (!error && data) return toVisit(data as AnalyticsVisitRow);
+  }
+
   const visits = readVisits();
   const nextVisit: AnalyticsVisit = {
     ...visit,
@@ -125,8 +173,9 @@ export function recordAnalyticsVisit(visit: Omit<AnalyticsVisit, "id" | "visited
   return nextVisit;
 }
 
-export function getAnalyticsDashboard(): AnalyticsDashboardData {
-  const visits = readVisits().sort((a, b) => b.visitedAt.localeCompare(a.visitedAt));
+export async function getAnalyticsDashboard(): Promise<AnalyticsDashboardData> {
+  const storedVisits = (await readVisitsFromSupabase()) ?? readVisits();
+  const visits = storedVisits.sort((a, b) => b.visitedAt.localeCompare(a.visitedAt));
   const now = new Date();
   const todayStart = startOfDay(now);
   const weekStart = startOfWeek(now);
@@ -164,6 +213,6 @@ export function getAnalyticsDashboard(): AnalyticsDashboardData {
     ipSummaries,
     repeatedIps: ipSummaries.filter((summary) => summary.visits >= 2),
     recentVisits: visits.slice(0, 30),
-    blockedIps: loadBlockedIps(),
+    blockedIps: await loadBlockedIps(),
   };
 }

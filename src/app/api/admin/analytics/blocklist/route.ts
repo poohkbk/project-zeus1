@@ -8,7 +8,7 @@ export async function GET() {
   const { response } = await requireAdminApi();
   if (response) return response;
 
-  return NextResponse.json({ blockedIps: loadBlockedIps() });
+  return NextResponse.json({ blockedIps: await loadBlockedIps() });
 }
 
 export async function POST(request: NextRequest) {
@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: "차단할 IP를 입력해주세요." }, { status: 400 });
   }
 
-  return NextResponse.json({ blockedIps: blockIp(body.ip, body.reason) });
+  return NextResponse.json({ blockedIps: await blockIp(body.ip, body.reason) });
 }
 
 export async function DELETE(request: NextRequest) {
@@ -32,5 +32,5 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ message: "해제할 IP를 입력해주세요." }, { status: 400 });
   }
 
-  return NextResponse.json({ blockedIps: unblockIp(body.ip) });
+  return NextResponse.json({ blockedIps: await unblockIp(body.ip) });
 }

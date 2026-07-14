@@ -122,7 +122,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   const pathname = headerList.get("x-zeu-pathname") ?? "/";
   const ip = getClientIp(headerList);
   const isAdminArea = pathname.startsWith("/admin") || pathname.startsWith("/api");
-  const blocked = !isAdminArea && isIpBlocked(ip);
+  const blocked = !isAdminArea && (await isIpBlocked(ip));
 
   return (
     <html lang="ko">
