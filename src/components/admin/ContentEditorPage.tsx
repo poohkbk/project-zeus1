@@ -32,16 +32,9 @@ function sortRecommendedTags(tags: string[]) {
 
 function createEmptyCaseDetail(): CmsCaseDetail {
   return {
-    facts: ["", "", ""],
-    issues: [
-      { title: "", description: "" },
-      { title: "", description: "" },
-    ],
-    response: [
-      { title: "", description: "" },
-      { title: "", description: "" },
-      { title: "", description: "" },
-    ],
+    facts: [""],
+    issues: [{ title: "핵심쟁점", description: "" }],
+    response: [{ title: "제우의 대응", description: "" }],
     resultTitle: "",
     resultDescription: "",
     lawyerComment: "",
@@ -50,6 +43,17 @@ function createEmptyCaseDetail(): CmsCaseDetail {
 
 function getCaseDetail(item: CmsContentItem): CmsCaseDetail {
   return item.caseDetail ?? createEmptyCaseDetail();
+}
+
+function normalizeSimpleCaseDetail(detail: CmsCaseDetail): CmsCaseDetail {
+  return {
+    ...detail,
+    facts: [detail.facts[0] ?? ""],
+    issues: [{ title: "핵심쟁점", description: detail.issues[0]?.description ?? detail.issues[0]?.title ?? "" }],
+    response: [{ title: "제우의 대응", description: detail.response[0]?.description ?? detail.response[0]?.title ?? "" }],
+    resultTitle: "",
+    resultDescription: "",
+  };
 }
 
 export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: string }) {
@@ -174,6 +178,20 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
 
   function updateCaseResult(key: "resultTitle" | "resultDescription" | "lawyerComment", value: string) {
     updateCaseDetail((detail) => ({ ...detail, [key]: value }));
+  }
+
+  function updateSimpleCaseDetail(key: "facts" | "issues" | "response" | "lawyerComment", value: string) {
+    updateCaseDetail((detail) => {
+      const next = normalizeSimpleCaseDetail(detail);
+      if (key === "facts") return { ...next, facts: [value] };
+      if (key === "issues") return { ...next, issues: [{ title: "핵심쟁점", description: value }] };
+      if (key === "response") return { ...next, response: [{ title: "제우의 대응", description: value }] };
+      return { ...next, lawyerComment: value };
+    });
+  }
+
+  function charCountText(value: string, recommended: string) {
+    return `${value.length.toLocaleString("ko-KR")}자 / 권장 ${recommended}`;
   }
 
   function toggleTag(tag: string) {
@@ -402,7 +420,56 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
             <section className="admin-editor-panel">
               <h2>{type === "faq" ? "답변 작성" : "본문 작성"}</h2>
               {type === "case" ? (
-                <div className="admin-case-outline-editor">
+                <>
+                  <div className="admin-case-simple-editor">
+                    <label>
+                      사건개요
+                      <textarea
+                        className="admin-body-editor"
+                        value={item.body}
+                        onChange={(event) => update("body", event.target.value)}
+                        placeholder="사건의 핵심 내용과 전체 흐름을 적어주세요."
+                      />
+                      <small className="admin-field-guide">{charCountText(item.body, "300~600자")}</small>
+                    </label>
+                    <label>
+                      사건의 배경
+                      <textarea
+                        value={caseDetail.facts[0] ?? ""}
+                        onChange={(event) => updateSimpleCaseDetail("facts", event.target.value)}
+                        placeholder="상담자가 어떤 상황에서 사건을 맡기게 되었는지 적어주세요."
+                      />
+                      <small className="admin-field-guide">{charCountText(caseDetail.facts[0] ?? "", "250~600자")}</small>
+                    </label>
+                    <label>
+                      제우의 대응
+                      <textarea
+                        value={caseDetail.response[0]?.description ?? caseDetail.response[0]?.title ?? ""}
+                        onChange={(event) => updateSimpleCaseDetail("response", event.target.value)}
+                        placeholder="법률사무소 제우가 어떤 자료를 검토하고 어떻게 대응했는지 적어주세요."
+                      />
+                      <small className="admin-field-guide">{charCountText(caseDetail.response[0]?.description ?? "", "300~700자")}</small>
+                    </label>
+                    <label>
+                      핵심쟁점
+                      <textarea
+                        value={caseDetail.issues[0]?.description ?? caseDetail.issues[0]?.title ?? ""}
+                        onChange={(event) => updateSimpleCaseDetail("issues", event.target.value)}
+                        placeholder="사건에서 법적으로 중요했던 쟁점을 적어주세요."
+                      />
+                      <small className="admin-field-guide">{charCountText(caseDetail.issues[0]?.description ?? "", "200~500자")}</small>
+                    </label>
+                    <label>
+                      강병권 변호사 코멘트
+                      <textarea
+                        value={caseDetail.lawyerComment}
+                        onChange={(event) => updateSimpleCaseDetail("lawyerComment", event.target.value)}
+                        placeholder="이 사건에서 의뢰인이 참고하면 좋은 점을 변호사 관점에서 적어주세요."
+                      />
+                      <small className="admin-field-guide">{charCountText(caseDetail.lawyerComment, "150~400자")}</small>
+                    </label>
+                  </div>
+                  <div hidden>
                   <label>
                     사건 개요
                     <textarea
@@ -507,7 +574,8 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
                     />
                     <small className="admin-field-guide">홈페이지 상세 화면의 변호사 코멘트에 표시됩니다.</small>
                   </label>
-                </div>
+                  </div>
+                </>
               ) : null}
               <textarea
                 hidden={type === "case"}

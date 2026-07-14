@@ -114,16 +114,9 @@ export function createEmptyCmsItem(type: CmsContentType): CmsContentItem {
     body: "",
     caseDetail: isCase
       ? {
-          facts: ["", "", ""],
-          issues: [
-            { title: "", description: "" },
-            { title: "", description: "" },
-          ],
-          response: [
-            { title: "", description: "" },
-            { title: "", description: "" },
-            { title: "", description: "" },
-          ],
+          facts: [""],
+          issues: [{ title: "핵심쟁점", description: "" }],
+          response: [{ title: "제우의 대응", description: "" }],
           resultTitle: "",
           resultDescription: "",
           lawyerComment: "",
