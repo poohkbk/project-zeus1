@@ -5,9 +5,16 @@ import type { PublicCaseContent } from "@/types/case";
 export function CaseCard({ caseItem }: { caseItem: PublicCaseContent }) {
   return (
     <Link className={`case-result-card accent-${caseItem.accent}`} href={caseItem.href}>
-      <div className="case-card-media" aria-hidden="true">
-        <span>{caseItem.categoryLabel}</span>
-      </div>
+      {caseItem.heroImage ? (
+        <div className="case-card-media has-image">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={caseItem.heroImage} alt={`${caseItem.title} 대표 이미지`} />
+        </div>
+      ) : (
+        <div className="case-card-media" aria-hidden="true">
+          <span>{caseItem.categoryLabel}</span>
+        </div>
+      )}
       <div className="case-card-body">
         <div className="case-card-badges">
           <span>{caseItem.categoryLabel}</span>
