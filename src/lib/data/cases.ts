@@ -19,8 +19,24 @@ function isCaseContent(value: unknown): value is PublicCaseContent {
   return isRecord(value) && typeof value.slug === "string" && typeof value.title === "string";
 }
 
+function normalizeCaseSlug(value?: string | null) {
+  if (!value) return "";
+
+  const [withoutHash] = value.trim().split("#");
+  const [withoutQuery] = withoutHash.split("?");
+  const path = withoutQuery.replace(/\\/g, "/").replace(/^https?:\/\/[^/]+/i, "");
+  const parts = path.split("/").map((part) => part.trim()).filter(Boolean);
+  const slug = parts[0] === "cases" ? parts[1] : parts.at(-1);
+
+  try {
+    return decodeURIComponent(slug ?? "").trim();
+  } catch {
+    return (slug ?? "").trim();
+  }
+}
+
 function getSlug(row: CaseRow) {
-  return row.slug || row.page_address || row.id;
+  return normalizeCaseSlug(row.slug) || normalizeCaseSlug(row.page_address) || row.id;
 }
 
 function toLocalCategory(value: string): CaseContent["category"] {
@@ -93,22 +109,15 @@ export async function getPublishedCases(): Promise<PublicCaseContent[]> {
 }
 
 export async function getCaseBySlug(slug: string): Promise<PublicCaseContent | undefined> {
-  const supabase = await createClient();
-  if (supabase) {
-    const now = new Date().toISOString();
-    const { data, error } = await supabase
-      .from("cases")
-      .select("*")
-      .eq("status", "published")
-      .or(`page_address.eq.${slug},slug.eq.${slug}`)
-      .or(`published_at.is.null,published_at.lte.${now}`)
-      .limit(1)
-      .maybeSingle();
+  const normalizedSlug = normalizeCaseSlug(slug);
+  const rows = await fetchPublishedCaseRows();
+  const row = rows?.find((item) =>
+    [item.slug, item.page_address, item.id].some((value) => normalizeCaseSlug(value) === normalizedSlug),
+  );
 
-    if (!error && data) return toPublicCase(data as CaseRow);
-  }
+  if (row) return toPublicCase(row);
 
-  return fallbackCases.find((item) => item.slug === slug);
+  return fallbackCases.find((item) => normalizeCaseSlug(item.slug) === normalizedSlug);
 }
 
 export async function getCasesByCategory(category: CaseContent["category"]): Promise<PublicCaseContent[]> {
