@@ -24,6 +24,12 @@ const bodyLengthGuide: Record<CmsContentType, string> = {
   faq: "권장 300~700자. 질문에 대한 핵심 답변을 먼저 적어주세요.",
 };
 
+function sortRecommendedTags(tags: string[]) {
+  return Array.from(new Set(tags.map((tag) => tag.trim()).filter(Boolean))).sort((a, b) =>
+    a.localeCompare(b, "ko-KR", { sensitivity: "base" }),
+  );
+}
+
 export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: string }) {
   const [items, setItems] = useState<CmsContentItem[]>([]);
   const [item, setItem] = useState<CmsContentItem>(() => createEmptyCmsItem(type));
@@ -38,7 +44,7 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
   const itemsRef = useRef<CmsContentItem[]>([]);
 
   useEffect(() => {
-    setRecommendedTags(loadCmsTaxonomy().tags);
+    setRecommendedTags(sortRecommendedTags(loadCmsTaxonomy().tags));
     const loaded = loadCmsItems();
     itemsRef.current = loaded;
     setItems(loaded);
