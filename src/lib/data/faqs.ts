@@ -1,4 +1,5 @@
 import { localSeoPages } from "@/data/local-seo-pages";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type { FaqRow } from "@/types/database";
 
@@ -34,7 +35,7 @@ function toFaq(row: FaqRow): PublicFaq {
 }
 
 export async function getPublishedFaqs(): Promise<PublicFaq[]> {
-  const supabase = await createClient();
+  const supabase = createAdminClient() ?? (await createClient());
   if (!supabase) return fallbackFaqs;
 
   const now = new Date().toISOString();

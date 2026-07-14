@@ -3,6 +3,9 @@ import Link from "next/link";
 import { getPublishedFaqs } from "@/lib/data/faqs";
 import { absoluteUrl } from "@/lib/seo/metadata";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export const metadata: Metadata = {
   title: {
     absolute: "청주 법률상담 FAQ | 민사·형사·이혼·상속 질문 | 법률사무소 제우",
