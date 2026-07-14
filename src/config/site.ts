@@ -7,6 +7,7 @@ export const siteConfig = {
   mobile: "010-3096-1629",
   fax: "043-296-3900",
   email: "tglaw-kbk@nate.com",
+  businessRegistrationNumber: "301-31-18862",
   address: "충청북도 청주시 서원구 산남로70번길 34, 201호",
   businessHours: "평일 오전 9:00 ~ 오후 6:00",
   location: {
