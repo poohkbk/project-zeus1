@@ -80,13 +80,15 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
     [type, aiInput],
   );
 
-  function persist(message = "저장됨") {
-    const nextItem = { ...item, updatedAt: new Date().toISOString() };
-    const exists = items.some((entry) => entry.id === nextItem.id);
+  function persist(message = "저장됨", itemOverride?: CmsContentItem) {
+    const nextItem = { ...(itemOverride ?? item), updatedAt: new Date().toISOString() };
+    const currentItems = itemsRef.current.length > 0 ? itemsRef.current : items;
+    const exists = currentItems.some((entry) => entry.id === nextItem.id);
     const nextItems = exists
-      ? items.map((entry) => (entry.id === nextItem.id ? nextItem : entry))
-      : [nextItem, ...items];
+      ? currentItems.map((entry) => (entry.id === nextItem.id ? nextItem : entry))
+      : [nextItem, ...currentItems];
     itemsRef.current = nextItems;
+    setItem(nextItem);
     setItems(nextItems);
     saveCmsItems(nextItems);
     setSaveState(message);
@@ -169,8 +171,8 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
   }
 
   function publish(nextStatus: CmsStatus) {
-    update("status", nextStatus);
-    window.setTimeout(() => persist(nextStatus === "published" ? "공개됨" : "임시저장됨"), 0);
+    const nextItem = { ...item, status: nextStatus };
+    persist(nextStatus === "published" ? "공개됨" : "예약 공개로 저장됨", nextItem);
   }
 
   return (
