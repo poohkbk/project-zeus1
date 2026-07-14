@@ -11,9 +11,35 @@ import { QuickIssueFinder } from "@/components/home/QuickIssueFinder";
 import { MobileQuickBar } from "@/components/layout/MobileQuickBar";
 
 export const metadata: Metadata = {
-  title: "청주 법률상담 메인",
+  title: {
+    absolute: "법률사무소 제우",
+  },
   description:
     "청주 민사소송, 형사소송, 이혼소송, 상속 사건 상담을 위한 법률사무소 제우 메인 페이지입니다.",
+  openGraph: {
+    title: "법률사무소 제우",
+    description:
+      "청주 민사소송, 형사소송, 이혼소송, 상속 사건 상담을 위한 법률사무소 제우입니다.",
+    url: "https://www.jwlaw.co.kr",
+    siteName: "법률사무소 제우",
+    locale: "ko_KR",
+    type: "website",
+    images: [
+      {
+        url: "https://www.jwlaw.co.kr/images/lawyer/kang-byoungkwon-hero.png",
+        width: 1200,
+        height: 630,
+        alt: "법률사무소 제우",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "법률사무소 제우",
+    description:
+      "청주 민사소송, 형사소송, 이혼소송, 상속 사건 상담을 위한 법률사무소 제우입니다.",
+    images: ["https://www.jwlaw.co.kr/images/lawyer/kang-byoungkwon-hero.png"],
+  },
 };
 
 export const dynamic = "force-dynamic";
