@@ -130,9 +130,20 @@ export async function getFeaturedCases({
   now = new Date(),
 }: GetFeaturedCasesOptions): Promise<PublicCaseContent[]> {
   const cases = await getPublishedCases();
-  return cases
+  const featured = cases
     .filter((caseItem) => isWithinFeaturedPeriod(caseItem as CaseContent, now))
     .filter((caseItem) => isVisibleAtPlacement(caseItem, placement))
     .sort((a, b) => compareFeaturedCases(a as CaseContent, b as CaseContent))
     .slice(0, limit);
+
+  if (featured.length >= limit || placement === "practice") return featured;
+
+  const selectedIds = new Set(featured.map((caseItem) => caseItem.id));
+  const latest = cases
+    .filter((caseItem) => !selectedIds.has(caseItem.id))
+    .filter((caseItem) => caseItem.visibility.showOnSearch !== false)
+    .sort((a, b) => b.visibility.publishedAt.localeCompare(a.visibility.publishedAt))
+    .slice(0, limit - featured.length);
+
+  return [...featured, ...latest];
 }

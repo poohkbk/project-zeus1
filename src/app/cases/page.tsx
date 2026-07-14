@@ -12,6 +12,9 @@ export const metadata: Metadata = {
     "청주 법률사무소 제우가 수행한 민사·형사·이혼·상속 사건의 주요 쟁점과 해결 과정을 소개합니다.",
 };
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 type CasesPageProps = {
   searchParams: Promise<{
     category?: string;

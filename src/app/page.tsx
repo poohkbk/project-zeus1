@@ -16,6 +16,9 @@ export const metadata: Metadata = {
     "청주 민사소송, 형사소송, 이혼소송, 상속 사건 상담을 위한 법률사무소 제우 메인 페이지입니다.",
 };
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default function Home() {
   return (
     <main>

@@ -43,7 +43,28 @@ export function ContentListPage({ type }: { type: CmsContentType }) {
   );
 
   function updateStatus(item: CmsContentItem, nextStatus: CmsContentItem["status"]) {
-    const updatedItem = { ...item, status: nextStatus, updatedAt: new Date().toISOString() };
+    const shouldExposeCase =
+      nextStatus === "published" &&
+      item.type === "case" &&
+      !item.visibility.showOnHome &&
+      !item.visibility.showOnCategory &&
+      !item.visibility.showOnPractice;
+    const updatedItem = {
+      ...item,
+      status: nextStatus,
+      visibility: shouldExposeCase
+        ? {
+            ...item.visibility,
+            isFeatured: true,
+            showOnHome: true,
+            showOnCategory: true,
+            showOnPractice: true,
+            showOnSearch: true,
+            featuredOrder: item.visibility.featuredOrder ?? 1,
+          }
+        : item.visibility,
+      updatedAt: new Date().toISOString(),
+    };
     const nextItems = items.map((entry) =>
       entry.id === item.id ? updatedItem : entry,
     );
@@ -187,6 +208,25 @@ function FeaturedManager({
     );
   }
 
+  function unpin(item: CmsContentItem) {
+    const updatedItem: CmsContentItem = {
+      ...item,
+      visibility: {
+        ...item.visibility,
+        isFeatured: false,
+        showOnHome: false,
+        showOnCategory: false,
+        showOnPractice: false,
+        featuredOrder: undefined,
+      },
+      updatedAt: new Date().toISOString(),
+    };
+    const nextItems = items.map((entry) => (entry.id === item.id ? updatedItem : entry));
+    setItems(nextItems);
+    saveCmsItems(nextItems);
+    void saveCmsItemToServer(updatedItem);
+  }
+
   return (
     <section className="admin-panel admin-featured-manager">
       <div className="admin-panel-title">
@@ -201,6 +241,7 @@ function FeaturedManager({
             <div>
               <button type="button" onClick={() => move(item, -1)}>위로</button>
               <button type="button" onClick={() => move(item, 1)}>아래로</button>
+              <button type="button" onClick={() => unpin(item)}>고정 해제</button>
             </div>
           </article>
         ))}
