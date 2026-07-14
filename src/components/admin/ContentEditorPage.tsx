@@ -13,7 +13,7 @@ import {
   saveCmsItemToServer,
   saveCmsItems,
 } from "@/lib/admin/cms-store";
-import type { CmsCaseDetail, CmsContentItem, CmsContentType, CmsStatus } from "@/types/cms";
+import type { CmsCaseDetail, CmsContentItem, CmsContentType, CmsGuideDetail, CmsStatus } from "@/types/cms";
 import { typePath } from "./AdminDashboard";
 
 const acceptedImageTypes = ["image/jpeg", "image/png", "image/webp"];
@@ -43,6 +43,19 @@ function createEmptyCaseDetail(): CmsCaseDetail {
 
 function getCaseDetail(item: CmsContentItem): CmsCaseDetail {
   return item.caseDetail ?? createEmptyCaseDetail();
+}
+
+function createEmptyGuideDetail(): CmsGuideDetail {
+  return {
+    checkCases: "",
+    legalView: "",
+    process: "",
+    cautions: "",
+  };
+}
+
+function getGuideDetail(item: CmsContentItem): CmsGuideDetail {
+  return item.guideDetail ?? createEmptyGuideDetail();
 }
 
 function normalizeSimpleCaseDetail(detail: CmsCaseDetail): CmsCaseDetail {
@@ -221,6 +234,16 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
     });
   }
 
+  function updateGuideDetail(key: keyof CmsGuideDetail, value: string) {
+    setItem((current) => ({
+      ...current,
+      guideDetail: {
+        ...getGuideDetail(current),
+        [key]: value,
+      },
+    }));
+  }
+
   function charCountText(value: string, recommended: string) {
     return `${value.length.toLocaleString("ko-KR")}자 / 권장 ${recommended}`;
   }
@@ -372,6 +395,7 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
   }
 
   const caseDetail = getCaseDetail(item);
+  const guideDetail = getGuideDetail(item);
 
   return (
     <div className="admin-screen">
@@ -654,8 +678,48 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
                   </div>
                 </>
               ) : null}
+              {type === "guide" ? (
+                <div className="admin-guide-outline-editor">
+                  <label>
+                    이런 경우라면 확인해 보세요
+                    <textarea
+                      value={guideDetail.checkCases}
+                      onChange={(event) => updateGuideDetail("checkCases", event.target.value)}
+                      placeholder="이 글을 읽어야 하는 대표적인 상황을 적어주세요."
+                    />
+                    <small className="admin-field-guide">{charCountText(guideDetail.checkCases, "250~600자")}</small>
+                  </label>
+                  <label>
+                    법적으로 어떻게 판단될까요?
+                    <textarea
+                      value={guideDetail.legalView}
+                      onChange={(event) => updateGuideDetail("legalView", event.target.value)}
+                      placeholder="법적으로 어떤 기준으로 판단되는지 쉬운 말로 적어주세요."
+                    />
+                    <small className="admin-field-guide">{charCountText(guideDetail.legalView, "350~800자")}</small>
+                  </label>
+                  <label>
+                    해결 절차는 어떻게 진행될까요?
+                    <textarea
+                      value={guideDetail.process}
+                      onChange={(event) => updateGuideDetail("process", event.target.value)}
+                      placeholder="상담, 자료검토, 내용증명, 조정, 소송 등 진행 흐름을 적어주세요."
+                    />
+                    <small className="admin-field-guide">{charCountText(guideDetail.process, "300~700자")}</small>
+                  </label>
+                  <label>
+                    꼭 알아야 할 주의사항
+                    <textarea
+                      value={guideDetail.cautions}
+                      onChange={(event) => updateGuideDetail("cautions", event.target.value)}
+                      placeholder="기한, 증거보전, 불리한 행동, 상담 전 준비사항 등을 적어주세요."
+                    />
+                    <small className="admin-field-guide">{charCountText(guideDetail.cautions, "250~600자")}</small>
+                  </label>
+                </div>
+              ) : null}
               <textarea
-                hidden={type === "case"}
+                hidden={type === "case" || type === "guide"}
                 className="admin-body-editor"
                 value={item.body}
                 onChange={(event) => update("body", event.target.value)}
@@ -667,7 +731,7 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
                       : "질문에 대한 짧은 답변과 상세 답변을 적어주세요."
                 }
               />
-              <small hidden={type === "case"} className="admin-field-guide">{bodyLengthGuide[type]}</small>
+              <small hidden={type === "case" || type === "guide"} className="admin-field-guide">{bodyLengthGuide[type]}</small>
               <label>
                 추천 태그
                 <input

@@ -1037,6 +1037,12 @@
   grid-template-columns: 1fr;
 }
 
+.admin-guide-outline-editor {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
 .admin-case-simple-editor label {
   border: 1px solid #e3e9f1;
   border-radius: 8px;
@@ -1044,7 +1050,18 @@
   padding: 16px;
 }
 
+.admin-guide-outline-editor label {
+  border: 1px solid #e3e9f1;
+  border-radius: 8px;
+  background: #f8fbfd;
+  padding: 16px;
+}
+
 .admin-case-simple-editor textarea {
+  min-height: 180px;
+}
+
+.admin-guide-outline-editor textarea {
   min-height: 180px;
 }
 
@@ -3062,6 +3079,33 @@
 
 .case-readable {
   max-width: 900px;
+}
+
+.legal-guide-sections {
+  display: grid;
+  gap: 22px;
+  max-width: 920px;
+}
+
+.legal-guide-sections article {
+  border-bottom: 1px solid rgba(0, 27, 54, 0.12);
+  padding-bottom: 22px;
+}
+
+.legal-guide-sections article:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.legal-guide-sections h2 {
+  margin: 0 0 12px;
+  color: var(--primary-navy);
+}
+
+.legal-guide-sections p {
+  margin: 0 0 12px;
+  color: #344457;
+  line-height: 1.8;
 }
 
 .case-readable h2,

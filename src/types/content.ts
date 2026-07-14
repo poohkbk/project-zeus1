@@ -53,4 +53,10 @@ export interface CaseContent extends RelatedContentBase {
 
 export interface LegalGuideContent extends RelatedContentBase {
   readingTime?: string;
+  sections?: {
+    checkCases: string;
+    legalView: string;
+    process: string;
+    cautions: string;
+  };
 }

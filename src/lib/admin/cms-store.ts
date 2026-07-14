@@ -114,6 +114,15 @@ export function createEmptyCmsItem(type: CmsContentType): CmsContentItem {
           lawyerComment: "",
         }
       : undefined,
+    guideDetail:
+      type === "guide"
+        ? {
+            checkCases: "",
+            legalView: "",
+            process: "",
+            cautions: "",
+          }
+        : undefined,
     tags: [],
     visibility: {
       isFeatured: isCase,

@@ -132,6 +132,17 @@ function toCaseRow(item: CmsContentItem) {
 
 function toGuideRow(item: CmsContentItem) {
   const pageAddress = pageAddressFor(item);
+  const guideBody = item.guideDetail
+    ? [
+        item.guideDetail.checkCases,
+        item.guideDetail.legalView,
+        item.guideDetail.process,
+        item.guideDetail.cautions,
+      ]
+        .map((section) => section.trim())
+        .filter(Boolean)
+        .join("\n\n")
+    : item.body;
 
   return {
     cms_id: item.id,
@@ -140,7 +151,7 @@ function toGuideRow(item: CmsContentItem) {
     slug: pageAddress,
     category: item.category,
     summary: item.summary || item.title || "요약을 입력해 주세요.",
-    body: item.body || item.summary || "본문을 입력해 주세요.",
+    body: guideBody || item.body || item.summary || "본문을 입력해 주세요.",
     status: item.status,
     tags: item.tags,
     hero_image_url: item.heroImage || null,

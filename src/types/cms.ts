@@ -42,6 +42,13 @@ export interface CmsCaseDetail {
   lawyerComment: string;
 }
 
+export interface CmsGuideDetail {
+  checkCases: string;
+  legalView: string;
+  process: string;
+  cautions: string;
+}
+
 export interface CmsContentItem {
   id: string;
   type: CmsContentType;
@@ -54,6 +61,7 @@ export interface CmsContentItem {
   seo?: CmsSeoSettings;
   body: string;
   caseDetail?: CmsCaseDetail;
+  guideDetail?: CmsGuideDetail;
   tags: string[];
   visibility: CmsVisibility;
   updatedAt: string;
