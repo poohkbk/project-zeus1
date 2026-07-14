@@ -5228,6 +5228,81 @@ svg {
   color: var(--primary-navy);
 }
 
+.faq-directory {
+  display: grid;
+  gap: 22px;
+}
+
+.faq-directory-toolbar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.faq-directory-toolbar p {
+  margin: 8px 0 0;
+  color: var(--secondary-text);
+}
+
+.faq-directory-toolbar label,
+.faq-search-box {
+  display: grid;
+  gap: 8px;
+  color: var(--primary-navy);
+  font-weight: 900;
+}
+
+.faq-directory-toolbar select,
+.faq-search-box input {
+  min-height: 48px;
+  border: 1px solid rgba(0, 27, 54, 0.16);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--primary-navy);
+  font: inherit;
+  font-weight: 800;
+  padding: 0 14px;
+}
+
+.faq-filter-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.faq-filter-tabs button {
+  min-height: 42px;
+  border: 1px solid rgba(0, 27, 54, 0.14);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--primary-navy);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 900;
+  padding: 0 18px;
+}
+
+.faq-filter-tabs button[data-active="true"] {
+  border-color: var(--secondary-teal);
+  background: rgba(0, 122, 131, 0.1);
+  color: var(--secondary-teal);
+}
+
+.faq-result-count {
+  color: var(--secondary-text);
+  font-weight: 800;
+}
+
+.faq-empty {
+  border: 1px solid rgba(0, 27, 54, 0.12);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--secondary-text);
+  margin: 0;
+  padding: 18px;
+}
+
 .faq-shell {
   display: grid;
   grid-template-columns: minmax(0, 0.7fr) minmax(0, 1fr);
@@ -5242,6 +5317,9 @@ svg {
 
 .faq-item {
   overflow: hidden;
+  border: 1px solid rgba(0, 27, 54, 0.1);
+  border-radius: 8px;
+  background: #fff;
 }
 
 .faq-item button {
@@ -5293,6 +5371,16 @@ svg {
 .faq-item p {
   color: var(--secondary-text);
   line-height: 1.75;
+}
+
+.faq-item small {
+  display: inline-flex;
+  border-radius: 999px;
+  background: rgba(200, 142, 36, 0.12);
+  color: var(--accent-gold);
+  font-weight: 900;
+  margin-top: 10px;
+  padding: 5px 10px;
 }
 
 .practice-loading,
@@ -5451,6 +5539,15 @@ svg {
 
   .practice-detail-grid {
     padding: 72px 0 116px;
+  }
+
+  .faq-directory-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .faq-filter-tabs button {
+    flex: 1 1 auto;
   }
 
   .practice-list-grid {

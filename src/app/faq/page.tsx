@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { FaqExplorer } from "@/components/faq/FaqExplorer";
 import { getPublishedFaqs } from "@/lib/data/faqs";
 import { absoluteUrl } from "@/lib/seo/metadata";
 
@@ -36,24 +37,7 @@ export default async function FaqPage() {
 
       <section className="practice-section">
         <div className="site-shell faq-seo-list">
-          <section>
-            <h2>자주 묻는 질문</h2>
-              <div className="faq-list">
-                {faqs.map((faq) => (
-                  <article key={faq.question} className="faq-item">
-                    <button type="button" aria-expanded="true">
-                      <span>질문</span>
-                      {faq.question}
-                      <strong>Q</strong>
-                    </button>
-                    <div>
-                      <strong>답변</strong>
-                      <p>{faq.answer}</p>
-                    </div>
-                  </article>
-                ))}
-              </div>
-          </section>
+          <FaqExplorer faqs={faqs} />
         </div>
       </section>
     </main>

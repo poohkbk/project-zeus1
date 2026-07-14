@@ -10,6 +10,7 @@ export type PublicFaq = {
   category: string;
   tags: string[];
   sortOrder?: number;
+  publishedAt?: string;
 };
 
 const fallbackFaqs: PublicFaq[] = localSeoPages.flatMap((page) =>
@@ -20,6 +21,7 @@ const fallbackFaqs: PublicFaq[] = localSeoPages.flatMap((page) =>
     category: page.slug,
     tags: page.relatedTags ?? [],
     sortOrder: index,
+    publishedAt: "2024-01-01T00:00:00.000Z",
   })),
 );
 
@@ -31,6 +33,7 @@ function toFaq(row: FaqRow): PublicFaq {
     category: row.category,
     tags: row.tags ?? [],
     sortOrder: row.sort_order ?? undefined,
+    publishedAt: row.published_at ?? undefined,
   };
 }
 
