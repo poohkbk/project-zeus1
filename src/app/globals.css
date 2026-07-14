@@ -1043,6 +1043,24 @@
   margin-bottom: 18px;
 }
 
+.admin-guide-outline-note {
+  border: 1px solid #c8d9e6;
+  border-radius: 8px;
+  background: #eef7fa;
+  padding: 16px;
+}
+
+.admin-guide-outline-note strong {
+  display: block;
+  color: #00737a;
+  margin-bottom: 6px;
+}
+
+.admin-guide-outline-note p {
+  margin: 0;
+  color: #405168;
+}
+
 .admin-case-simple-editor label {
   border: 1px solid #e3e9f1;
   border-radius: 8px;

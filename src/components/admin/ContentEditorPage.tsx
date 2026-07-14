@@ -680,6 +680,10 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
               ) : null}
               {type === "guide" ? (
                 <div className="admin-guide-outline-editor">
+                  <div className="admin-guide-outline-note">
+                    <strong>법률가이드 목차별 본문 작성</strong>
+                    <p>아래 4개 목차에 작성한 내용이 홈페이지 법률가이드 상세 화면에 같은 순서로 표시됩니다.</p>
+                  </div>
                   <label>
                     이런 경우라면 확인해 보세요
                     <textarea
@@ -718,20 +722,17 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
                   </label>
                 </div>
               ) : null}
-              <textarea
-                hidden={type === "case" || type === "guide"}
-                className="admin-body-editor"
-                value={item.body}
-                onChange={(event) => update("body", event.target.value)}
-                placeholder={
-                  type === "case"
-                    ? "사건 개요, 쟁점, 제우의 대응, 사건 결과를 차례로 적어주세요."
-                    : type === "guide"
-                      ? "네이버 블로그처럼 편하게 문단을 나누어 작성해 주세요."
-                      : "질문에 대한 짧은 답변과 상세 답변을 적어주세요."
-                }
-              />
-              <small hidden={type === "case" || type === "guide"} className="admin-field-guide">{bodyLengthGuide[type]}</small>
+              {type === "faq" ? (
+                <>
+                  <textarea
+                    className="admin-body-editor"
+                    value={item.body}
+                    onChange={(event) => update("body", event.target.value)}
+                    placeholder="질문에 대한 짧은 답변과 상세 답변을 적어주세요."
+                  />
+                  <small className="admin-field-guide">{bodyLengthGuide[type]}</small>
+                </>
+              ) : null}
               <label>
                 추천 태그
                 <input
