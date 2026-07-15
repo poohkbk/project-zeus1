@@ -18,6 +18,14 @@ import { typePath } from "./AdminDashboard";
 
 const acceptedImageTypes = ["image/jpeg", "image/png", "image/webp"];
 const maxImageSize = 5 * 1024 * 1024;
+const faqCategoryButtonLabels: Record<CmsContentItem["category"], string> = {
+  civil: "민사",
+  criminal: "형사",
+  divorce: "가사이혼",
+  inheritance: "상속",
+  administrative: "행정",
+};
+
 function sortRecommendedTags(tags: string[]) {
   return Array.from(new Set(tags.map((tag) => tag.trim()).filter(Boolean))).sort((a, b) =>
     a.localeCompare(b, "ko-KR", { sensitivity: "base" }),
@@ -504,6 +512,24 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
                       <strong>FAQ 질문과 답변 작성</strong>
                       <p>질문과 답변만 입력하면 홈페이지 FAQ 화면에 같은 목차로 표시됩니다.</p>
                     </div>
+                    <fieldset className="admin-category-buttons">
+                      <legend>분야 선택</legend>
+                      <div>
+                        {Object.entries(faqCategoryButtonLabels).map(([value, label]) => (
+                          <button
+                            key={value}
+                            type="button"
+                            aria-pressed={item.category === value}
+                            onClick={() => update("category", value as CmsContentItem["category"])}
+                          >
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+                      <small className="admin-field-guide">
+                        선택한 분야 기준으로 홈페이지 FAQ 필터와 관련 콘텐츠에 연결됩니다.
+                      </small>
+                    </fieldset>
                     <label>
                       질문
                       <textarea
