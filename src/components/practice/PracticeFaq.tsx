@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import type { PracticeArea } from "@/types/practice";
+import type { PracticeArea, PracticeFaqItem } from "@/types/practice";
 
-export function PracticeFaq({ practice }: { practice: PracticeArea }) {
+export function PracticeFaq({ practice, faqs = practice.faq }: { practice: PracticeArea; faqs?: PracticeFaqItem[] }) {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
   return (
@@ -15,11 +15,11 @@ export function PracticeFaq({ practice }: { practice: PracticeArea }) {
           <p>{practice.title} 상담 전 자주 확인하는 내용을 정리했습니다.</p>
         </div>
         <div className="faq-list">
-          {practice.faq.map((item, index) => {
+          {faqs.map((item, index) => {
             const open = openIndex === index;
             const panelId = `practice-faq-${practice.slug}-${index}`;
             return (
-              <article className="faq-item" key={item.question}>
+              <article className="faq-item" key={`${item.question}-${index}`}>
                 <button
                   type="button"
                   aria-expanded={open}
@@ -27,7 +27,7 @@ export function PracticeFaq({ practice }: { practice: PracticeArea }) {
                   onClick={() => setOpenIndex(open ? null : index)}
                 >
                   <span>{item.question}</span>
-                  <strong aria-hidden="true">{open ? "−" : "+"}</strong>
+                  <strong aria-hidden="true">{open ? "－" : "+"}</strong>
                 </button>
                 <div id={panelId} hidden={!open}>
                   <p>{item.answer}</p>

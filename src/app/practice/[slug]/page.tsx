@@ -8,18 +8,17 @@ import { PracticeIssueGrid } from "@/components/practice/PracticeIssueGrid";
 import { PracticeProcess } from "@/components/practice/PracticeProcess";
 import { RelatedCases } from "@/components/practice/RelatedCases";
 import { RelatedGuides } from "@/components/practice/RelatedGuides";
-import { getPracticeAreas, getPracticeBySlug } from "@/data/practice";
+import { getPracticeBySlug } from "@/data/practice";
 import { getRelatedCases, getRelatedGuides } from "@/lib/content-relations";
+import { getFaqsByCategory } from "@/lib/data/faqs";
+import type { PracticeFaqItem } from "@/types/practice";
 
 type PracticeDetailPageProps = {
   params: Promise<{ slug: string }>;
 };
 
-export const dynamicParams = false;
-
-export function generateStaticParams() {
-  return getPracticeAreas().map((practice) => ({ slug: practice.slug }));
-}
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export async function generateMetadata({
   params,
@@ -56,6 +55,11 @@ export default async function PracticeDetailPage({ params }: PracticeDetailPageP
 
   const relatedCases = getRelatedCases(practice.relatedTags, 3);
   const relatedGuides = getRelatedGuides(practice.relatedTags, 3);
+  const publishedFaqs = await getFaqsByCategory(practice.slug);
+  const mergedFaqs = mergePracticeFaqs(
+    publishedFaqs.map((faq) => ({ question: faq.question, answer: faq.answer })),
+    practice.faq,
+  );
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
@@ -114,8 +118,20 @@ export default async function PracticeDetailPage({ params }: PracticeDetailPageP
       <PracticeDocuments practice={practice} />
       <RelatedCases cases={relatedCases} />
       <RelatedGuides guides={relatedGuides} />
-      <PracticeFaq practice={practice} />
+      <PracticeFaq practice={practice} faqs={mergedFaqs} />
       <PracticeCTA practice={practice} />
     </main>
   );
+}
+
+function mergePracticeFaqs(primary: PracticeFaqItem[], fallback: PracticeFaqItem[]) {
+  const seen = new Set<string>();
+  return [...primary, ...fallback]
+    .filter((faq) => {
+      const key = faq.question.trim();
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .slice(0, 8);
 }
