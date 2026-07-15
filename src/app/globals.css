@@ -1589,6 +1589,10 @@
   margin: 0 auto;
 }
 
+.admin-preview p {
+  white-space: pre-wrap;
+}
+
 .admin-empty {
   border: 1px dashed #b8c4d1;
   border-radius: 8px;
@@ -2976,6 +2980,12 @@
   line-height: 1.75;
 }
 
+.case-readable p,
+.case-two-column p,
+.lawyer-comment p {
+  white-space: pre-wrap;
+}
+
 .case-card-body ul {
   display: flex;
   flex-wrap: wrap;
@@ -3178,6 +3188,7 @@
   margin: 0 0 12px;
   color: #344457;
   line-height: 1.8;
+  white-space: pre-wrap;
 }
 
 .case-readable h2,
@@ -5425,6 +5436,7 @@ svg {
 .faq-item p {
   color: var(--secondary-text);
   line-height: 1.75;
+  white-space: pre-wrap;
 }
 
 .faq-item small {
