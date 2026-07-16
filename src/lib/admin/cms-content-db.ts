@@ -274,3 +274,21 @@ export async function upsertCmsContentItem(item: CmsContentItem) {
 
   throw new Error(errors.at(-1) ?? "콘텐츠를 Supabase에 저장하지 못했습니다.");
 }
+
+export async function deleteCmsContentItem(type: CmsContentType, id: string) {
+  const supabase = createAdminClient();
+  if (!supabase) throw new Error("Supabase 관리자 키가 설정되어 있지 않습니다.");
+
+  const table = tableByType[type];
+  const errors: string[] = [];
+
+  const { error: cmsIdError } = await supabase.from(table).delete().eq("cms_id", id);
+  if (!cmsIdError) return true;
+  errors.push(cmsIdError.message);
+
+  const { error: idError } = await supabase.from(table).delete().eq("id", id);
+  if (!idError) return true;
+  errors.push(idError.message);
+
+  throw new Error(errors.at(-1) ?? "콘텐츠를 Supabase에서 삭제하지 못했습니다.");
+}

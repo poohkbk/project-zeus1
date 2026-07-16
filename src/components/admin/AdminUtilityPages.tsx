@@ -3,14 +3,17 @@
 import { FormEvent, useEffect, useState } from "react";
 import { cmsCategoryLabels } from "@/data/cms-seed";
 import {
+  deleteCmsItemFromServer,
   loadCmsAdmins,
   loadCmsItems,
+  loadCmsItemsFromServer,
   loadCmsTaxonomy,
   addCmsTagToServer,
   loadCmsTaxonomyFromServer,
   removeCmsTagFromServer,
   saveCmsAdmins,
   saveCmsItems,
+  saveCmsItemToServer,
   saveCmsTaxonomy,
 } from "@/lib/admin/cms-store";
 import { sortKoreanTags } from "@/lib/tag-utils";
@@ -139,15 +142,62 @@ export function TaxonomyPage() {
 
 export function TrashPage() {
   const [items, setItems] = useState<CmsContentItem[]>([]);
+  const [message, setMessage] = useState("");
+  const [pendingId, setPendingId] = useState<string | undefined>();
 
-  useEffect(() => setItems(loadCmsItems()), []);
+  useEffect(() => {
+    const localItems = loadCmsItems();
+    setItems(localItems);
 
-  function restore(item: CmsContentItem) {
+    loadCmsItemsFromServer()
+      .then((serverItems) => {
+        if (serverItems.length === 0) return;
+        setItems(serverItems);
+        saveCmsItems(serverItems);
+      })
+      .catch(() => setMessage("브라우저 임시저장 목록을 표시하고 있습니다."));
+  }, []);
+
+  async function restore(item: CmsContentItem) {
+    setPendingId(item.id);
     const nextItems = items.map((entry) =>
       entry.id === item.id ? { ...entry, status: "draft" as const } : entry,
     );
     setItems(nextItems);
     saveCmsItems(nextItems);
+
+    const restoredItem = { ...item, status: "draft" as const, updatedAt: new Date().toISOString() };
+    try {
+      await saveCmsItemToServer(restoredItem);
+      setMessage(`"${item.title || "제목 없는 글"}" 글을 임시저장으로 복원했습니다.`);
+    } catch {
+      setMessage("브라우저에는 복원됐지만 Supabase 저장은 실패했습니다.");
+    } finally {
+      setPendingId(undefined);
+    }
+  }
+
+  async function permanentlyDelete(item: CmsContentItem) {
+    const title = item.title || "제목 없는 글";
+    const confirmed = window.confirm(`"${title}" 글을 영구 삭제할까요? 이 작업은 되돌릴 수 없습니다.`);
+    if (!confirmed) return;
+
+    setPendingId(item.id);
+    const previousItems = items;
+    const nextItems = items.filter((entry) => entry.id !== item.id);
+    setItems(nextItems);
+    saveCmsItems(nextItems);
+
+    try {
+      await deleteCmsItemFromServer(item);
+      setMessage(`"${title}" 글을 영구 삭제했습니다.`);
+    } catch (error) {
+      setItems(previousItems);
+      saveCmsItems(previousItems);
+      setMessage(error instanceof Error ? error.message : "영구 삭제에 실패했습니다.");
+    } finally {
+      setPendingId(undefined);
+    }
   }
 
   const trash = items.filter((item) => item.status === "trash");
@@ -162,6 +212,7 @@ export function TrashPage() {
         </div>
       </header>
       <section className="admin-panel admin-list">
+        {message ? <p className="admin-sync-message">{message}</p> : null}
         {trash.length ? (
           trash.map((item) => (
             <article key={item.id} className="admin-list-card">
@@ -171,11 +222,11 @@ export function TrashPage() {
                 <p>{item.summary}</p>
               </div>
               <div className="admin-card-actions">
-                <button type="button" onClick={() => restore(item)}>
-                  임시저장으로 복원
+                <button type="button" onClick={() => restore(item)} disabled={pendingId === item.id}>
+                  {pendingId === item.id ? "처리 중..." : "임시저장으로 복원"}
                 </button>
-                <button type="button" disabled>
-                  영구 삭제
+                <button type="button" className="danger" onClick={() => permanentlyDelete(item)} disabled={pendingId === item.id}>
+                  {pendingId === item.id ? "삭제 중..." : "영구 삭제"}
                 </button>
               </div>
             </article>

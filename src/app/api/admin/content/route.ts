@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { requireAdminApi } from "@/lib/admin/auth";
-import { listCmsContentItems, upsertCmsContentItem } from "@/lib/admin/cms-content-db";
-import type { CmsContentItem } from "@/types/cms";
+import { deleteCmsContentItem, listCmsContentItems, upsertCmsContentItem } from "@/lib/admin/cms-content-db";
+import type { CmsContentItem, CmsContentType } from "@/types/cms";
 
 export const dynamic = "force-dynamic";
 
@@ -58,6 +58,43 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true });
   } catch (error) {
     const message = error instanceof Error ? error.message : "콘텐츠를 저장하지 못했습니다.";
+    return NextResponse.json({ message }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  const { admin, response } = await requireAdminApi();
+  if (response) return response;
+
+  if (admin?.role !== "super_admin") {
+    return NextResponse.json({ message: "영구 삭제는 최고관리자만 할 수 있습니다." }, { status: 403 });
+  }
+
+  const id = String(request.nextUrl.searchParams.get("id") ?? "").trim();
+  const type = String(request.nextUrl.searchParams.get("type") ?? "").trim() as CmsContentType;
+
+  if (!id || !["case", "guide", "faq"].includes(type)) {
+    return NextResponse.json({ message: "삭제할 콘텐츠 정보가 올바르지 않습니다." }, { status: 400 });
+  }
+
+  try {
+    await deleteCmsContentItem(type, id);
+    if (type === "faq") {
+      revalidateTag("published-faqs");
+      revalidatePath("/faq");
+      revalidatePath("/practice");
+    } else if (type === "case") {
+      revalidateTag("published-cases");
+      revalidatePath("/");
+      revalidatePath("/cases");
+    } else {
+      revalidateTag("published-legal-guides");
+      revalidatePath("/");
+      revalidatePath("/legal-guide");
+    }
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "콘텐츠를 영구 삭제하지 못했습니다.";
     return NextResponse.json({ message }, { status: 500 });
   }
 }

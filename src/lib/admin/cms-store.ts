@@ -77,6 +77,16 @@ export async function saveCmsItemToServer(item: CmsContentItem) {
   }
 }
 
+export async function deleteCmsItemFromServer(item: CmsContentItem) {
+  const response = await fetch(`/api/admin/content?type=${encodeURIComponent(item.type)}&id=${encodeURIComponent(item.id)}`, {
+    method: "DELETE",
+  });
+  if (!response.ok) {
+    const data = (await response.json().catch(() => ({}))) as { message?: string };
+    throw new Error(data.message || "콘텐츠를 영구 삭제하지 못했습니다.");
+  }
+}
+
 function prepareItemForServer(item: CmsContentItem): CmsContentItem {
   return item;
 }
