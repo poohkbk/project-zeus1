@@ -70,15 +70,16 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ message: "영구 삭제는 최고관리자만 할 수 있습니다." }, { status: 403 });
   }
 
-  const id = String(request.nextUrl.searchParams.get("id") ?? "").trim();
-  const type = String(request.nextUrl.searchParams.get("type") ?? "").trim() as CmsContentType;
+  const body = (await request.json().catch(() => ({}))) as { item?: CmsContentItem };
+  const id = String(body.item?.id ?? request.nextUrl.searchParams.get("id") ?? "").trim();
+  const type = String(body.item?.type ?? request.nextUrl.searchParams.get("type") ?? "").trim() as CmsContentType;
 
   if (!id || !["case", "guide", "faq"].includes(type)) {
     return NextResponse.json({ message: "삭제할 콘텐츠 정보가 올바르지 않습니다." }, { status: 400 });
   }
 
   try {
-    await deleteCmsContentItem(type, id);
+    await deleteCmsContentItem(body.item ?? ({ id, type } as CmsContentItem));
     if (type === "faq") {
       revalidateTag("published-faqs");
       revalidatePath("/faq");

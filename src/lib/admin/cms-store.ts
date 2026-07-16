@@ -80,6 +80,8 @@ export async function saveCmsItemToServer(item: CmsContentItem) {
 export async function deleteCmsItemFromServer(item: CmsContentItem) {
   const response = await fetch(`/api/admin/content?type=${encodeURIComponent(item.type)}&id=${encodeURIComponent(item.id)}`, {
     method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ item }),
   });
   if (!response.ok) {
     const data = (await response.json().catch(() => ({}))) as { message?: string };

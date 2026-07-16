@@ -32,6 +32,16 @@ type ContentRow = {
   updated_at?: string | null;
 };
 
+type DeleteResult = {
+  data: Array<{ id: string }> | null;
+  error: { message: string } | null;
+};
+
+type DeleteQuery = PromiseLike<DeleteResult> & {
+  eq(column: string, value: string): DeleteQuery;
+  filter(column: string, operator: string, value: string): DeleteQuery;
+};
+
 const tableByType: Record<CmsContentType, ContentTable> = {
   case: "cases",
   guide: "legal_guides",
@@ -57,6 +67,10 @@ function slugify(value: string) {
 function pageAddressFor(item: CmsContentItem) {
   const canonical = item.seo?.canonicalPath?.trim().replace(/^\/+/, "").split("/").filter(Boolean).pop();
   return canonical || slugify(item.title || item.id);
+}
+
+function isUuid(value: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 }
 
 function toCmsItem(row: ContentRow, type: CmsContentType): CmsContentItem {
@@ -275,20 +289,36 @@ export async function upsertCmsContentItem(item: CmsContentItem) {
   throw new Error(errors.at(-1) ?? "콘텐츠를 Supabase에 저장하지 못했습니다.");
 }
 
-export async function deleteCmsContentItem(type: CmsContentType, id: string) {
+export async function deleteCmsContentItem(item: CmsContentItem) {
   const supabase = createAdminClient();
   if (!supabase) throw new Error("Supabase 관리자 키가 설정되어 있지 않습니다.");
+  const admin = supabase;
 
+  const type = item.type;
+  const id = item.id;
   const table = tableByType[type];
   const errors: string[] = [];
 
-  const { error: cmsIdError } = await supabase.from(table).delete().eq("cms_id", id);
-  if (!cmsIdError) return true;
-  errors.push(cmsIdError.message);
+  async function runDelete(label: string, applyFilter: (query: DeleteQuery) => DeleteQuery) {
+    const query = applyFilter(admin.from(table).delete().select("id") as unknown as DeleteQuery);
+    const { data, error } = (await query) as { data: Array<{ id: string }> | null; error: { message: string } | null };
+    if (error) {
+      errors.push(`${label}: ${error.message}`);
+      return false;
+    }
+    return (data ?? []).length > 0;
+  }
 
-  const { error: idError } = await supabase.from(table).delete().eq("id", id);
-  if (!idError) return true;
-  errors.push(idError.message);
+  if (await runDelete("cms_id", (query) => query.eq("cms_id", id))) return true;
+  if (await runDelete("content.id", (query) => query.filter("content->>id", "eq", id))) return true;
 
-  throw new Error(errors.at(-1) ?? "콘텐츠를 Supabase에서 삭제하지 못했습니다.");
+  if (type === "faq") {
+    if (await runDelete("question", (query) => query.eq("question", item.title || "제목 없는 질문"))) return true;
+  } else {
+    if (await runDelete("page_address", (query) => query.eq("page_address", pageAddressFor(item)))) return true;
+  }
+
+  if (isUuid(id) && (await runDelete("id", (query) => query.eq("id", id)))) return true;
+
+  throw new Error(errors.at(-1) ?? "삭제할 콘텐츠를 Supabase에서 찾지 못했습니다.");
 }
