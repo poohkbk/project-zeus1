@@ -276,19 +276,27 @@ export function TrashPage() {
             </span>
             <button
               type="button"
-              className="danger"
+              className="admin-danger-button"
               onClick={() => permanentlyDeleteMany(selectedTrashItems, "선택한")}
               disabled={bulkPending || selectedTrashItems.length === 0}
             >
-              선택 영구삭제
+              선택한 글 영구삭제
             </button>
             <button
               type="button"
-              className="danger"
+              className="admin-danger-button"
               onClick={() => permanentlyDeleteMany(trash, "휴지통 전체")}
               disabled={bulkPending || trash.length === 0}
             >
-              전체 영구삭제
+              휴지통 전체 영구삭제
+            </button>
+          </div>
+        ) : null}
+        {selectedTrashItems.length > 0 ? (
+          <div className="admin-trash-selection-bar" role="status" aria-live="polite">
+            <strong>{selectedTrashItems.length.toLocaleString("ko-KR")}개 글이 선택되었습니다.</strong>
+            <button type="button" onClick={() => permanentlyDeleteMany(selectedTrashItems, "선택한")} disabled={bulkPending}>
+              선택한 글 영구삭제
             </button>
           </div>
         ) : null}
