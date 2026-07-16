@@ -3,6 +3,7 @@ import { Reveal } from "@/components/animation/Reveal";
 import { SimpleIcon } from "@/components/icons/SimpleIcon";
 import { siteConfig } from "@/config/site";
 import { getHomeLegalGuides } from "@/lib/data/legal-guides";
+import { getLegalGuideCategoryLabel } from "@/lib/legal-guide-taxonomy";
 
 export async function LegalGuides() {
   const legalGuides = await getHomeLegalGuides(4);
@@ -19,7 +20,7 @@ export async function LegalGuides() {
           {legalGuides.map((guide, index) => (
             <Reveal key={guide.title} delay={index * 60}>
               <Link className="guide-card" href={guide.href}>
-                <span className="guide-thumb">{guide.category}</span>
+                <span className="guide-thumb">{getLegalGuideCategoryLabel(guide.category)}</span>
                 <strong>{guide.title}</strong>
                 <p>{guide.excerpt}</p>
                 <em>

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getPublishedLegalGuides } from "@/lib/data/legal-guides";
+import { getLegalGuideCategoryLabel } from "@/lib/legal-guide-taxonomy";
 import { absoluteUrl } from "@/lib/seo/metadata";
 
 export const revalidate = 60;
@@ -37,7 +38,7 @@ export default async function LegalGuidePage() {
         <div className="site-shell guide-grid">
           {legalGuideContents.map((guide) => (
             <Link key={guide.id} href={guide.href} className="guide-card">
-              <span className="case-category">{guide.category}</span>
+              <span className="case-category">{getLegalGuideCategoryLabel(guide.category)}</span>
               <strong>{guide.title}</strong>
               <p>{guide.excerpt}</p>
               <em>{guide.readingTime ?? "5분"} 읽기</em>

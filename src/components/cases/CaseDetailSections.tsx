@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { CaseCard } from "@/components/cases/CaseCard";
 import { siteConfig } from "@/config/site";
+import { getLegalGuideCategoryLabel } from "@/lib/legal-guide-taxonomy";
 import type { LegalGuideContent } from "@/types/content";
 import type { PublicCaseContent } from "@/types/case";
 import type { PracticeArea } from "@/types/practice";
@@ -126,7 +127,7 @@ export function CaseDetailSections({
             <div className="related-grid">
               {guides.map((guide) => (
                 <Link className="related-card guide" key={guide.id} href={guide.href}>
-                  <span>{guide.category}</span>
+                  <span>{getLegalGuideCategoryLabel(guide.category)}</span>
                   <h3>{guide.title}</h3>
                   <p>{guide.excerpt}</p>
                   {guide.readingTime ? <em>읽는 시간 {guide.readingTime}</em> : null}

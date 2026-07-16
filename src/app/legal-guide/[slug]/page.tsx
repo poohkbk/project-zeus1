@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { legalGuideContents } from "@/data/legal-guides";
 import { getLegalGuideBySlug } from "@/lib/data/legal-guides";
+import { getLegalGuideCategoryLabel } from "@/lib/legal-guide-taxonomy";
 
 type LegalGuideDetailPageProps = {
   params: Promise<{ slug: string }>;
@@ -78,7 +79,7 @@ export default async function LegalGuideDetailPage({ params }: LegalGuideDetailP
             <span>/</span>
             <Link href="/legal-guide">법률가이드</Link>
             <span>/</span>
-            <span>{guide.category}</span>
+            <span>{getLegalGuideCategoryLabel(guide.category)}</span>
           </nav>
           <p className="eyebrow">Legal Guide</p>
           <h1>{guide.title}</h1>

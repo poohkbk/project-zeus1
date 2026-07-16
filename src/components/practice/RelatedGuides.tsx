@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Reveal } from "@/components/animation/Reveal";
 import { siteConfig } from "@/config/site";
+import { getLegalGuideCategoryLabel } from "@/lib/legal-guide-taxonomy";
 import type { LegalGuideContent } from "@/types/content";
 
 export function RelatedGuides({ guides }: { guides: LegalGuideContent[] }) {
@@ -17,7 +18,7 @@ export function RelatedGuides({ guides }: { guides: LegalGuideContent[] }) {
         <div className="related-grid">
           {guides.map((guide) => (
             <Link className="related-card guide" key={guide.id} href={guide.href}>
-              <span>{guide.category}</span>
+              <span>{getLegalGuideCategoryLabel(guide.category)}</span>
               <h3>{guide.title}</h3>
               <p>{guide.excerpt}</p>
               {guide.readingTime ? <em>읽는 시간 {guide.readingTime}</em> : null}
