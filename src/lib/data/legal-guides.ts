@@ -99,7 +99,7 @@ const fetchPublishedRowsFromAdmin = unstable_cache(
     return fetchPublishedRowsWithClient(supabase);
   },
   ["published-legal-guides"],
-  { revalidate: 60 },
+  { revalidate: 60, tags: ["published-legal-guides"] },
 );
 
 async function fetchPublishedRowsFromPublicClient() {

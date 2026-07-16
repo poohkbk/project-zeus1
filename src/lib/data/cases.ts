@@ -172,7 +172,7 @@ const fetchPublishedCaseRowsFromAdmin = unstable_cache(
     return fetchPublishedCaseRowsWithClient(supabase);
   },
   ["published-cases"],
-  { revalidate: 60 },
+  { revalidate: 60, tags: ["published-cases"] },
 );
 
 async function fetchPublishedCaseRowsFromPublicClient() {

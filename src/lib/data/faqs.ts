@@ -56,7 +56,7 @@ const fetchPublishedFaqRowsFromAdmin = unstable_cache(
     return data as FaqRow[];
   },
   ["published-faqs"],
-  { revalidate: 60 },
+  { revalidate: 60, tags: ["published-faqs"] },
 );
 
 export async function getPublishedFaqs(): Promise<PublicFaq[]> {

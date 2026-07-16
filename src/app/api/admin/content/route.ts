@@ -1,9 +1,34 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { requireAdminApi } from "@/lib/admin/auth";
 import { listCmsContentItems, upsertCmsContentItem } from "@/lib/admin/cms-content-db";
 import type { CmsContentItem } from "@/types/cms";
 
 export const dynamic = "force-dynamic";
+
+function revalidatePublicContent(item: CmsContentItem) {
+  if (item.type === "faq") {
+    revalidateTag("published-faqs");
+    revalidatePath("/faq");
+    revalidatePath("/practice");
+    return;
+  }
+
+  if (item.type === "case") {
+    revalidateTag("published-cases");
+    revalidatePath("/");
+    revalidatePath("/cases");
+    revalidatePath(`/cases/${item.seo?.canonicalPath?.split("/").filter(Boolean).pop() ?? item.id}`);
+    return;
+  }
+
+  if (item.type === "guide") {
+    revalidateTag("published-legal-guides");
+    revalidatePath("/");
+    revalidatePath("/legal-guide");
+    revalidatePath(`/legal-guide/${item.seo?.canonicalPath?.split("/").filter(Boolean).pop() ?? item.id}`);
+  }
+}
 
 export async function GET() {
   const { response } = await requireAdminApi();
@@ -29,6 +54,7 @@ export async function POST(request: NextRequest) {
 
   try {
     await upsertCmsContentItem(body.item);
+    revalidatePublicContent(body.item);
     return NextResponse.json({ success: true });
   } catch (error) {
     const message = error instanceof Error ? error.message : "콘텐츠를 저장하지 못했습니다.";
