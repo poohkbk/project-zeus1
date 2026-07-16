@@ -9,6 +9,7 @@ import {
   loadCmsItemsFromServer,
   loadCmsItems,
   loadCmsTaxonomy,
+  loadCmsTaxonomyFromServer,
   normalizeTags,
   saveCmsItemToServer,
   saveCmsItems,
@@ -25,12 +26,6 @@ const faqCategoryButtonLabels: Record<CmsContentItem["category"], string> = {
   inheritance: "상속",
   administrative: "행정",
 };
-
-function sortRecommendedTags(tags: string[]) {
-  return Array.from(new Set(tags.map((tag) => tag.trim()).filter(Boolean))).sort((a, b) =>
-    a.localeCompare(b, "ko-KR", { sensitivity: "base" }),
-  );
-}
 
 function createEmptyCaseDetail(): CmsCaseDetail {
   return {
@@ -119,7 +114,12 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
   const itemsRef = useRef<CmsContentItem[]>([]);
 
   useEffect(() => {
-    setRecommendedTags(sortRecommendedTags(loadCmsTaxonomy().tags));
+    const localTags = loadCmsTaxonomy().tags;
+    setRecommendedTags(localTags);
+    loadCmsTaxonomyFromServer()
+      .then((taxonomy) => setRecommendedTags(taxonomy.tags))
+      .catch(() => setRecommendedTags(localTags));
+
     const loaded = loadCmsItems();
     itemsRef.current = loaded;
     setItems(loaded);

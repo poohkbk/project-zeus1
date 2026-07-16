@@ -6,10 +6,14 @@ import {
   loadCmsAdmins,
   loadCmsItems,
   loadCmsTaxonomy,
+  addCmsTagToServer,
+  loadCmsTaxonomyFromServer,
+  removeCmsTagFromServer,
   saveCmsAdmins,
   saveCmsItems,
   saveCmsTaxonomy,
 } from "@/lib/admin/cms-store";
+import { sortKoreanTags } from "@/lib/tag-utils";
 import type { CmsAdminUser, CmsContentItem } from "@/types/cms";
 import { statusLabel } from "./AdminDashboard";
 
@@ -19,17 +23,25 @@ export function TaxonomyPage() {
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    setTags(loadCmsTaxonomy().tags);
+    const localTags = loadCmsTaxonomy().tags;
+    setTags(localTags);
+
+    loadCmsTaxonomyFromServer()
+      .then((taxonomy) => setTags(taxonomy.tags))
+      .catch(() => {
+        setTags(localTags);
+        setMessage("Supabase 추천태그를 불러오지 못해 임시 저장 목록을 표시합니다.");
+      });
   }, []);
 
   function saveTags(nextTags: string[], nextMessage: string) {
-    const normalized = Array.from(new Set(nextTags.map((tag) => tag.trim()).filter(Boolean)));
+    const normalized = sortKoreanTags(nextTags);
     setTags(normalized);
     saveCmsTaxonomy({ tags: normalized });
     setMessage(nextMessage);
   }
 
-  function addTag(event: FormEvent<HTMLFormElement>) {
+  async function addTag(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const value = newTag.trim();
     if (!value) {
@@ -40,12 +52,30 @@ export function TaxonomyPage() {
       setMessage("이미 등록된 태그입니다.");
       return;
     }
-    saveTags([...tags, value], `"${value}" 태그를 추가했습니다.`);
-    setNewTag("");
+
+    const optimisticTags = sortKoreanTags([...tags, value]);
+    saveTags(optimisticTags, `"${value}" 태그를 저장하는 중입니다.`);
+
+    try {
+      const taxonomy = await addCmsTagToServer(value);
+      saveTags(taxonomy.tags, `"${value}" 태그를 추가했습니다.`);
+      setNewTag("");
+    } catch {
+      saveTags(optimisticTags, `"${value}" 태그를 임시 저장했습니다. Supabase 연결을 확인해 주세요.`);
+      setNewTag("");
+    }
   }
 
-  function removeTag(tag: string) {
-    saveTags(tags.filter((item) => item !== tag), `"${tag}" 태그를 삭제했습니다.`);
+  async function removeTag(tag: string) {
+    const optimisticTags = sortKoreanTags(tags.filter((item) => item !== tag));
+    saveTags(optimisticTags, `"${tag}" 태그를 삭제하는 중입니다.`);
+
+    try {
+      const taxonomy = await removeCmsTagFromServer(tag);
+      saveTags(taxonomy.tags, `"${tag}" 태그를 삭제했습니다.`);
+    } catch {
+      saveTags(optimisticTags, `"${tag}" 태그를 임시 삭제했습니다. Supabase 연결을 확인해 주세요.`);
+    }
   }
 
   return (

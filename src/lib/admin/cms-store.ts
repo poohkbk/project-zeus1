@@ -1,6 +1,7 @@
 "use client";
 
 import { cmsDefaultTags, cmsSeedAdmins, cmsSeedItems } from "@/data/cms-seed";
+import { sortKoreanTags } from "@/lib/tag-utils";
 import type { CmsAdminUser, CmsContentItem, CmsContentType, CmsTaxonomy } from "@/types/cms";
 
 const CONTENT_KEY = "zeu-cms-content-v1";
@@ -89,13 +90,53 @@ export function saveCmsAdmins(admins: CmsAdminUser[]) {
 }
 
 export function loadCmsTaxonomy() {
-  return readJson<CmsTaxonomy>(TAXONOMY_KEY, { tags: cmsDefaultTags });
+  const taxonomy = readJson<CmsTaxonomy>(TAXONOMY_KEY, { tags: cmsDefaultTags });
+  return { tags: sortKoreanTags([...cmsDefaultTags, ...taxonomy.tags]) };
 }
 
 export function saveCmsTaxonomy(taxonomy: CmsTaxonomy) {
   writeJson(TAXONOMY_KEY, {
-    tags: Array.from(new Set(taxonomy.tags.map((tag) => tag.trim()).filter(Boolean))),
+    tags: sortKoreanTags(taxonomy.tags),
   });
+}
+
+export async function loadCmsTaxonomyFromServer() {
+  const response = await fetch("/api/admin/taxonomy", { cache: "no-store" });
+  if (!response.ok) throw new Error("Failed to load recommended tags.");
+  const data = (await response.json()) as { tags?: string[] };
+  const tags = sortKoreanTags(data.tags ?? []);
+  saveCmsTaxonomy({ tags });
+  return { tags };
+}
+
+export async function addCmsTagToServer(label: string) {
+  const response = await fetch("/api/admin/taxonomy", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ label }),
+  });
+  if (!response.ok) {
+    const data = (await response.json().catch(() => ({}))) as { message?: string };
+    throw new Error(data.message || "추천태그를 저장하지 못했습니다.");
+  }
+  const data = (await response.json()) as { tags?: string[] };
+  const tags = sortKoreanTags(data.tags ?? []);
+  saveCmsTaxonomy({ tags });
+  return { tags };
+}
+
+export async function removeCmsTagFromServer(label: string) {
+  const response = await fetch(`/api/admin/taxonomy?label=${encodeURIComponent(label)}`, {
+    method: "DELETE",
+  });
+  if (!response.ok) {
+    const data = (await response.json().catch(() => ({}))) as { message?: string };
+    throw new Error(data.message || "추천태그를 삭제하지 못했습니다.");
+  }
+  const data = (await response.json()) as { tags?: string[] };
+  const tags = sortKoreanTags(data.tags ?? []);
+  saveCmsTaxonomy({ tags });
+  return { tags };
 }
 
 export function createEmptyCmsItem(type: CmsContentType): CmsContentItem {
