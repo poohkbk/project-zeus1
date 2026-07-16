@@ -87,6 +87,12 @@ export async function deleteCmsItemFromServer(item: CmsContentItem) {
   }
 }
 
+export async function deleteCmsItemsFromServer(items: CmsContentItem[]) {
+  for (const item of items) {
+    await deleteCmsItemFromServer(item);
+  }
+}
+
 function prepareItemForServer(item: CmsContentItem): CmsContentItem {
   return item;
 }

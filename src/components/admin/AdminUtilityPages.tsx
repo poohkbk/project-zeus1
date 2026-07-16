@@ -1,9 +1,10 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { cmsCategoryLabels } from "@/data/cms-seed";
 import {
   deleteCmsItemFromServer,
+  deleteCmsItemsFromServer,
   loadCmsAdmins,
   loadCmsItems,
   loadCmsItemsFromServer,
@@ -144,6 +145,8 @@ export function TrashPage() {
   const [items, setItems] = useState<CmsContentItem[]>([]);
   const [message, setMessage] = useState("");
   const [pendingId, setPendingId] = useState<string | undefined>();
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [bulkPending, setBulkPending] = useState(false);
 
   useEffect(() => {
     const localItems = loadCmsItems();
@@ -169,6 +172,7 @@ export function TrashPage() {
     const restoredItem = { ...item, status: "draft" as const, updatedAt: new Date().toISOString() };
     try {
       await saveCmsItemToServer(restoredItem);
+      setSelectedIds((current) => current.filter((id) => id !== item.id));
       setMessage(`"${item.title || "제목 없는 글"}" 글을 임시저장으로 복원했습니다.`);
     } catch {
       setMessage("브라우저에는 복원됐지만 Supabase 저장은 실패했습니다.");
@@ -190,6 +194,7 @@ export function TrashPage() {
 
     try {
       await deleteCmsItemFromServer(item);
+      setSelectedIds((current) => current.filter((id) => id !== item.id));
       setMessage(`"${title}" 글을 영구 삭제했습니다.`);
     } catch (error) {
       setItems(previousItems);
@@ -201,6 +206,53 @@ export function TrashPage() {
   }
 
   const trash = items.filter((item) => item.status === "trash");
+  const trashIds = useMemo(() => trash.map((item) => item.id), [trash]);
+  const selectedTrashItems = trash.filter((item) => selectedIds.includes(item.id));
+  const allTrashSelected = trash.length > 0 && trash.every((item) => selectedIds.includes(item.id));
+
+  function toggleSelection(itemId: string) {
+    setSelectedIds((current) =>
+      current.includes(itemId) ? current.filter((id) => id !== itemId) : [...current, itemId],
+    );
+  }
+
+  function toggleAllTrash() {
+    setSelectedIds((current) => {
+      if (allTrashSelected) return current.filter((id) => !trashIds.includes(id));
+      return Array.from(new Set([...current, ...trashIds]));
+    });
+  }
+
+  async function permanentlyDeleteMany(targetItems: CmsContentItem[], modeLabel: string) {
+    if (targetItems.length === 0) {
+      setMessage("영구 삭제할 글을 선택해 주세요.");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `${modeLabel} ${targetItems.length.toLocaleString("ko-KR")}개 글을 영구 삭제할까요? 이 작업은 되돌릴 수 없습니다.`,
+    );
+    if (!confirmed) return;
+
+    setBulkPending(true);
+    const previousItems = items;
+    const targetIds = new Set(targetItems.map((item) => item.id));
+    const nextItems = items.filter((item) => !targetIds.has(item.id));
+    setItems(nextItems);
+    saveCmsItems(nextItems);
+
+    try {
+      await deleteCmsItemsFromServer(targetItems);
+      setSelectedIds((current) => current.filter((id) => !targetIds.has(id)));
+      setMessage(`${targetItems.length.toLocaleString("ko-KR")}개 글을 영구 삭제했습니다.`);
+    } catch (error) {
+      setItems(previousItems);
+      saveCmsItems(previousItems);
+      setMessage(error instanceof Error ? error.message : "선택한 글을 영구 삭제하지 못했습니다.");
+    } finally {
+      setBulkPending(false);
+    }
+  }
 
   return (
     <div className="admin-screen">
@@ -214,18 +266,59 @@ export function TrashPage() {
       <section className="admin-panel admin-list">
         {message ? <p className="admin-sync-message">{message}</p> : null}
         {trash.length ? (
+          <div className="admin-trash-toolbar">
+            <label>
+              <input type="checkbox" checked={allTrashSelected} onChange={toggleAllTrash} disabled={bulkPending} />
+              전체 선택
+            </label>
+            <span>
+              선택 {selectedTrashItems.length.toLocaleString("ko-KR")}개 / 휴지통 {trash.length.toLocaleString("ko-KR")}개
+            </span>
+            <button
+              type="button"
+              className="danger"
+              onClick={() => permanentlyDeleteMany(selectedTrashItems, "선택한")}
+              disabled={bulkPending || selectedTrashItems.length === 0}
+            >
+              선택 영구삭제
+            </button>
+            <button
+              type="button"
+              className="danger"
+              onClick={() => permanentlyDeleteMany(trash, "휴지통 전체")}
+              disabled={bulkPending || trash.length === 0}
+            >
+              전체 영구삭제
+            </button>
+          </div>
+        ) : null}
+        {trash.length ? (
           trash.map((item) => (
             <article key={item.id} className="admin-list-card">
               <div>
+                <label className="admin-trash-select">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.includes(item.id)}
+                    onChange={() => toggleSelection(item.id)}
+                    disabled={bulkPending || pendingId === item.id}
+                  />
+                  선택
+                </label>
                 <span>{statusLabel(item.status)}</span>
                 <h3>{item.title}</h3>
                 <p>{item.summary}</p>
               </div>
               <div className="admin-card-actions">
-                <button type="button" onClick={() => restore(item)} disabled={pendingId === item.id}>
+                <button type="button" onClick={() => restore(item)} disabled={bulkPending || pendingId === item.id}>
                   {pendingId === item.id ? "처리 중..." : "임시저장으로 복원"}
                 </button>
-                <button type="button" className="danger" onClick={() => permanentlyDelete(item)} disabled={pendingId === item.id}>
+                <button
+                  type="button"
+                  className="danger"
+                  onClick={() => permanentlyDelete(item)}
+                  disabled={bulkPending || pendingId === item.id}
+                >
                   {pendingId === item.id ? "삭제 중..." : "영구 삭제"}
                 </button>
               </div>
