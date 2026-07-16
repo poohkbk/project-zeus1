@@ -303,6 +303,7 @@ export async function deleteCmsContentItem(item: CmsContentItem) {
     const query = applyFilter(admin.from(table).delete().select("id") as unknown as DeleteQuery);
     const { data, error } = (await query) as { data: Array<{ id: string }> | null; error: { message: string } | null };
     if (error) {
+      if (error.message.includes("does not exist")) return false;
       errors.push(`${label}: ${error.message}`);
       return false;
     }
@@ -316,6 +317,7 @@ export async function deleteCmsContentItem(item: CmsContentItem) {
     if (await runDelete("question", (query) => query.eq("question", item.title || "제목 없는 질문"))) return true;
   } else {
     if (await runDelete("page_address", (query) => query.eq("page_address", pageAddressFor(item)))) return true;
+    if (await runDelete("title", (query) => query.eq("title", item.title || "").eq("status", "trash"))) return true;
   }
 
   if (isUuid(id) && (await runDelete("id", (query) => query.eq("id", id)))) return true;
