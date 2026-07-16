@@ -4,8 +4,7 @@ import { FaqExplorer } from "@/components/faq/FaqExplorer";
 import { getPublishedFaqs } from "@/lib/data/faqs";
 import { absoluteUrl } from "@/lib/seo/metadata";
 
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
+export const revalidate = 60;
 
 export const metadata: Metadata = {
   title: {

@@ -12,8 +12,7 @@ type CaseDetailPageProps = {
 };
 
 export const dynamicParams = true;
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
+export const revalidate = 60;
 
 export function generateStaticParams() {
   return caseContents.filter((item) => isPublishedCase(item)).map((item) => ({ slug: item.slug }));

@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import { localSeoPages } from "@/data/local-seo-pages";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -37,8 +38,32 @@ function toFaq(row: FaqRow): PublicFaq {
   };
 }
 
+const fetchPublishedFaqRowsFromAdmin = unstable_cache(
+  async () => {
+    const supabase = createAdminClient();
+    if (!supabase) return undefined;
+
+    const now = new Date().toISOString();
+    const { data, error } = await supabase
+      .from("faqs")
+      .select("*")
+      .eq("status", "published")
+      .or(`published_at.is.null,published_at.lte.${now}`)
+      .order("sort_order", { ascending: true, nullsFirst: false })
+      .order("created_at", { ascending: false });
+
+    if (error || !data || data.length === 0) return undefined;
+    return data as FaqRow[];
+  },
+  ["published-faqs"],
+  { revalidate: 60 },
+);
+
 export async function getPublishedFaqs(): Promise<PublicFaq[]> {
-  const supabase = createAdminClient() ?? (await createClient());
+  const cachedRows = await fetchPublishedFaqRowsFromAdmin();
+  if (cachedRows) return cachedRows.map(toFaq);
+
+  const supabase = await createClient();
   if (!supabase) return fallbackFaqs;
 
   const now = new Date().toISOString();

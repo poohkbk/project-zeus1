@@ -3,6 +3,8 @@ import Link from "next/link";
 import { getPublishedLegalGuides } from "@/lib/data/legal-guides";
 import { absoluteUrl } from "@/lib/seo/metadata";
 
+export const revalidate = 60;
+
 export const metadata: Metadata = {
   title: {
     absolute: "청주 법률가이드 | 민사·형사·이혼·상속 상담자료 | 법률사무소 제우",

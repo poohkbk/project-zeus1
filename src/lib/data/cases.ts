@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import { caseContents, toPublicCaseContent } from "@/data/cases";
 import { cmsCategoryLabels } from "@/data/cms-seed";
 import {
@@ -6,6 +7,7 @@ import {
   isWithinFeaturedPeriod,
   type GetFeaturedCasesOptions,
 } from "@/lib/case-selectors";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type { CaseRow } from "@/types/database";
 import type { CaseContent, PublicCaseContent } from "@/types/case";
@@ -149,7 +151,31 @@ function toPublicCase(row: CaseRow): PublicCaseContent {
   };
 }
 
-async function fetchPublishedCaseRows() {
+async function fetchPublishedCaseRowsWithClient(supabase: NonNullable<ReturnType<typeof createAdminClient>>) {
+  const now = new Date().toISOString();
+  const { data, error } = await supabase
+    .from("cases")
+    .select("*")
+    .eq("status", "published")
+    .or(`published_at.is.null,published_at.lte.${now}`)
+    .order("published_at", { ascending: false, nullsFirst: false })
+    .order("created_at", { ascending: false });
+
+  if (error || !data || data.length === 0) return undefined;
+  return data as CaseRow[];
+}
+
+const fetchPublishedCaseRowsFromAdmin = unstable_cache(
+  async () => {
+    const supabase = createAdminClient();
+    if (!supabase) return undefined;
+    return fetchPublishedCaseRowsWithClient(supabase);
+  },
+  ["published-cases"],
+  { revalidate: 60 },
+);
+
+async function fetchPublishedCaseRowsFromPublicClient() {
   const supabase = await createClient();
   if (!supabase) return undefined;
 
@@ -164,6 +190,10 @@ async function fetchPublishedCaseRows() {
 
   if (error || !data || data.length === 0) return undefined;
   return data as CaseRow[];
+}
+
+async function fetchPublishedCaseRows() {
+  return (await fetchPublishedCaseRowsFromAdmin()) ?? (await fetchPublishedCaseRowsFromPublicClient());
 }
 
 export async function getPublishedCases(): Promise<PublicCaseContent[]> {

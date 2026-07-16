@@ -33,8 +33,7 @@ function ParagraphBlock({ text }: { text?: string }) {
 }
 
 export const dynamicParams = true;
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
+export const revalidate = 60;
 
 export async function generateStaticParams() {
   return legalGuideContents.map((guide) => ({ slug: guide.slug }));

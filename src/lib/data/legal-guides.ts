@@ -1,4 +1,6 @@
+import { unstable_cache } from "next/cache";
 import { legalGuideContents } from "@/data/legal-guides";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type { LegalGuideContent } from "@/types/content";
 import type { LegalGuideRow } from "@/types/database";
@@ -76,7 +78,31 @@ function toLegalGuide(row: LegalGuideRow): LegalGuideContent {
   };
 }
 
-async function fetchPublishedRows() {
+async function fetchPublishedRowsWithClient(supabase: NonNullable<ReturnType<typeof createAdminClient>>) {
+  const now = new Date().toISOString();
+  const { data, error } = await supabase
+    .from("legal_guides")
+    .select("*")
+    .eq("status", "published")
+    .or(`published_at.is.null,published_at.lte.${now}`)
+    .order("published_at", { ascending: false, nullsFirst: false })
+    .order("created_at", { ascending: false });
+
+  if (error || !data || data.length === 0) return undefined;
+  return data as LegalGuideRow[];
+}
+
+const fetchPublishedRowsFromAdmin = unstable_cache(
+  async () => {
+    const supabase = createAdminClient();
+    if (!supabase) return undefined;
+    return fetchPublishedRowsWithClient(supabase);
+  },
+  ["published-legal-guides"],
+  { revalidate: 60 },
+);
+
+async function fetchPublishedRowsFromPublicClient() {
   const supabase = await createClient();
   if (!supabase) return undefined;
 
@@ -91,6 +117,10 @@ async function fetchPublishedRows() {
 
   if (error || !data || data.length === 0) return undefined;
   return data as LegalGuideRow[];
+}
+
+async function fetchPublishedRows() {
+  return (await fetchPublishedRowsFromAdmin()) ?? (await fetchPublishedRowsFromPublicClient());
 }
 
 export async function getPublishedLegalGuides(): Promise<LegalGuideContent[]> {
