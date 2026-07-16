@@ -20,8 +20,15 @@ function readJson<T>(key: string, fallback: T): T {
 }
 
 function writeJson<T>(key: string, value: T) {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(key, JSON.stringify(value));
+  if (typeof window === "undefined") return true;
+  try {
+    window.localStorage.setItem(key, JSON.stringify(value));
+    return true;
+  } catch {
+    // Large uploaded images can exceed the browser's temporary storage quota.
+    // Supabase remains the source of truth; local storage is only a fallback.
+    return false;
+  }
 }
 
 export function loadCmsItems() {
@@ -29,7 +36,11 @@ export function loadCmsItems() {
 }
 
 export function saveCmsItems(items: CmsContentItem[]) {
-  writeJson(CONTENT_KEY, items);
+  const saved = writeJson(CONTENT_KEY, items);
+  if (!saved) {
+    const lightweightItems = items.map((item) => ({ ...item, heroImage: "" }));
+    writeJson(CONTENT_KEY, lightweightItems);
+  }
 }
 
 export async function loadCmsItemsFromServer() {

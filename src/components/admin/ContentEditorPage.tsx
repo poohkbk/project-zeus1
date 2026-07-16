@@ -93,8 +93,10 @@ function resizeImageFile(file: File): Promise<string> {
           return;
         }
 
+        context.fillStyle = "#ffffff";
+        context.fillRect(0, 0, width, height);
         context.drawImage(image, 0, 0, width, height);
-        resolve(canvas.toDataURL("image/jpeg", 0.82));
+        resolve(canvas.toDataURL("image/jpeg", 0.76));
       };
       image.src = String(reader.result ?? "");
     };
@@ -299,39 +301,9 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
   }
 
   function handleImageChange(event: ChangeEvent<HTMLInputElement>) {
-    void handleDroppedImage(event.target.files?.[0]);
-    event.target.value = "";
     const file = event.target.files?.[0];
-    setImageError("");
-    setImageStatus("");
-
-    if (!file) return;
-    if (!acceptedImageTypes.includes(file.type)) {
-      setImageError("JPG, PNG, WebP 이미지만 업로드할 수 있습니다. SVG 파일은 사용할 수 없습니다.");
-      event.target.value = "";
-      return;
-    }
-    if (file.size > maxImageSize) {
-      setImageError("이미지는 5MB 이하로 올려 주세요.");
-      event.target.value = "";
-      return;
-    }
-
-    setImageStatus("이미지를 불러오는 중입니다.");
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = typeof reader.result === "string" ? reader.result : "";
-      setItem((current) => ({
-        ...current,
-        heroImage: result,
-        heroImageAlt: current.heroImageAlt || `${current.title || "콘텐츠"} 대표 이미지`,
-      }));
-      setImageStatus("이미지가 추가되었습니다. 운영 연결 후에는 Supabase Storage에 저장됩니다.");
-    };
-    reader.onerror = () => {
-      setImageError("이미지를 읽지 못했습니다. 다른 파일로 다시 시도해 주세요.");
-    };
-    reader.readAsDataURL(file);
+    event.target.value = "";
+    void handleDroppedImage(file);
   }
 
   function removeImage() {
@@ -361,7 +333,7 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
         heroImage: result,
         heroImageAlt: current.heroImageAlt || `${current.title || "콘텐츠"} 대표 이미지`,
       }));
-      setImageStatus("이미지가 추가되었습니다. 저장하면 홈페이지에 반영됩니다.");
+      setImageStatus("이미지가 압축되어 추가되었습니다. 저장하면 홈페이지에 반영됩니다.");
     } catch {
       setImageError("이미지를 읽지 못했습니다. 다른 파일로 다시 시도해 주세요.");
     }
