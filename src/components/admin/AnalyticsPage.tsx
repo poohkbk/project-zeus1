@@ -28,17 +28,25 @@ export function AnalyticsPage() {
   const [error, setError] = useState("");
 
   function refreshAnalytics() {
+    setError("");
     return fetch("/api/admin/analytics", { cache: "no-store" })
-      .then((response) => {
-        if (!response.ok) throw new Error("통계를 불러오지 못했습니다.");
+      .then(async (response) => {
+        if (!response.ok) {
+          const body = (await response.json().catch(() => ({}))) as { message?: string };
+          throw new Error(body.message ?? "접속통계를 불러오지 못했습니다.");
+        }
         return response.json() as Promise<AnalyticsDashboardData>;
       })
       .then(setData);
   }
 
   useEffect(() => {
-    refreshAnalytics().catch(() =>
-      setError("접속통계를 불러오지 못했습니다. 잠시 후 다시 확인해주세요."),
+    refreshAnalytics().catch((analyticsError) =>
+      setError(
+        analyticsError instanceof Error
+          ? analyticsError.message
+          : "접속통계를 불러오지 못했습니다. 잠시 후 다시 확인해주세요.",
+      ),
     );
   }, []);
 
@@ -102,6 +110,9 @@ export function AnalyticsPage() {
       <div className="admin-screen">
         <section className="admin-empty">
           <h3>{error}</h3>
+          <button type="button" onClick={() => refreshAnalytics().catch((nextError) => setError(nextError.message))}>
+            다시 불러오기
+          </button>
         </section>
       </div>
     );
@@ -124,8 +135,8 @@ export function AnalyticsPage() {
           <span>방문자 분석</span>
           <h1>접속통계</h1>
           <p>
-            사이트 방문자의 일일, 주별, 월별 접속수와 접속 IP를 확인합니다. 문제가 있는 IP는
-            공개 페이지 접속을 차단할 수 있습니다.
+            홈페이지 방문자의 일별, 주별, 월별 접속수와 접속 IP를 확인합니다. 반복 접속 IP는
+            이 화면에서 바로 차단하거나 해제할 수 있습니다.
           </p>
         </div>
       </header>
@@ -141,8 +152,7 @@ export function AnalyticsPage() {
         <div className="admin-panel-title">
           <h2>IP 차단 관리</h2>
           <p>
-            차단된 IP는 일반 사이트 화면에 접근할 수 없고, 관리자 화면은 해제를 위해 계속
-            접근할 수 있습니다.
+            차단한 IP는 일반 홈페이지 화면에 접근할 수 없고, 관리자 화면은 차단 해제를 위해 계속 접근할 수 있습니다.
           </p>
         </div>
         <form className="admin-blocklist-form" onSubmit={submitManualBlock}>
@@ -184,7 +194,7 @@ export function AnalyticsPage() {
               </article>
             ))
           ) : (
-            <p className="admin-muted">현재 차단된 IP가 없습니다.</p>
+            <p className="admin-muted">현재 차단한 IP가 없습니다.</p>
           )}
         </div>
       </section>
@@ -192,7 +202,7 @@ export function AnalyticsPage() {
       <section className="admin-analytics-layout">
         <article className="admin-panel">
           <div className="admin-panel-title">
-            <h2>최근 7일 일일 접속자수</h2>
+            <h2>최근 7일 일별 접속수</h2>
             <p>막대가 길수록 해당 날짜의 접속수가 많습니다.</p>
           </div>
           <div className="admin-bar-list">
@@ -241,7 +251,7 @@ export function AnalyticsPage() {
       <section className="admin-analytics-layout">
         <article className="admin-panel">
           <div className="admin-panel-title">
-            <h2>주별 접속자수</h2>
+            <h2>주별 접속수</h2>
             <p>최근 6주 기준입니다.</p>
           </div>
           <AnalyticsTable
@@ -252,7 +262,7 @@ export function AnalyticsPage() {
 
         <article className="admin-panel">
           <div className="admin-panel-title">
-            <h2>월별 접속자수</h2>
+            <h2>월별 접속수</h2>
             <p>최근 6개월 기준입니다.</p>
           </div>
           <AnalyticsTable
@@ -265,7 +275,7 @@ export function AnalyticsPage() {
       <section className="admin-panel">
         <div className="admin-panel-title">
           <h2>접속자 IP 목록</h2>
-          <p>접속 횟수가 많은 IP 순서로 표시됩니다.</p>
+          <p>접속 횟수가 많은 IP 순서로 표시합니다.</p>
         </div>
         <div className="admin-table-wrap">
           <table className="admin-analytics-table">
@@ -311,7 +321,7 @@ export function AnalyticsPage() {
       <section className="admin-panel">
         <div className="admin-panel-title">
           <h2>최근 접속 기록</h2>
-          <p>최근 30건까지 표시됩니다.</p>
+          <p>최근 30건까지 표시합니다.</p>
         </div>
         <div className="admin-table-wrap">
           <table className="admin-analytics-table">

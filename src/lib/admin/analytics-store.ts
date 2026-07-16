@@ -119,8 +119,14 @@ type AnalyticsVisitRow = {
   id: string;
   ip: string;
   path: string;
-  user_agent: string;
+  user_agent: string | null;
   visited_at: string;
+};
+
+export type AnalyticsRecordResult = {
+  visit?: AnalyticsVisit;
+  storage: "supabase" | "local" | "none";
+  reason?: "missing_supabase_env" | "supabase_insert_failed" | "local_fallback_failed";
 };
 
 function toVisit(row: AnalyticsVisitRow): AnalyticsVisit {
@@ -128,7 +134,7 @@ function toVisit(row: AnalyticsVisitRow): AnalyticsVisit {
     id: row.id,
     ip: row.ip,
     path: row.path,
-    userAgent: row.user_agent,
+    userAgent: row.user_agent ?? "unknown",
     visitedAt: row.visited_at,
   };
 }
@@ -160,17 +166,46 @@ export async function recordAnalyticsVisit(visit: Omit<AnalyticsVisit, "id" | "v
       .select("id, ip, path, user_agent, visited_at")
       .maybeSingle();
 
-    if (!error && data) return toVisit(data as AnalyticsVisitRow);
+    if (!error && data) {
+      return {
+        visit: toVisit(data as AnalyticsVisitRow),
+        storage: "supabase",
+      } satisfies AnalyticsRecordResult;
+    }
+
+    if (!canUseFileStore) {
+      console.error("Analytics Supabase insert failed", error?.message);
+      return {
+        storage: "none",
+        reason: "supabase_insert_failed",
+      } satisfies AnalyticsRecordResult;
+    }
+  } else if (!canUseFileStore) {
+    console.error("Analytics Supabase environment variables are missing");
+    return {
+      storage: "none",
+      reason: "missing_supabase_env",
+    } satisfies AnalyticsRecordResult;
   }
 
-  const visits = readVisits();
-  const nextVisit: AnalyticsVisit = {
-    ...visit,
-    id: `visit-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    visitedAt: new Date().toISOString(),
-  };
-  writeVisits([...visits, nextVisit]);
-  return nextVisit;
+  try {
+    const visits = readVisits();
+    const nextVisit: AnalyticsVisit = {
+      ...visit,
+      id: `visit-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      visitedAt: new Date().toISOString(),
+    };
+    writeVisits([...visits, nextVisit]);
+    return {
+      visit: nextVisit,
+      storage: "local",
+    } satisfies AnalyticsRecordResult;
+  } catch {
+    return {
+      storage: "none",
+      reason: "local_fallback_failed",
+    } satisfies AnalyticsRecordResult;
+  }
 }
 
 export async function getAnalyticsDashboard(): Promise<AnalyticsDashboardData> {

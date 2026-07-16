@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ recorded: false });
   }
 
-  const visit = await (async () => {
+  const result = await (async () => {
     try {
       return await recordAnalyticsVisit({
         ip: getClientIp(request),
@@ -25,9 +25,14 @@ export async function POST(request: NextRequest) {
         userAgent: request.headers.get("user-agent") ?? "unknown",
       });
     } catch {
-      return undefined;
+      return { storage: "none" as const, reason: "local_fallback_failed" as const };
     }
   })();
 
-  return NextResponse.json({ recorded: Boolean(visit), visitId: visit?.id });
+  return NextResponse.json({
+    recorded: Boolean(result.visit),
+    visitId: result.visit?.id,
+    storage: result.storage,
+    reason: result.reason,
+  });
 }
