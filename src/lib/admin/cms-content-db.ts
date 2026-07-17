@@ -1,5 +1,6 @@
 import "server-only";
 
+import { mergeContentTags } from "@/lib/admin/taxonomy-db";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { CmsContentItem, CmsContentType } from "@/types/cms";
 
@@ -282,7 +283,10 @@ export async function upsertCmsContentItem(item: CmsContentItem) {
 
   for (const attempt of attempts) {
     const { data, error } = await attempt();
-    if (!error) return data as { id: string } | null;
+    if (!error) {
+      await mergeContentTags(item.tags).catch(() => undefined);
+      return data as { id: string } | null;
+    }
     errors.push(error.message);
   }
 
