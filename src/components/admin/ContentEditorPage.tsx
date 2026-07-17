@@ -351,6 +351,15 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
   }
 
   function publish(nextStatus: CmsStatus) {
+    if (nextStatus === "published" || nextStatus === "scheduled") {
+      const missingMessage = publishValidationMessage(item);
+      if (missingMessage) {
+        setSaveState(missingMessage);
+        setStep(1);
+        return;
+      }
+    }
+
     const shouldExposeNewCase =
       nextStatus === "published" &&
       item.type === "case" &&
@@ -1069,4 +1078,15 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
       </div>
     </div>
   );
+}
+
+function publishValidationMessage(item: CmsContentItem) {
+  if (item.type === "faq") {
+    if (!item.title.trim()) return "FAQ 질문을 입력해야 공개할 수 있습니다.";
+    if (!item.body.trim()) return "FAQ 답변을 입력해야 공개할 수 있습니다.";
+    return "";
+  }
+
+  if (!item.title.trim()) return "제목을 입력해야 공개할 수 있습니다.";
+  return "";
 }

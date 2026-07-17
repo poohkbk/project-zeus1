@@ -43,6 +43,14 @@ export function ContentListPage({ type }: { type: CmsContentType }) {
   );
 
   function updateStatus(item: CmsContentItem, nextStatus: CmsContentItem["status"]) {
+    if (nextStatus === "published") {
+      const missingMessage = publishValidationMessage(item);
+      if (missingMessage) {
+        setSyncMessage(missingMessage);
+        return;
+      }
+    }
+
     const shouldExposeCase =
       nextStatus === "published" &&
       item.type === "case" &&
@@ -149,8 +157,8 @@ export function ContentListPage({ type }: { type: CmsContentType }) {
                   <span>
                     {cmsCategoryLabels[item.category]} · {item.visibility.isFeatured ? "대표 노출" : "일반"}
                   </span>
-                  <h3>{item.title || "제목 없는 글"}</h3>
-                  <p>{item.summary || "목록에 보일 짧은 설명을 입력해 주세요."}</p>
+                  <h3>{displayTitle(item)}</h3>
+                  <p>{displaySummary(item)}</p>
                   <small>마지막 수정: {new Date(item.updatedAt).toLocaleString("ko-KR")}</small>
                 </div>
                 <div className="admin-card-actions">
@@ -174,6 +182,28 @@ export function ContentListPage({ type }: { type: CmsContentType }) {
       </section>
     </div>
   );
+}
+
+function displayTitle(item: CmsContentItem) {
+  if (item.type === "faq") return item.title.trim() || "질문이 비어 있는 FAQ";
+  return item.title.trim() || "제목 없는 글";
+}
+
+function displaySummary(item: CmsContentItem) {
+  const value = item.type === "faq" ? item.body : item.summary;
+  if (value.trim()) return value;
+  return item.type === "faq" ? "답변이 비어 있습니다. 수정 화면에서 답변을 입력해 주세요." : "목록 설명이 비어 있습니다.";
+}
+
+function publishValidationMessage(item: CmsContentItem) {
+  if (item.type === "faq") {
+    if (!item.title.trim()) return "FAQ 질문을 입력해야 공개할 수 있습니다.";
+    if (!item.body.trim()) return "FAQ 답변을 입력해야 공개할 수 있습니다.";
+    return "";
+  }
+
+  if (!item.title.trim()) return "제목을 입력해야 공개할 수 있습니다.";
+  return "";
 }
 
 function FeaturedManager({
