@@ -1329,6 +1329,38 @@
   font-weight: 900;
 }
 
+.admin-admin-create {
+  display: grid;
+  grid-template-columns: 1.2fr repeat(3, minmax(0, 1fr)) auto;
+  gap: 12px;
+  align-items: end;
+  margin-bottom: 18px;
+}
+
+.admin-admin-create div {
+  display: grid;
+  gap: 6px;
+}
+
+.admin-admin-create span {
+  color: #00747b;
+  font-weight: 900;
+}
+
+.admin-admin-create p {
+  margin: 0;
+  color: #526273;
+  line-height: 1.5;
+}
+
+.admin-admin-create label {
+  display: grid;
+  gap: 6px;
+  color: #0f2d52;
+  font-weight: 900;
+}
+
+.admin-admin-create input,
 .admin-admin-grid input {
   width: 100%;
   min-height: 42px;
@@ -1349,6 +1381,10 @@
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+.admin-password-reset-field {
+  flex: 1 1 100%;
 }
 
 .admin-admin-grid button.danger {
@@ -2139,7 +2175,8 @@
 
   .admin-stat-grid,
   .admin-quick-actions,
-  .admin-featured-row {
+  .admin-featured-row,
+  .admin-admin-create {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -2162,6 +2199,7 @@
   .admin-check-grid,
   .admin-review-grid,
   .admin-admin-grid,
+  .admin-admin-create,
   .admin-upload-preview,
   .admin-upload-guide,
   .admin-taxonomy-add,

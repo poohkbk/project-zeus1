@@ -345,6 +345,9 @@ export function TrashPage() {
 export function AdminUsersPage() {
   const [admins, setAdmins] = useState<CmsAdminUser[]>([]);
   const [message, setMessage] = useState("");
+  const [draftAdmin, setDraftAdmin] = useState({ name: "", email: "", password: "" });
+  const [passwordDrafts, setPasswordDrafts] = useState<Record<string, string>>({});
+  const [pendingId, setPendingId] = useState("");
 
   useEffect(() => {
     const localAdmins = loadCmsAdmins();
@@ -374,6 +377,10 @@ export function AdminUsersPage() {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
   }
 
+  function validatePassword(password: string) {
+    return password.length >= 8;
+  }
+
   async function saveAdmin(admin: CmsAdminUser) {
     if (admin.role === "super_admin") return;
     if (!admin.name.trim() || !validateEmail(admin.email)) {
@@ -381,34 +388,49 @@ export function AdminUsersPage() {
       return;
     }
 
+    const password = passwordDrafts[admin.id]?.trim() ?? "";
+    if (password && !validatePassword(password)) {
+      setMessage("새 임시 비밀번호는 8자 이상으로 입력해 주세요.");
+      return;
+    }
+
+    setPendingId(admin.id);
     persistAdmins(
       admins.map((entry) => (entry.id === admin.id ? { ...admin, email: admin.email.trim().toLowerCase() } : entry)),
-      "관리자 정보를 저장했습니다.",
+      password ? "관리자 정보와 임시 비밀번호를 저장 중입니다." : "관리자 정보를 저장 중입니다.",
     );
 
     await fetch("/api/admin/users", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: admin.id, name: admin.name, email: admin.email }),
+      body: JSON.stringify({
+        id: admin.id,
+        name: admin.name,
+        email: admin.email,
+        ...(password ? { password } : {}),
+      }),
     })
       .then((response) => {
         if (!response.ok) throw new Error("failed");
-        setMessage("관리자 정보가 Supabase에 저장되었습니다.");
+        setPasswordDrafts((current) => ({ ...current, [admin.id]: "" }));
+        setMessage(password ? "관리자 정보와 임시 비밀번호가 저장되었습니다." : "관리자 정보가 저장되었습니다.");
       })
-      .catch(() => setMessage("브라우저에는 저장됐지만 Supabase 저장은 실패했습니다."));
+      .catch(() => setMessage("관리자 정보 저장에 실패했습니다. Supabase 연결과 권한을 확인해 주세요."))
+      .finally(() => setPendingId(""));
   }
 
   async function deleteAdmin(admin: CmsAdminUser) {
     if (admin.role === "super_admin") return;
-    const nextAdmins = admins.filter((entry) => entry.id !== admin.id);
-    persistAdmins(nextAdmins, "관리자를 삭제했습니다.");
+    setPendingId(admin.id);
 
     await fetch(`/api/admin/users?id=${encodeURIComponent(admin.id)}`, { method: "DELETE" })
       .then((response) => {
         if (!response.ok) throw new Error("failed");
-        setMessage("관리자가 Supabase에서 삭제되었습니다.");
+        const nextAdmins = admins.filter((entry) => entry.id !== admin.id);
+        persistAdmins(nextAdmins, "관리자가 삭제되었습니다.");
       })
-      .catch(() => setMessage("브라우저에서는 삭제됐지만 Supabase 삭제는 실패했습니다."));
+      .catch(() => setMessage("관리자 삭제에 실패했습니다. Supabase 연결과 권한을 확인해 주세요."))
+      .finally(() => setPendingId(""));
   }
 
   function updateAdmin(id: string, updates: Partial<Pick<CmsAdminUser, "name" | "email">>) {
@@ -416,24 +438,29 @@ export function AdminUsersPage() {
     persistAdmins(nextAdmins, "수정 중입니다. 저장 버튼을 눌러 반영해 주세요.");
   }
 
-  async function invite() {
+  async function invite(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
     if (admins.filter((admin) => admin.active).length >= 4) return;
-    const draftAdmin: CmsAdminUser = {
-      id: `admin-${Date.now()}`,
-      name: "초대 대기",
-      email: `admin-${Date.now()}@example.com`,
-      role: "admin",
-      active: true,
-      lastLoginAt: "-",
-      invitedAt: new Date().toISOString(),
-    };
-    const nextAdmins = [...admins, draftAdmin].slice(0, 4);
-    persistAdmins(nextAdmins, "관리자를 추가했습니다. 이메일을 실제 주소로 바꾼 뒤 저장해 주세요.");
+    const name = draftAdmin.name.trim();
+    const email = draftAdmin.email.trim().toLowerCase();
+    const password = draftAdmin.password;
 
+    if (!name || !validateEmail(email)) {
+      setMessage("새 관리자의 이름과 이메일을 확인해 주세요.");
+      return;
+    }
+
+    if (!validatePassword(password)) {
+      setMessage("임시 비밀번호는 8자 이상으로 입력해 주세요.");
+      return;
+    }
+
+    setPendingId("new");
+    setMessage("관리자 계정을 생성 중입니다.");
     await fetch("/api/admin/users", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: draftAdmin.name, email: draftAdmin.email }),
+      body: JSON.stringify({ name, email, password }),
     })
       .then((response) => {
         if (!response.ok) throw new Error("failed");
@@ -441,10 +468,12 @@ export function AdminUsersPage() {
       })
       .then((data) => {
         if (!data.admin) return;
-        const syncedAdmins = nextAdmins.map((admin) => (admin.id === draftAdmin.id ? data.admin! : admin));
-        persistAdmins(syncedAdmins, "관리자를 Supabase에 추가했습니다. 이메일을 수정한 뒤 저장해 주세요.");
+        const syncedAdmins = [...admins.filter((admin) => admin.id !== data.admin?.id), data.admin].slice(0, 4);
+        persistAdmins(syncedAdmins, "관리자 계정을 생성했습니다. 새 관리자는 입력한 임시 비밀번호로 로그인할 수 있습니다.");
+        setDraftAdmin({ name: "", email: "", password: "" });
       })
-      .catch(() => setMessage("브라우저에는 추가됐지만 Supabase 추가는 실패했습니다."));
+      .catch(() => setMessage("관리자 계정 생성에 실패했습니다. 이메일 중복, 비밀번호, Supabase service role key를 확인해 주세요."))
+      .finally(() => setPendingId(""));
   }
 
   return (
@@ -453,17 +482,50 @@ export function AdminUsersPage() {
         <div>
           <span>관리자 설정</span>
           <h1>관리자 {admins.filter((admin) => admin.active).length} / 4</h1>
-          <p>최고관리자는 보호되며, 일반관리자의 이메일 수정과 삭제는 최고관리자만 처리할 수 있습니다.</p>
+          <p>최고관리자는 일반관리자의 계정 생성, 이메일 수정, 임시 비밀번호 재설정, 삭제를 처리할 수 있습니다.</p>
         </div>
-        <button className="admin-primary-link" type="button" onClick={invite}>
-          관리자 초대
-        </button>
       </header>
       {message ? (
         <p className="admin-taxonomy-message" role="status" aria-live="polite">
           {message}
         </p>
       ) : null}
+      <form className="admin-panel admin-admin-create" onSubmit={invite}>
+        <div>
+          <span>새 관리자 생성</span>
+          <p>이메일과 임시 비밀번호를 입력하면 실제 로그인 가능한 Supabase Auth 계정과 관리자 권한이 함께 생성됩니다.</p>
+        </div>
+        <label>
+          이름
+          <input
+            value={draftAdmin.name}
+            onChange={(event) => setDraftAdmin((current) => ({ ...current, name: event.target.value }))}
+            placeholder="예: 홍길동"
+          />
+        </label>
+        <label>
+          이메일
+          <input
+            type="email"
+            value={draftAdmin.email}
+            onChange={(event) => setDraftAdmin((current) => ({ ...current, email: event.target.value }))}
+            placeholder="admin@example.com"
+          />
+        </label>
+        <label>
+          임시 비밀번호
+          <input
+            type="password"
+            value={draftAdmin.password}
+            onChange={(event) => setDraftAdmin((current) => ({ ...current, password: event.target.value }))}
+            placeholder="8자 이상"
+            autoComplete="new-password"
+          />
+        </label>
+        <button className="admin-primary-link" type="submit" disabled={pendingId === "new"}>
+          {pendingId === "new" ? "생성 중..." : "관리자 생성"}
+        </button>
+      </form>
       <section className="admin-panel admin-admin-grid">
         {admins.map((admin) => (
           <article key={admin.id}>
@@ -492,10 +554,22 @@ export function AdminUsersPage() {
               </button>
             ) : (
               <div className="admin-user-actions">
-                <button type="button" onClick={() => saveAdmin(admin)}>
-                  저장
+                <label className="admin-password-reset-field">
+                  임시 비밀번호 재설정
+                  <input
+                    type="password"
+                    value={passwordDrafts[admin.id] ?? ""}
+                    onChange={(event) =>
+                      setPasswordDrafts((current) => ({ ...current, [admin.id]: event.target.value }))
+                    }
+                    placeholder="변경할 때만 입력"
+                    autoComplete="new-password"
+                  />
+                </label>
+                <button type="button" onClick={() => saveAdmin(admin)} disabled={pendingId === admin.id}>
+                  {pendingId === admin.id ? "저장 중..." : "저장"}
                 </button>
-                <button type="button" className="danger" onClick={() => deleteAdmin(admin)}>
+                <button type="button" className="danger" onClick={() => deleteAdmin(admin)} disabled={pendingId === admin.id}>
                   삭제
                 </button>
               </div>

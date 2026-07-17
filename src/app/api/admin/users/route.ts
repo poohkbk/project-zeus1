@@ -13,8 +13,16 @@ function normalizeName(value: unknown) {
   return String(value ?? "").trim().replace(/\s+/g, " ");
 }
 
+function normalizePassword(value: unknown) {
+  return String(value ?? "");
+}
+
 function isValidEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
+function isValidPassword(value: string) {
+  return value.length >= 8;
 }
 
 async function requireSuperAdmin() {
@@ -48,16 +56,25 @@ export async function POST(request: NextRequest) {
   const { response } = await requireSuperAdmin();
   if (response) return response;
 
-  const body = (await request.json().catch(() => ({}))) as { name?: string; email?: string };
-  const name = normalizeName(body.name || "초대 대기");
+  const body = (await request.json().catch(() => ({}))) as {
+    name?: string;
+    email?: string;
+    password?: string;
+  };
+  const name = normalizeName(body.name || "새 관리자");
   const email = normalizeEmail(body.email);
+  const password = normalizePassword(body.password);
 
   if (!isValidEmail(email)) {
     return NextResponse.json({ message: "올바른 이메일을 입력해 주세요." }, { status: 400 });
   }
 
+  if (!isValidPassword(password)) {
+    return NextResponse.json({ message: "임시 비밀번호는 8자 이상으로 입력해 주세요." }, { status: 400 });
+  }
+
   try {
-    const admin = await createAdminUser({ name, email });
+    const admin = await createAdminUser({ name, email, password });
     return NextResponse.json({ admin });
   } catch {
     return NextResponse.json({ message: "관리자를 추가하지 못했습니다." }, { status: 500 });
@@ -71,17 +88,27 @@ export async function PATCH(request: NextRequest) {
   const { response } = await requireSuperAdmin();
   if (response) return response;
 
-  const body = (await request.json().catch(() => ({}))) as { id?: string; name?: string; email?: string };
+  const body = (await request.json().catch(() => ({}))) as {
+    id?: string;
+    name?: string;
+    email?: string;
+    password?: string;
+  };
   const id = String(body.id ?? "");
   const name = normalizeName(body.name);
   const email = normalizeEmail(body.email);
+  const password = normalizePassword(body.password).trim();
 
   if (!id || !name || !isValidEmail(email)) {
     return NextResponse.json({ message: "이름과 이메일을 확인해 주세요." }, { status: 400 });
   }
 
+  if (password && !isValidPassword(password)) {
+    return NextResponse.json({ message: "새 임시 비밀번호는 8자 이상으로 입력해 주세요." }, { status: 400 });
+  }
+
   try {
-    const admin = await updateAdminUser(id, { name, email });
+    const admin = await updateAdminUser(id, { name, email, ...(password ? { password } : {}) });
     if (!admin) return NextResponse.json({ message: "수정할 관리자를 찾지 못했습니다." }, { status: 404 });
     return NextResponse.json({ admin });
   } catch {
