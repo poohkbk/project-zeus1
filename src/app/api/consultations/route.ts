@@ -7,6 +7,14 @@ import type { ConsultationCategory, ConsultationFormValues } from "@/types/consu
 export const dynamic = "force-dynamic";
 
 const categoryValues = new Set(["civil", "criminal", "divorce", "inheritance", "administrative"]);
+const timeValues = new Set(
+  Array.from({ length: 19 }, (_, index) => {
+    const totalMinutes = 9 * 60 + index * 30;
+    const hour = Math.floor(totalMinutes / 60);
+    const minute = totalMinutes % 60;
+    return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+  }),
+);
 
 function cleanText(value: unknown) {
   return String(value ?? "").trim().replace(/\s+/g, " ");
@@ -14,6 +22,16 @@ function cleanText(value: unknown) {
 
 function cleanPhone(value: unknown) {
   return String(value ?? "").replace(/\D/g, "").slice(0, 11);
+}
+
+function cleanDate(value: unknown) {
+  const text = String(value ?? "").trim();
+  return /^\d{4}-\d{2}-\d{2}$/.test(text) ? text : "";
+}
+
+function cleanTime(value: unknown) {
+  const text = String(value ?? "").trim();
+  return timeValues.has(text) ? text : "";
 }
 
 function createReceptionNumber() {
@@ -31,11 +49,21 @@ function createReceptionNumber() {
 function validatePayload(values: ConsultationFormValues) {
   const name = cleanText(values.name);
   const phone = cleanPhone(values.phone);
+  const preferredDate = cleanDate(values.preferredDate);
+  const preferredTime = cleanTime(values.preferredTime);
   const category = String(values.category ?? "");
   const message = cleanText(values.message);
+  const today = new Date();
+  const todayText = [
+    today.getFullYear(),
+    String(today.getMonth() + 1).padStart(2, "0"),
+    String(today.getDate()).padStart(2, "0"),
+  ].join("-");
 
   if (name.length < 2 || name.length > 30) return undefined;
   if (!/^010\d{8}$/.test(phone)) return undefined;
+  if (!preferredDate || preferredDate < todayText) return undefined;
+  if (!preferredTime) return undefined;
   if (!categoryValues.has(category)) return undefined;
   if (message.length < 20 || message.length > 3000) return undefined;
   if (!values.privacyAgreed) return undefined;
@@ -43,6 +71,8 @@ function validatePayload(values: ConsultationFormValues) {
   return {
     name,
     phone,
+    preferredDate,
+    preferredTime,
     category: category as ConsultationCategory,
     message,
   };
@@ -66,6 +96,8 @@ export async function POST(request: NextRequest) {
     reception_number: receptionNumber,
     name: normalized.name,
     phone: normalized.phone,
+    preferred_date: normalized.preferredDate,
+    preferred_time: normalized.preferredTime,
     category: normalized.category,
     message: normalized.message,
     privacy_agreed: true,
@@ -86,6 +118,8 @@ export async function POST(request: NextRequest) {
     receptionNumber,
     name: normalized.name,
     phone: normalized.phone,
+    preferredDate: normalized.preferredDate,
+    preferredTime: normalized.preferredTime,
     category: normalized.category,
     message: normalized.message,
     source,

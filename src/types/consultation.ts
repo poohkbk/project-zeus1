@@ -4,6 +4,8 @@ export type ConsultationSubmissionStatus = "new" | "reviewing" | "contacted" | "
 export interface ConsultationFormValues {
   name: string;
   phone: string;
+  preferredDate: string;
+  preferredTime: string;
   category: ConsultationCategory | "";
   message: string;
   privacyAgreed: boolean;
@@ -28,6 +30,8 @@ export interface ConsultationFormValues {
 export interface ConsultationFormErrors {
   name?: string;
   phone?: string;
+  preferredDate?: string;
+  preferredTime?: string;
   category?: string;
   message?: string;
   privacyAgreed?: string;
@@ -45,6 +49,8 @@ export interface ConsultationSubmission {
   receptionNumber: string;
   name: string;
   phone: string;
+  preferredDate: string;
+  preferredTime: string;
   category: ConsultationCategory;
   categoryLabel: string;
   message: string;

@@ -49,6 +49,8 @@ export function saveConsultationSubmission(
     receptionNumber,
     name: cleanText(values.name),
     phone: cleanPhone(values.phone),
+    preferredDate: values.preferredDate,
+    preferredTime: values.preferredTime,
     category,
     categoryLabel: consultationCategoryLabels[category],
     message: cleanText(values.message),

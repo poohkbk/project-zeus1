@@ -6,11 +6,14 @@ import {
   formatKoreanMobilePhone,
   submitConsultation,
   trimAndNormalizeSpaces,
+  consultationTimeOptions,
   validateConsultationCategory,
   validateConsultationForm,
   validateConsultationMessage,
   validateConsultationName,
   validateConsultationPhone,
+  validateConsultationPreferredDate,
+  validateConsultationPreferredTime,
   validatePrivacyAgreement,
 } from "@/lib/consultation-validation";
 import type { ConsultationFormErrors, ConsultationFormValues } from "@/types/consultation";
@@ -23,6 +26,8 @@ import { PrivacyConsent } from "./PrivacyConsent";
 const initialValues: ConsultationFormValues = {
   name: "",
   phone: "",
+  preferredDate: "",
+  preferredTime: "",
   category: "",
   message: "",
   privacyAgreed: false,
@@ -32,6 +37,8 @@ const initialValues: ConsultationFormValues = {
 const fieldOrder: Array<keyof ConsultationFormErrors> = [
   "name",
   "phone",
+  "preferredDate",
+  "preferredTime",
   "category",
   "message",
   "privacyAgreed",
@@ -86,6 +93,14 @@ export function ConsultationForm({ aiTransferToken }: ConsultationFormProps) {
 
   const messageLength = useMemo(() => values.message.length, [values.message]);
   const hasErrors = Object.keys(errors).some((key) => Boolean(errors[key as keyof ConsultationFormErrors]));
+  const today = useMemo(() => {
+    const now = new Date();
+    return [
+      now.getFullYear(),
+      String(now.getMonth() + 1).padStart(2, "0"),
+      String(now.getDate()).padStart(2, "0"),
+    ].join("-");
+  }, []);
 
   useEffect(() => {
     if (!aiTransferToken) return;
@@ -145,11 +160,15 @@ export function ConsultationForm({ aiTransferToken }: ConsultationFormProps) {
         ? validateConsultationName(nextValues.name)
         : name === "phone"
           ? validateConsultationPhone(nextValues.phone)
-          : name === "category"
-            ? validateConsultationCategory(nextValues.category)
-            : name === "message"
-              ? validateConsultationMessage(nextValues.message)
-              : validatePrivacyAgreement(nextValues.privacyAgreed);
+          : name === "preferredDate"
+            ? validateConsultationPreferredDate(nextValues.preferredDate)
+            : name === "preferredTime"
+              ? validateConsultationPreferredTime(nextValues.preferredTime)
+              : name === "category"
+                ? validateConsultationCategory(nextValues.category)
+                : name === "message"
+                  ? validateConsultationMessage(nextValues.message)
+                  : validatePrivacyAgreement(nextValues.privacyAgreed);
 
     if (error) {
       nextErrors[name] = error;
@@ -184,6 +203,8 @@ export function ConsultationForm({ aiTransferToken }: ConsultationFormProps) {
     setTouched({
       name: true,
       phone: true,
+      preferredDate: true,
+      preferredTime: true,
       category: true,
       message: true,
       privacyAgreed: true,
@@ -308,6 +329,55 @@ export function ConsultationForm({ aiTransferToken }: ConsultationFormProps) {
             }}
             onBlur={() => validateField("phone")}
           />
+
+          <ConsultationField
+            id="preferredDate"
+            name="preferredDate"
+            label="상담 희망일"
+            type="date"
+            min={today}
+            required
+            value={values.preferredDate}
+            error={touched.preferredDate ? errors.preferredDate : undefined}
+            onChange={(event) => {
+              const nextValues = { ...values, preferredDate: event.target.value };
+              setValues(nextValues);
+              if (touched.preferredDate) validateField("preferredDate", nextValues);
+            }}
+            onBlur={() => validateField("preferredDate")}
+          />
+
+          <div className="consultation-field">
+            <label htmlFor="preferredTime">
+              상담 희망시간<span aria-hidden="true">*</span>
+            </label>
+            <select
+              id="preferredTime"
+              name="preferredTime"
+              required
+              value={values.preferredTime}
+              aria-invalid={touched.preferredTime && errors.preferredTime ? "true" : "false"}
+              aria-describedby={touched.preferredTime && errors.preferredTime ? "preferredTime-error" : undefined}
+              onChange={(event) => {
+                const nextValues = { ...values, preferredTime: event.target.value };
+                setValues(nextValues);
+                if (touched.preferredTime) validateField("preferredTime", nextValues);
+              }}
+              onBlur={() => validateField("preferredTime")}
+            >
+              <option value="">시간을 선택해 주세요</option>
+              {consultationTimeOptions.map((time) => (
+                <option key={time} value={time}>
+                  {time}
+                </option>
+              ))}
+            </select>
+            {touched.preferredTime && errors.preferredTime ? (
+              <p id="preferredTime-error" className="consultation-error" role="alert">
+                {errors.preferredTime}
+              </p>
+            ) : null}
+          </div>
         </div>
 
         <CaseCategorySelector

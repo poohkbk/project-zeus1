@@ -2493,6 +2493,7 @@
 }
 
 .consultation-field input,
+.consultation-field select,
 .consultation-field textarea {
   width: 100%;
   border: 1px solid #d8dee6;
@@ -2506,7 +2507,8 @@
     box-shadow 160ms ease;
 }
 
-.consultation-field input {
+.consultation-field input,
+.consultation-field select {
   min-height: 56px;
   padding: 0 16px;
 }
@@ -2519,6 +2521,7 @@
 }
 
 .consultation-field input:focus-visible,
+.consultation-field select:focus-visible,
 .consultation-field textarea:focus-visible,
 .consultation-category-card:focus-within,
 .privacy-consent-check:focus-within {
@@ -2527,6 +2530,7 @@
 }
 
 .consultation-field input[aria-invalid="true"],
+.consultation-field select[aria-invalid="true"],
 .consultation-field textarea[aria-invalid="true"],
 .consultation-category-field[aria-invalid="true"] .consultation-category-grid,
 .privacy-consent input[aria-invalid="true"] {

@@ -15,6 +15,11 @@ function formatPhone(value: string) {
   return `${value.slice(0, 3)}-${value.slice(3, 7)}-${value.slice(7)}`;
 }
 
+function formatPreferredSchedule(submission: ConsultationSubmission) {
+  if (!submission.preferredDate || !submission.preferredTime) return "미지정";
+  return `${submission.preferredDate} ${submission.preferredTime}`;
+}
+
 function SummaryList({ title, items }: { title: string; items: string[] }) {
   return (
     <div>
@@ -163,6 +168,10 @@ export function ConsultationsPage() {
                   <div>
                     <dt>연락처</dt>
                     <dd>{formatPhone(selected.phone)}</dd>
+                  </div>
+                  <div>
+                    <dt>상담 희망시간</dt>
+                    <dd>{formatPreferredSchedule(selected)}</dd>
                   </div>
                   <div>
                     <dt>사건 분야</dt>

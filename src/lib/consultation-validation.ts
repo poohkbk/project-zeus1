@@ -9,6 +9,13 @@ import { saveConsultationSubmission } from "./consultation-submissions";
 
 const categoryValues = new Set<string>(consultationCategories.map((category) => category.value));
 
+export const consultationTimeOptions = Array.from({ length: 19 }, (_, index) => {
+  const totalMinutes = 9 * 60 + index * 30;
+  const hour = Math.floor(totalMinutes / 60);
+  const minute = totalMinutes % 60;
+  return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+});
+
 export function trimAndNormalizeSpaces(value: string) {
   return value.trim().replace(/\s+/g, " ");
 }
@@ -56,6 +63,27 @@ export function validateConsultationCategory(value: string) {
   return undefined;
 }
 
+export function validateConsultationPreferredDate(value: string) {
+  if (!value) return "상담 희망일을 선택해 주세요.";
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return "상담 희망일을 다시 선택해 주세요.";
+
+  const today = new Date();
+  const todayText = [
+    today.getFullYear(),
+    String(today.getMonth() + 1).padStart(2, "0"),
+    String(today.getDate()).padStart(2, "0"),
+  ].join("-");
+
+  if (value < todayText) return "상담 희망일은 오늘 이후 날짜로 선택해 주세요.";
+  return undefined;
+}
+
+export function validateConsultationPreferredTime(value: string) {
+  if (!value) return "상담 희망시간을 선택해 주세요.";
+  if (!consultationTimeOptions.includes(value)) return "상담 희망시간은 09:00부터 18:00 사이 30분 단위로 선택해 주세요.";
+  return undefined;
+}
+
 export function validateConsultationMessage(value: string) {
   const normalized = trimAndNormalizeSpaces(value);
 
@@ -75,12 +103,16 @@ export function validateConsultationForm(values: ConsultationFormValues): Consul
   const errors: ConsultationFormErrors = {};
   const nameError = validateConsultationName(values.name);
   const phoneError = validateConsultationPhone(values.phone);
+  const preferredDateError = validateConsultationPreferredDate(values.preferredDate);
+  const preferredTimeError = validateConsultationPreferredTime(values.preferredTime);
   const categoryError = validateConsultationCategory(values.category);
   const messageError = validateConsultationMessage(values.message);
   const privacyError = validatePrivacyAgreement(values.privacyAgreed);
 
   if (nameError) errors.name = nameError;
   if (phoneError) errors.phone = phoneError;
+  if (preferredDateError) errors.preferredDate = preferredDateError;
+  if (preferredTimeError) errors.preferredTime = preferredTimeError;
   if (categoryError) errors.category = categoryError;
   if (messageError) errors.message = messageError;
   if (privacyError) errors.privacyAgreed = privacyError;
@@ -115,6 +147,8 @@ export async function submitConsultation(
   const payload = {
     name: trimAndNormalizeSpaces(values.name),
     phone: normalizePhoneDigits(values.phone),
+    preferredDate: values.preferredDate,
+    preferredTime: values.preferredTime,
     category: values.category as ConsultationCategory,
     message: trimAndNormalizeSpaces(values.message),
     privacyAgreed: true,

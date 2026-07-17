@@ -84,6 +84,8 @@ export type ConsultationInsert = {
   reception_number: string;
   name: string;
   phone: string;
+  preferred_date?: string;
+  preferred_time?: string;
   category: ConsultationCategory;
   message: string;
   privacy_agreed: true;

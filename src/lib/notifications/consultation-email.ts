@@ -8,6 +8,8 @@ type ConsultationEmailPayload = {
   receptionNumber: string;
   name: string;
   phone: string;
+  preferredDate: string;
+  preferredTime: string;
   category: ConsultationCategory;
   message: string;
   source: string;
@@ -47,6 +49,7 @@ function buildEmailHtml(payload: ConsultationEmailPayload) {
           <tr><th style="text-align:left;padding:10px;border-bottom:1px solid #e5e7eb;width:130px">접수번호</th><td style="padding:10px;border-bottom:1px solid #e5e7eb">${escapeHtml(payload.receptionNumber)}</td></tr>
           <tr><th style="text-align:left;padding:10px;border-bottom:1px solid #e5e7eb">이름</th><td style="padding:10px;border-bottom:1px solid #e5e7eb">${escapeHtml(payload.name)}</td></tr>
           <tr><th style="text-align:left;padding:10px;border-bottom:1px solid #e5e7eb">연락처</th><td style="padding:10px;border-bottom:1px solid #e5e7eb">${escapeHtml(payload.phone)}</td></tr>
+          <tr><th style="text-align:left;padding:10px;border-bottom:1px solid #e5e7eb">상담 희망시간</th><td style="padding:10px;border-bottom:1px solid #e5e7eb">${escapeHtml(`${payload.preferredDate} ${payload.preferredTime}`)}</td></tr>
           <tr><th style="text-align:left;padding:10px;border-bottom:1px solid #e5e7eb">분야</th><td style="padding:10px;border-bottom:1px solid #e5e7eb">${escapeHtml(categoryLabel)}</td></tr>
           <tr><th style="text-align:left;padding:10px;border-bottom:1px solid #e5e7eb">접수경로</th><td style="padding:10px;border-bottom:1px solid #e5e7eb">${escapeHtml(payload.source)}</td></tr>
           <tr><th style="text-align:left;padding:10px;border-bottom:1px solid #e5e7eb;vertical-align:top">상담내용</th><td style="padding:10px;border-bottom:1px solid #e5e7eb">${lineBreaks(payload.message)}</td></tr>

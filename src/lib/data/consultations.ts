@@ -13,6 +13,20 @@ export async function createConsultation(values: ConsultationInsert) {
     .limit(1)
     .maybeSingle();
 
-  if (error) return undefined;
+  if (error) {
+    if (error.message.includes("preferred_date") || error.message.includes("preferred_time")) {
+      const fallbackValues = { ...values };
+      delete fallbackValues.preferred_date;
+      delete fallbackValues.preferred_time;
+      const fallback = await supabase
+        .from("consultations")
+        .insert(fallbackValues)
+        .select("id")
+        .limit(1)
+        .maybeSingle();
+      if (!fallback.error) return fallback.data as { id: string } | null;
+    }
+    return undefined;
+  }
   return data as { id: string } | null;
 }
