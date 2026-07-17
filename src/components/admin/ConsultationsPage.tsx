@@ -80,8 +80,17 @@ export function ConsultationsPage() {
 
   function updateSelected(updates: Partial<Pick<ConsultationSubmission, "memo" | "status">>) {
     if (!selected) return;
-    const localUpdated = updateConsultationSubmission(selected.id, updates);
-    refresh(localUpdated);
+    const optimisticSubmissions = submissions.map((submission) =>
+      submission.id === selected.id
+        ? {
+            ...submission,
+            ...updates,
+            updatedAt: new Date().toISOString(),
+          }
+        : submission,
+    );
+    refresh(optimisticSubmissions);
+    updateConsultationSubmission(selected.id, updates);
 
     fetch("/api/admin/consultations", {
       method: "PATCH",
