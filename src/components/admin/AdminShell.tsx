@@ -47,7 +47,13 @@ export function AdminShell({ children }: { children: ReactNode }) {
           <AdminLogoutButton />
         </div>
       </aside>
-      <section className="admin-main">{children}</section>
+      <section className="admin-main">
+        <div className="admin-topbar">
+          <span>관리자 페이지</span>
+          <AdminLogoutButton compact />
+        </div>
+        {children}
+      </section>
     </main>
   );
 }
