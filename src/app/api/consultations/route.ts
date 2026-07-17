@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAiGuideSessionByTransferToken, linkAiGuideSessionToConsultation } from "@/lib/ai/session-store";
+import { checkRateLimit } from "@/lib/ai/rate-limit";
 import { createConsultation } from "@/lib/data/consultations";
 import { notifyAdminOfConsultation } from "@/lib/notifications/consultation-email";
+import { getClientIp, rejectCrossOriginRequest } from "@/lib/security/request-guard";
 import type { ConsultationCategory, ConsultationFormValues } from "@/types/consultation";
 
 export const dynamic = "force-dynamic";
@@ -79,6 +81,20 @@ function validatePayload(values: ConsultationFormValues) {
 }
 
 export async function POST(request: NextRequest) {
+  const originRejection = rejectCrossOriginRequest(request);
+  if (originRejection) return originRejection;
+
+  const limited = checkRateLimit(`consultation:${getClientIp(request)}`, 3, 10 * 60_000);
+  if (!limited.allowed) {
+    return NextResponse.json(
+      {
+        message: "상담신청 요청이 잠시 많습니다. 잠시 후 다시 시도하거나 전화로 문의해 주세요.",
+        retryAfterSeconds: limited.retryAfterSeconds,
+      },
+      { status: 429 },
+    );
+  }
+
   const body = (await request.json().catch(() => ({}))) as ConsultationFormValues;
   const normalized = validatePayload(body);
   if (!normalized) {

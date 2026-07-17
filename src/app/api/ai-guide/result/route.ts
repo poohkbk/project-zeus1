@@ -3,10 +3,14 @@ import { buildAiGuideResult } from "@/lib/ai/answer-composer";
 import { isAiSessionOwner } from "@/lib/ai/session-auth";
 import { getLocalAiGuideSession, updateAiGuideSession } from "@/lib/ai/session-store";
 import { enhanceResultWithProvider } from "@/lib/ai/provider-runtime";
+import { rejectCrossOriginRequest } from "@/lib/security/request-guard";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
+  const originRejection = rejectCrossOriginRequest(request);
+  if (originRejection) return originRejection;
+
   const body = (await request.json().catch(() => ({}))) as { sessionId?: string };
   if (!body.sessionId) return NextResponse.json({ message: "세션이 없습니다." }, { status: 400 });
   const session = getLocalAiGuideSession(body.sessionId);

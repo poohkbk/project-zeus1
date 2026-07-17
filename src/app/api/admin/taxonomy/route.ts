@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdminApi } from "@/lib/admin/auth";
 import { deleteContentTag, listContentTags, upsertContentTag } from "@/lib/admin/taxonomy-db";
+import { rejectCrossOriginRequest } from "@/lib/security/request-guard";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +18,9 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const originRejection = rejectCrossOriginRequest(request);
+  if (originRejection) return originRejection;
+
   const { response } = await requireAdminApi();
   if (response) return response;
 
@@ -36,6 +40,9 @@ export async function POST(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
+  const originRejection = rejectCrossOriginRequest(request);
+  if (originRejection) return originRejection;
+
   const { response } = await requireAdminApi();
   if (response) return response;
 

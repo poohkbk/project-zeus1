@@ -6,17 +6,15 @@ import { attachAiSessionCookie } from "@/lib/ai/session-auth";
 import { createAiSessionId, createExpiry, saveAiGuideSession, updateAiGuideSession } from "@/lib/ai/session-store";
 import { redactSensitiveData } from "@/lib/ai/redaction";
 import { enhanceClassificationWithProvider } from "@/lib/ai/provider-runtime";
+import { getClientIp, rejectCrossOriginRequest } from "@/lib/security/request-guard";
 import type { AiLegalCategory } from "@/types/ai-guide";
 
 export const dynamic = "force-dynamic";
 
-function getClientIp(request: NextRequest) {
-  const forwardedFor = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
-  const realIp = request.headers.get("x-real-ip")?.trim();
-  return forwardedFor || realIp || "local-preview";
-}
-
 export async function POST(request: NextRequest) {
+  const originRejection = rejectCrossOriginRequest(request);
+  if (originRejection) return originRejection;
+
   const ip = getClientIp(request);
   const limited = checkRateLimit(`ai-session:${ip}`, Number(process.env.AI_RATE_LIMIT_PER_MINUTE ?? 5), 60_000);
   if (!limited.allowed) {

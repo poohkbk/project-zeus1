@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextRequest, NextResponse } from "next/server";
+import { applySecurityHeaders } from "@/lib/security/request-guard";
 import { getSupabasePublishableKey, getSupabaseUrl } from "@/lib/supabase/env";
 
 export async function middleware(request: NextRequest) {
@@ -14,7 +15,7 @@ export async function middleware(request: NextRequest) {
 
   const supabaseUrl = getSupabaseUrl();
   const supabaseKey = getSupabasePublishableKey();
-  if (!supabaseUrl || !supabaseKey) return response;
+  if (!supabaseUrl || !supabaseKey) return applySecurityHeaders(response);
 
   const supabase = createServerClient(supabaseUrl, supabaseKey, {
     cookies: {
@@ -35,7 +36,7 @@ export async function middleware(request: NextRequest) {
 
   await supabase.auth.getUser();
 
-  return response;
+  return applySecurityHeaders(response);
 }
 
 export const config = {

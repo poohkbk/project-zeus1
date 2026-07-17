@@ -1,15 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
+import { checkRateLimit } from "@/lib/ai/rate-limit";
 import { recordAnalyticsVisit } from "@/lib/admin/analytics-store";
+import { getClientIp, rejectCrossOriginRequest } from "@/lib/security/request-guard";
 
 export const dynamic = "force-dynamic";
 
-function getClientIp(request: NextRequest) {
-  const forwardedFor = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
-  const realIp = request.headers.get("x-real-ip")?.trim();
-  return forwardedFor || realIp || "local-preview";
-}
-
 export async function POST(request: NextRequest) {
+  const originRejection = rejectCrossOriginRequest(request);
+  if (originRejection) return originRejection;
+
+  const ip = getClientIp(request);
+  const limited = checkRateLimit(`analytics:${ip}`, 60, 60_000);
+  if (!limited.allowed) return NextResponse.json({ recorded: false }, { status: 429 });
+
   const body = (await request.json().catch(() => ({}))) as { path?: string };
   const visitPath = body.path?.startsWith("/") ? body.path : "/";
 
@@ -20,7 +23,7 @@ export async function POST(request: NextRequest) {
   const result = await (async () => {
     try {
       return await recordAnalyticsVisit({
-        ip: getClientIp(request),
+        ip,
         path: visitPath,
         userAgent: request.headers.get("user-agent") ?? "unknown",
       });
@@ -31,7 +34,6 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json({
     recorded: Boolean(result.visit),
-    visitId: result.visit?.id,
     storage: result.storage,
     reason: result.reason,
   });

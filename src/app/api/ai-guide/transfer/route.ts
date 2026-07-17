@@ -7,10 +7,14 @@ import {
   saveAiGuideEvent,
   updateAiGuideSession,
 } from "@/lib/ai/session-store";
+import { rejectCrossOriginRequest } from "@/lib/security/request-guard";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
+  const originRejection = rejectCrossOriginRequest(request);
+  if (originRejection) return originRejection;
+
   const body = (await request.json().catch(() => ({}))) as {
     sessionId?: string;
     consent?: boolean;

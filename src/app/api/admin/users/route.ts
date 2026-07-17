@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdminApi } from "@/lib/admin/auth";
 import { createAdminUser, deleteAdminUser, listAdminUsers, updateAdminUser } from "@/lib/admin/users-db";
+import { rejectCrossOriginRequest } from "@/lib/security/request-guard";
 
 export const dynamic = "force-dynamic";
 
@@ -41,6 +42,9 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const originRejection = rejectCrossOriginRequest(request);
+  if (originRejection) return originRejection;
+
   const { response } = await requireSuperAdmin();
   if (response) return response;
 
@@ -61,6 +65,9 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
+  const originRejection = rejectCrossOriginRequest(request);
+  if (originRejection) return originRejection;
+
   const { response } = await requireSuperAdmin();
   if (response) return response;
 
@@ -83,6 +90,9 @@ export async function PATCH(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
+  const originRejection = rejectCrossOriginRequest(request);
+  if (originRejection) return originRejection;
+
   const { response } = await requireSuperAdmin();
   if (response) return response;
 

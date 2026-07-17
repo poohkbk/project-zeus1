@@ -3,11 +3,15 @@ import { classifyLegalQuestion } from "@/lib/ai/classifier";
 import { getQuestionsForCategory } from "@/lib/ai/question-engine";
 import { isAiSessionOwner } from "@/lib/ai/session-auth";
 import { getLocalAiGuideSession, saveAiGuideEvent, updateAiGuideSession } from "@/lib/ai/session-store";
+import { rejectCrossOriginRequest } from "@/lib/security/request-guard";
 import type { AiLegalCategory } from "@/types/ai-guide";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
+  const originRejection = rejectCrossOriginRequest(request);
+  if (originRejection) return originRejection;
+
   const body = (await request.json().catch(() => ({}))) as {
     sessionId?: string;
     category?: AiLegalCategory;

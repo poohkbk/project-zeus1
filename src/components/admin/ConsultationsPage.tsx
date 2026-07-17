@@ -41,11 +41,26 @@ export function ConsultationsPage() {
   const [submissions, setSubmissions] = useState<ConsultationSubmission[]>([]);
   const [selectedId, setSelectedId] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | ConsultationSubmissionStatus>("all");
+  const [syncMessage, setSyncMessage] = useState("");
 
   useEffect(() => {
     const loaded = loadConsultationSubmissions();
     setSubmissions(loaded);
     setSelectedId(loaded[0]?.id ?? "");
+    fetch("/api/admin/consultations", { cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("상담신청을 불러오지 못했습니다.");
+        return (await response.json()) as { submissions?: ConsultationSubmission[] };
+      })
+      .then((data) => {
+        const serverSubmissions = data.submissions ?? [];
+        setSubmissions(serverSubmissions);
+        setSelectedId(serverSubmissions[0]?.id ?? "");
+        setSyncMessage("Supabase 상담신청 목록을 표시하고 있습니다.");
+      })
+      .catch(() => {
+        setSyncMessage("Supabase 상담신청을 불러오지 못해 이 브라우저의 임시 목록을 표시합니다.");
+      });
   }, []);
 
   const visibleSubmissions = useMemo(
@@ -65,7 +80,28 @@ export function ConsultationsPage() {
 
   function updateSelected(updates: Partial<Pick<ConsultationSubmission, "memo" | "status">>) {
     if (!selected) return;
-    refresh(updateConsultationSubmission(selected.id, updates));
+    const localUpdated = updateConsultationSubmission(selected.id, updates);
+    refresh(localUpdated);
+
+    fetch("/api/admin/consultations", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: selected.id, ...updates }),
+    })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("상담 정보를 저장하지 못했습니다.");
+        return (await response.json()) as { submission?: ConsultationSubmission };
+      })
+      .then((data) => {
+        if (!data.submission) return;
+        setSubmissions((current) =>
+          current
+            .map((submission) => (submission.id === data.submission?.id ? data.submission : submission))
+            .sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+        );
+        setSyncMessage("상담 처리상태와 메모가 Supabase에 저장되었습니다.");
+      })
+      .catch(() => setSyncMessage("이 브라우저에는 반영됐지만 Supabase 저장은 실패했습니다."));
   }
 
   return (
@@ -80,6 +116,7 @@ export function ConsultationsPage() {
 
       <section className="admin-consultation-layout">
         <div className="admin-panel">
+          {syncMessage ? <p className="admin-sync-message">{syncMessage}</p> : null}
           <div className="admin-toolbar">
             <label>
               처리상태

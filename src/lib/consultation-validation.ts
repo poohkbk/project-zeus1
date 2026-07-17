@@ -5,7 +5,6 @@ import type {
   ConsultationFormValues,
   ConsultationSubmissionResult,
 } from "@/types/consultation";
-import { saveConsultationSubmission } from "./consultation-submissions";
 
 const categoryValues = new Set<string>(consultationCategories.map((category) => category.value));
 
@@ -120,18 +119,6 @@ export function validateConsultationForm(values: ConsultationFormValues): Consul
   return errors;
 }
 
-function createReceptionNumber() {
-  const now = new Date();
-  const datePart = [
-    now.getFullYear(),
-    String(now.getMonth() + 1).padStart(2, "0"),
-    String(now.getDate()).padStart(2, "0"),
-  ].join("");
-  const randomPart = Math.random().toString(36).slice(2, 6).toUpperCase();
-
-  return `ZEU-${datePart}-${randomPart}`;
-}
-
 export async function submitConsultation(
   values: ConsultationFormValues,
 ): Promise<ConsultationSubmissionResult> {
@@ -157,7 +144,6 @@ export async function submitConsultation(
     aiSummary: values.aiSummary,
   };
 
-  let receptionNumber = createReceptionNumber();
   try {
     const response = await fetch("/api/consultations", {
       method: "POST",
@@ -175,17 +161,14 @@ export async function submitConsultation(
         errorMessage: data.message || "상담신청을 접수하지 못했습니다. 잠시 후 다시 시도해 주세요.",
       };
     }
-    receptionNumber = data.receptionNumber;
+    return {
+      success: true,
+      receptionNumber: data.receptionNumber,
+    };
   } catch {
-    await new Promise((resolve) => {
-      window.setTimeout(resolve, 650);
-    });
+    return {
+      success: false,
+      errorMessage: "상담신청을 접수하지 못했습니다. 잠시 후 다시 시도하거나 대표전화로 문의해 주세요.",
+    };
   }
-
-  saveConsultationSubmission(payload, receptionNumber);
-
-  return {
-    success: true,
-    receptionNumber,
-  };
 }

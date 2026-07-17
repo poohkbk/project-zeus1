@@ -174,14 +174,12 @@ export async function recordAnalyticsVisit(visit: Omit<AnalyticsVisit, "id" | "v
     }
 
     if (!canUseFileStore) {
-      console.error("Analytics Supabase insert failed", error?.message);
       return {
         storage: "none",
         reason: "supabase_insert_failed",
       } satisfies AnalyticsRecordResult;
     }
   } else if (!canUseFileStore) {
-    console.error("Analytics Supabase environment variables are missing");
     return {
       storage: "none",
       reason: "missing_supabase_env",
