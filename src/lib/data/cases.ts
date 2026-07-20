@@ -43,6 +43,10 @@ function normalizeCaseSlug(value?: string | null) {
   }
 }
 
+function isUuid(value: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
 function getSlug(row: CaseRow) {
   return normalizeCaseSlug(row.slug) || normalizeCaseSlug(row.page_address) || row.id;
 }
@@ -196,6 +200,49 @@ async function fetchPublishedCaseRows() {
   return (await fetchPublishedCaseRowsFromAdmin()) ?? (await fetchPublishedCaseRowsFromPublicClient());
 }
 
+async function fetchPublishedCaseRowBySlugWithClient(
+  supabase: NonNullable<ReturnType<typeof createAdminClient>>,
+  slug: string,
+) {
+  const now = new Date().toISOString();
+  const slugFilters = [`slug.eq.${slug}`, `page_address.eq.${slug}`];
+  if (isUuid(slug)) slugFilters.push(`id.eq.${slug}`);
+
+  const { data, error } = await supabase
+    .from("cases")
+    .select("*")
+    .eq("status", "published")
+    .or(`published_at.is.null,published_at.lte.${now}`)
+    .or(slugFilters.join(","))
+    .order("published_at", { ascending: false, nullsFirst: false })
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error || !data) return undefined;
+  return data as CaseRow;
+}
+
+const fetchPublishedCaseRowBySlugFromAdmin = unstable_cache(
+  async (slug: string) => {
+    const supabase = createAdminClient();
+    if (!supabase) return undefined;
+    return fetchPublishedCaseRowBySlugWithClient(supabase, slug);
+  },
+  ["published-case-by-slug"],
+  { revalidate: 60, tags: ["published-cases"] },
+);
+
+async function fetchPublishedCaseRowBySlugFromPublicClient(slug: string) {
+  const supabase = await createClient();
+  if (!supabase) return undefined;
+  return fetchPublishedCaseRowBySlugWithClient(supabase as NonNullable<ReturnType<typeof createAdminClient>>, slug);
+}
+
+async function fetchPublishedCaseRowBySlug(slug: string) {
+  return (await fetchPublishedCaseRowBySlugFromAdmin(slug)) ?? (await fetchPublishedCaseRowBySlugFromPublicClient(slug));
+}
+
 export async function getPublishedCases(): Promise<PublicCaseContent[]> {
   const rows = await fetchPublishedCaseRows();
   return rows?.map(toPublicCase) ?? fallbackCases;
@@ -203,6 +250,9 @@ export async function getPublishedCases(): Promise<PublicCaseContent[]> {
 
 export async function getCaseBySlug(slug: string): Promise<PublicCaseContent | undefined> {
   const normalizedSlug = normalizeCaseSlug(slug);
+  const directRow = await fetchPublishedCaseRowBySlug(normalizedSlug);
+  if (directRow) return toPublicCase(directRow);
+
   const rows = await fetchPublishedCaseRows();
   const row = rows?.find((item) =>
     [item.slug, item.page_address, item.id].some((value) => normalizeCaseSlug(value) === normalizedSlug),

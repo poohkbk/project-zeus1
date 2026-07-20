@@ -2965,6 +2965,68 @@
   padding: 104px 0 132px;
 }
 
+.case-detail-loading .case-detail-hero {
+  min-height: 420px;
+}
+
+.case-loading-line,
+.case-loading-title,
+.case-loading-heading,
+.case-loading-visual {
+  overflow: hidden;
+  border-radius: 8px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.36), rgba(255, 255, 255, 0.18));
+  background-size: 220% 100%;
+  animation: case-loading-shimmer 1.15s ease-in-out infinite;
+}
+
+.case-detail-section .case-loading-line,
+.case-detail-section .case-loading-heading {
+  background: linear-gradient(90deg, #edf4f6, #ffffff, #edf4f6);
+  background-size: 220% 100%;
+}
+
+.case-loading-line {
+  width: min(100%, 720px);
+  height: 18px;
+  margin: 14px 0;
+}
+
+.case-loading-line.short {
+  width: 140px;
+}
+
+.case-loading-line.medium {
+  width: min(70%, 520px);
+}
+
+.case-loading-title {
+  width: min(100%, 760px);
+  height: 74px;
+  margin: 22px 0;
+}
+
+.case-loading-heading {
+  width: 280px;
+  height: 48px;
+  margin: 18px 0;
+}
+
+.case-loading-visual {
+  min-height: 320px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+}
+
+@keyframes case-loading-shimmer {
+  0% {
+    background-position: 120% 0;
+  }
+
+  100% {
+    background-position: -120% 0;
+  }
+}
+
 .cases-hero::after,
 .case-detail-hero::after {
   content: "";

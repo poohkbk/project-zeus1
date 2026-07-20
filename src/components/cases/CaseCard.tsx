@@ -4,7 +4,7 @@ import type { PublicCaseContent } from "@/types/case";
 
 export function CaseCard({ caseItem }: { caseItem: PublicCaseContent }) {
   return (
-    <Link className={`case-result-card accent-${caseItem.accent}`} href={caseItem.href}>
+    <Link className={`case-result-card accent-${caseItem.accent}`} href={caseItem.href} prefetch>
       {caseItem.heroImage ? (
         <div className="case-card-media has-image">
           {/* eslint-disable-next-line @next/next/no-img-element */}
