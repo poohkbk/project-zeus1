@@ -85,6 +85,12 @@ export function updateConsultationSubmission(
   return nextSubmissions;
 }
 
+export function deleteConsultationSubmission(id: string) {
+  const nextSubmissions = readSubmissions().filter((submission) => submission.id !== id);
+  writeSubmissions(nextSubmissions);
+  return nextSubmissions;
+}
+
 export function getConsultationStatusLabel(status: ConsultationSubmissionStatus) {
   return {
     new: "새 상담",

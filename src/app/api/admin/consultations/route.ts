@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { consultationCategoryLabels } from "@/data/consultation";
 import { requireAdminApi } from "@/lib/admin/auth";
-import { listConsultations, updateConsultation } from "@/lib/data/consultations";
+import { deleteConsultation, listConsultations, updateConsultation } from "@/lib/data/consultations";
 import { rejectCrossOriginRequest } from "@/lib/security/request-guard";
 import type { ConsultationSubmission, ConsultationSubmissionStatus } from "@/types/consultation";
 import type { ConsultationRow } from "@/types/database";
@@ -66,4 +66,24 @@ export async function PATCH(request: NextRequest) {
 
   if (!row) return NextResponse.json({ message: "상담 정보를 수정하지 못했습니다." }, { status: 500 });
   return NextResponse.json({ submission: toSubmission(row) });
+}
+
+export async function DELETE(request: NextRequest) {
+  const originRejection = rejectCrossOriginRequest(request);
+  if (originRejection) return originRejection;
+
+  const { response } = await requireAdminApi();
+  if (response) return response;
+
+  const id = request.nextUrl.searchParams.get("id")?.trim() ?? "";
+  if (!id) {
+    return NextResponse.json({ message: "삭제할 상담글을 선택해 주세요." }, { status: 400 });
+  }
+
+  const deleted = await deleteConsultation(id);
+  if (!deleted) {
+    return NextResponse.json({ message: "상담글을 삭제하지 못했습니다." }, { status: 500 });
+  }
+
+  return NextResponse.json({ success: true });
 }

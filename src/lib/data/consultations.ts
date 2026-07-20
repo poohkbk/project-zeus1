@@ -63,3 +63,11 @@ export async function updateConsultation(
   if (error) return undefined;
   return data as ConsultationRow | null;
 }
+
+export async function deleteConsultation(id: string) {
+  const supabase = createAdminClient();
+  if (!supabase) return false;
+
+  const { error } = await supabase.from("consultations").delete().eq("id", id);
+  return !error;
+}

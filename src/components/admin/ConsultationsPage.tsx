@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
+  deleteConsultationSubmission,
   getConsultationStatusLabel,
   loadConsultationSubmissions,
   updateConsultationSubmission,
@@ -42,6 +43,7 @@ export function ConsultationsPage() {
   const [selectedId, setSelectedId] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | ConsultationSubmissionStatus>("all");
   const [syncMessage, setSyncMessage] = useState("");
+  const [deletePending, setDeletePending] = useState(false);
 
   useEffect(() => {
     const loaded = loadConsultationSubmissions();
@@ -111,6 +113,41 @@ export function ConsultationsPage() {
         setSyncMessage("상담 처리상태와 메모가 Supabase에 저장되었습니다.");
       })
       .catch(() => setSyncMessage("이 브라우저에는 반영됐지만 Supabase 저장은 실패했습니다."));
+  }
+
+  function selectNextAfterDelete(nextSubmissions: ConsultationSubmission[]) {
+    const nextVisible = nextSubmissions.filter((submission) =>
+      statusFilter === "all" ? true : submission.status === statusFilter,
+    );
+    setSelectedId(nextVisible[0]?.id ?? nextSubmissions[0]?.id ?? "");
+  }
+
+  async function deleteSelected() {
+    if (!selected || deletePending) return;
+    const confirmed = window.confirm(
+      `${selected.name}님의 상담신청 글을 삭제할까요? 삭제 후에는 관리자 화면에서 복구할 수 없습니다.`,
+    );
+    if (!confirmed) return;
+
+    setDeletePending(true);
+    setSyncMessage("상담글을 삭제 중입니다.");
+
+    try {
+      const response = await fetch(`/api/admin/consultations?id=${encodeURIComponent(selected.id)}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) throw new Error("failed");
+
+      deleteConsultationSubmission(selected.id);
+      const nextSubmissions = submissions.filter((submission) => submission.id !== selected.id);
+      refresh(nextSubmissions);
+      selectNextAfterDelete(nextSubmissions);
+      setSyncMessage("상담글이 삭제되었습니다.");
+    } catch {
+      setSyncMessage("상담글 삭제에 실패했습니다. Supabase 연결과 관리자 권한을 확인해 주세요.");
+    } finally {
+      setDeletePending(false);
+    }
   }
 
   return (
@@ -192,6 +229,9 @@ export function ConsultationsPage() {
                 </label>
                 <button type="button" onClick={() => window.print()}>
                   종이로 출력
+                </button>
+                <button className="danger" type="button" onClick={deleteSelected} disabled={deletePending}>
+                  {deletePending ? "삭제 중..." : "삭제"}
                 </button>
               </div>
 
