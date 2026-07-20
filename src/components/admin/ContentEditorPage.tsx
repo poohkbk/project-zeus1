@@ -239,8 +239,8 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
     updateCaseDetail((detail) => {
       const next = normalizeSimpleCaseDetail(detail);
       if (key === "facts") return { ...next, facts: [value] };
-      if (key === "issues") return { ...next, issues: [{ title: "핵심쟁점", description: value }] };
-      if (key === "response") return { ...next, response: [{ title: "제우의 대응", description: value }] };
+      if (key === "issues") return { ...next, issues: [{ title: "", description: value }] };
+      if (key === "response") return { ...next, response: [{ title: "", description: value }] };
       return { ...next, lawyerComment: value };
     });
   }

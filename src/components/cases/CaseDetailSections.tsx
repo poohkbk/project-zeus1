@@ -30,9 +30,28 @@ function ParagraphBlock({ text }: { text: string }) {
   );
 }
 
+const duplicateSectionTitles = new Set([
+  "제우의 대응",
+  "핵심쟁점",
+  "핵심 쟁점",
+  "사건 검토",
+  "대응",
+  "쟁점",
+]);
+
+function isDuplicateSectionTitle(value: string) {
+  return duplicateSectionTitles.has(value.trim());
+}
+
 function joinedDescriptions(items: Array<{ title: string; description: string }>) {
   return items
-    .map((item) => [item.title, item.description].filter(Boolean).join("\n"))
+    .map((item) => {
+      const title = item.title.trim();
+      const description = item.description.trim();
+      if (!title || isDuplicateSectionTitle(title)) return description;
+      if (!description) return title;
+      return `${title}\n${description}`;
+    })
     .filter(Boolean)
     .join("\n\n");
 }
