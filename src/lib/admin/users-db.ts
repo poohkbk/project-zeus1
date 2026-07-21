@@ -27,7 +27,7 @@ function toAdmin(row: ProfileRow): CmsAdminUser {
 
 async function findAuthUserByEmail(email: string) {
   const supabase = createAdminClient();
-  if (!supabase) return undefined;
+  if (!supabase) throw new Error("Supabase admin client is not configured.");
 
   const normalizedEmail = email.trim().toLowerCase();
   for (let page = 1; page <= 10; page += 1) {
@@ -44,7 +44,7 @@ async function findAuthUserByEmail(email: string) {
 
 async function createOrUpdateAuthUser(values: { name: string; email: string; password: string }) {
   const supabase = createAdminClient();
-  if (!supabase) return undefined;
+  if (!supabase) throw new Error("Supabase admin client is not configured.");
 
   const email = values.email.trim().toLowerCase();
   const existingUser = await findAuthUserByEmail(email);
@@ -86,7 +86,7 @@ export async function listAdminUsers() {
 
 export async function createAdminUser(values: { name: string; email: string; password: string }) {
   const supabase = createAdminClient();
-  if (!supabase) return undefined;
+  if (!supabase) throw new Error("Supabase admin client is not configured.");
 
   const authUser = await createOrUpdateAuthUser(values);
 
@@ -112,7 +112,7 @@ export async function createAdminUser(values: { name: string; email: string; pas
 
 export async function updateAdminUser(id: string, values: { name: string; email: string; password?: string }) {
   const supabase = createAdminClient();
-  if (!supabase) return undefined;
+  if (!supabase) throw new Error("Supabase admin client is not configured.");
 
   const { data: currentProfile, error: currentError } = await supabase
     .from("profiles")
@@ -157,7 +157,7 @@ export async function updateAdminUser(id: string, values: { name: string; email:
 
 export async function deleteAdminUser(id: string) {
   const supabase = createAdminClient();
-  if (!supabase) return undefined;
+  if (!supabase) throw new Error("Supabase admin client is not configured.");
 
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
@@ -167,6 +167,7 @@ export async function deleteAdminUser(id: string) {
     .maybeSingle();
 
   if (profileError) throw profileError;
+  if (!profile) return false;
 
   const email = String((profile as { email?: string } | null)?.email ?? "").trim().toLowerCase();
   if (email) {

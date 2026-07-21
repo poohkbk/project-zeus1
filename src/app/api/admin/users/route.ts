@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdminApi } from "@/lib/admin/auth";
 import { createAdminUser, deleteAdminUser, listAdminUsers, updateAdminUser } from "@/lib/admin/users-db";
+import { notifyAdminAccount } from "@/lib/notifications/admin-account-email";
 import { rejectCrossOriginRequest } from "@/lib/security/request-guard";
 
 export const dynamic = "force-dynamic";
@@ -75,7 +76,8 @@ export async function POST(request: NextRequest) {
 
   try {
     const admin = await createAdminUser({ name, email, password });
-    return NextResponse.json({ admin });
+    const emailResult = await notifyAdminAccount({ mode: "created", name, email, temporaryPassword: password });
+    return NextResponse.json({ admin, emailSent: emailResult.sent });
   } catch {
     return NextResponse.json({ message: "관리자를 추가하지 못했습니다." }, { status: 500 });
   }
@@ -110,7 +112,10 @@ export async function PATCH(request: NextRequest) {
   try {
     const admin = await updateAdminUser(id, { name, email, ...(password ? { password } : {}) });
     if (!admin) return NextResponse.json({ message: "수정할 관리자를 찾지 못했습니다." }, { status: 404 });
-    return NextResponse.json({ admin });
+    const emailResult = password
+      ? await notifyAdminAccount({ mode: "password_reset", name, email, temporaryPassword: password })
+      : { sent: false };
+    return NextResponse.json({ admin, emailSent: Boolean(password ? emailResult.sent : false) });
   } catch {
     return NextResponse.json({ message: "관리자 정보를 수정하지 못했습니다." }, { status: 500 });
   }
@@ -127,7 +132,8 @@ export async function DELETE(request: NextRequest) {
   if (!id) return NextResponse.json({ message: "삭제할 관리자를 선택해 주세요." }, { status: 400 });
 
   try {
-    await deleteAdminUser(id);
+    const deleted = await deleteAdminUser(id);
+    if (!deleted) return NextResponse.json({ message: "삭제할 일반관리자를 찾지 못했습니다." }, { status: 404 });
     return NextResponse.json({ success: true });
   } catch {
     return NextResponse.json({ message: "관리자를 삭제하지 못했습니다." }, { status: 500 });

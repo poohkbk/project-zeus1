@@ -412,8 +412,22 @@ export function AdminUsersPage() {
     })
       .then((response) => {
         if (!response.ok) throw new Error("failed");
+        return response.json() as Promise<{ admin?: CmsAdminUser; emailSent?: boolean }>;
+      })
+      .then((data) => {
         setPasswordDrafts((current) => ({ ...current, [admin.id]: "" }));
-        setMessage(password ? "관리자 정보와 임시 비밀번호가 저장되었습니다." : "관리자 정보가 저장되었습니다.");
+        if (data.admin) {
+          persistAdmins(
+            admins.map((entry) => (entry.id === data.admin?.id ? data.admin : entry)),
+            password
+              ? data.emailSent
+                ? "관리자 정보와 임시 비밀번호가 저장되었고, 안내 이메일을 보냈습니다."
+                : "관리자 정보와 임시 비밀번호는 저장되었지만 안내 이메일 발송은 실패했습니다. Resend 환경변수를 확인해 주세요."
+              : "관리자 정보가 저장되었습니다.",
+          );
+        } else {
+          setMessage("관리자 정보가 저장되었습니다.");
+        }
       })
       .catch(() => setMessage("관리자 정보 저장에 실패했습니다. Supabase 연결과 권한을 확인해 주세요."))
       .finally(() => setPendingId(""));
@@ -424,12 +438,17 @@ export function AdminUsersPage() {
     setPendingId(admin.id);
 
     await fetch(`/api/admin/users?id=${encodeURIComponent(admin.id)}`, { method: "DELETE" })
-      .then((response) => {
-        if (!response.ok) throw new Error("failed");
+      .then(async (response) => {
+        if (!response.ok) {
+          const data = (await response.json().catch(() => ({}))) as { message?: string };
+          throw new Error(data.message || "failed");
+        }
         const nextAdmins = admins.filter((entry) => entry.id !== admin.id);
         persistAdmins(nextAdmins, "관리자가 삭제되었습니다.");
       })
-      .catch(() => setMessage("관리자 삭제에 실패했습니다. Supabase 연결과 권한을 확인해 주세요."))
+      .catch((error) =>
+        setMessage(error instanceof Error ? error.message : "관리자 삭제에 실패했습니다. Supabase 연결과 권한을 확인해 주세요."),
+      )
       .finally(() => setPendingId(""));
   }
 
@@ -464,12 +483,17 @@ export function AdminUsersPage() {
     })
       .then((response) => {
         if (!response.ok) throw new Error("failed");
-        return response.json() as Promise<{ admin?: CmsAdminUser }>;
+        return response.json() as Promise<{ admin?: CmsAdminUser; emailSent?: boolean }>;
       })
       .then((data) => {
         if (!data.admin) return;
         const syncedAdmins = [...admins.filter((admin) => admin.id !== data.admin?.id), data.admin].slice(0, 4);
-        persistAdmins(syncedAdmins, "관리자 계정을 생성했습니다. 새 관리자는 입력한 임시 비밀번호로 로그인할 수 있습니다.");
+        persistAdmins(
+          syncedAdmins,
+          data.emailSent
+            ? "관리자 계정을 생성했고, 등록한 이메일로 로그인 안내를 보냈습니다."
+            : "관리자 계정은 생성됐지만 안내 이메일 발송은 실패했습니다. Resend 환경변수를 확인해 주세요.",
+        );
         setDraftAdmin({ name: "", email: "", password: "" });
       })
       .catch(() => setMessage("관리자 계정 생성에 실패했습니다. 이메일 중복, 비밀번호, Supabase service role key를 확인해 주세요."))
