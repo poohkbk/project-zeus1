@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdminApi } from "@/lib/admin/auth";
 import { createAdminUser, deleteAdminUser, listAdminUsers, updateAdminUser } from "@/lib/admin/users-db";
-import { notifyAdminAccount } from "@/lib/notifications/admin-account-email";
+import { getAdminAccountEmailFailureMessage, notifyAdminAccount } from "@/lib/notifications/admin-account-email";
 import { rejectCrossOriginRequest } from "@/lib/security/request-guard";
 
 export const dynamic = "force-dynamic";
@@ -77,7 +77,11 @@ export async function POST(request: NextRequest) {
   try {
     const admin = await createAdminUser({ name, email, password });
     const emailResult = await notifyAdminAccount({ mode: "created", name, email, temporaryPassword: password });
-    return NextResponse.json({ admin, emailSent: emailResult.sent });
+    return NextResponse.json({
+      admin,
+      emailSent: emailResult.sent,
+      emailMessage: emailResult.sent ? undefined : getAdminAccountEmailFailureMessage(emailResult),
+    });
   } catch {
     return NextResponse.json({ message: "관리자를 추가하지 못했습니다." }, { status: 500 });
   }
@@ -114,8 +118,12 @@ export async function PATCH(request: NextRequest) {
     if (!admin) return NextResponse.json({ message: "수정할 관리자를 찾지 못했습니다." }, { status: 404 });
     const emailResult = password
       ? await notifyAdminAccount({ mode: "password_reset", name, email, temporaryPassword: password })
-      : { sent: false };
-    return NextResponse.json({ admin, emailSent: Boolean(password ? emailResult.sent : false) });
+      : undefined;
+    return NextResponse.json({
+      admin,
+      emailSent: Boolean(emailResult?.sent),
+      emailMessage: emailResult && !emailResult.sent ? getAdminAccountEmailFailureMessage(emailResult) : undefined,
+    });
   } catch {
     return NextResponse.json({ message: "관리자 정보를 수정하지 못했습니다." }, { status: 500 });
   }

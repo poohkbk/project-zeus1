@@ -412,7 +412,7 @@ export function AdminUsersPage() {
     })
       .then((response) => {
         if (!response.ok) throw new Error("failed");
-        return response.json() as Promise<{ admin?: CmsAdminUser; emailSent?: boolean }>;
+        return response.json() as Promise<{ admin?: CmsAdminUser; emailSent?: boolean; emailMessage?: string }>;
       })
       .then((data) => {
         setPasswordDrafts((current) => ({ ...current, [admin.id]: "" }));
@@ -422,7 +422,7 @@ export function AdminUsersPage() {
             password
               ? data.emailSent
                 ? "관리자 정보와 임시 비밀번호가 저장되었고, 안내 이메일을 보냈습니다."
-                : "관리자 정보와 임시 비밀번호는 저장되었지만 안내 이메일 발송은 실패했습니다. Resend 환경변수를 확인해 주세요."
+                : `관리자 정보와 임시 비밀번호는 저장되었지만 안내 이메일 발송은 실패했습니다. ${data.emailMessage || "Resend 설정을 확인해 주세요."}`
               : "관리자 정보가 저장되었습니다.",
           );
         } else {
@@ -483,7 +483,7 @@ export function AdminUsersPage() {
     })
       .then((response) => {
         if (!response.ok) throw new Error("failed");
-        return response.json() as Promise<{ admin?: CmsAdminUser; emailSent?: boolean }>;
+        return response.json() as Promise<{ admin?: CmsAdminUser; emailSent?: boolean; emailMessage?: string }>;
       })
       .then((data) => {
         if (!data.admin) return;
@@ -492,7 +492,7 @@ export function AdminUsersPage() {
           syncedAdmins,
           data.emailSent
             ? "관리자 계정을 생성했고, 등록한 이메일로 로그인 안내를 보냈습니다."
-            : "관리자 계정은 생성됐지만 안내 이메일 발송은 실패했습니다. Resend 환경변수를 확인해 주세요.",
+            : `관리자 계정은 생성됐지만 안내 이메일 발송은 실패했습니다. ${data.emailMessage || "Resend 설정을 확인해 주세요."}`,
         );
         setDraftAdmin({ name: "", email: "", password: "" });
       })

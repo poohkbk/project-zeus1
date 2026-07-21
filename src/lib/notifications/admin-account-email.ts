@@ -9,6 +9,18 @@ type AdminAccountEmailPayload = {
   temporaryPassword: string;
 };
 
+type AdminAccountEmailFailureReason =
+  | "missing_email_config"
+  | "invalid_resend_api_key"
+  | "invalid_from_email"
+  | "from_domain_not_verified"
+  | "resend_test_recipient_restricted"
+  | "email_provider_error";
+
+type AdminAccountEmailResult =
+  | { sent: true }
+  | { sent: false; reason: AdminAccountEmailFailureReason; detail?: string };
+
 function escapeHtml(value: string) {
   return value.replace(/[&<>"']/g, (character) => {
     return {
@@ -77,7 +89,60 @@ function buildAdminEmailText(payload: AdminAccountEmailPayload) {
   ].join("\n");
 }
 
-export async function notifyAdminAccount(payload: AdminAccountEmailPayload) {
+async function readProviderMessage(response: Response) {
+  const body = await response.text().catch(() => "");
+  if (!body) return "";
+
+  try {
+    const parsed = JSON.parse(body) as { message?: string; error?: string; name?: string };
+    return parsed.message || parsed.error || parsed.name || body;
+  } catch {
+    return body;
+  }
+}
+
+function classifyProviderError(status: number, message: string): AdminAccountEmailFailureReason {
+  const normalized = message.toLowerCase();
+
+  if (status === 401 || normalized.includes("api key")) {
+    return "invalid_resend_api_key";
+  }
+
+  if (normalized.includes("own email address") || normalized.includes("verify a domain")) {
+    return "resend_test_recipient_restricted";
+  }
+
+  if (normalized.includes("domain") && (normalized.includes("not verified") || normalized.includes("verify"))) {
+    return "from_domain_not_verified";
+  }
+
+  if (normalized.includes("from")) {
+    return "invalid_from_email";
+  }
+
+  return "email_provider_error";
+}
+
+export function getAdminAccountEmailFailureMessage(result: AdminAccountEmailResult) {
+  if (result.sent) return "";
+
+  switch (result.reason) {
+    case "missing_email_config":
+      return "RESEND_API_KEY 또는 RESEND_FROM_EMAIL 환경변수가 비어 있습니다.";
+    case "invalid_resend_api_key":
+      return "RESEND_API_KEY가 유효하지 않습니다. Resend에서 새 API 키를 확인해 주세요.";
+    case "invalid_from_email":
+      return "RESEND_FROM_EMAIL 형식이 올바르지 않습니다. 예: LAW OFFICE ZEU <onboarding@resend.dev>";
+    case "from_domain_not_verified":
+      return "발신자 도메인이 Resend에서 인증되지 않았습니다. 도메인 인증 전에는 onboarding@resend.dev를 사용해 주세요.";
+    case "resend_test_recipient_restricted":
+      return "Resend 테스트 발신자는 수신자가 제한될 수 있습니다. 다른 관리자 이메일로 보내려면 jwlaw.co.kr 도메인 인증이 필요합니다.";
+    default:
+      return "Resend가 이메일 발송을 거절했습니다. Resend Logs에서 실패 사유를 확인해 주세요.";
+  }
+}
+
+export async function notifyAdminAccount(payload: AdminAccountEmailPayload): Promise<AdminAccountEmailResult> {
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.RESEND_FROM_EMAIL;
 
@@ -107,7 +172,8 @@ export async function notifyAdminAccount(payload: AdminAccountEmailPayload) {
   });
 
   if (!response.ok) {
-    return { sent: false, reason: "email_provider_error" };
+    const detail = await readProviderMessage(response);
+    return { sent: false, reason: classifyProviderError(response.status, detail), detail };
   }
 
   return { sent: true };
