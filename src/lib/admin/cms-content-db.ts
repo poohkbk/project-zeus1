@@ -243,6 +243,32 @@ function basicLegacyRowForItem(item: CmsContentItem) {
   return toBasicFaqRow(item);
 }
 
+function normalizeDuplicateTitle(value: string) {
+  return value.normalize("NFKC").toLowerCase().replace(/\s+/g, " ").trim();
+}
+
+function isEmptyAutosaveDraft(item: CmsContentItem) {
+  return (
+    item.status === "draft" &&
+    Boolean(item.title.trim()) &&
+    !item.summary.trim() &&
+    !item.body.trim() &&
+    !item.heroImage &&
+    item.tags.length === 0
+  );
+}
+
+function isLikelyAutosaveDuplicate(draft: CmsContentItem, saved: CmsContentItem) {
+  if (draft.id === saved.id || draft.type !== saved.type) return false;
+  if (isEmptyAutosaveDraft(saved)) return false;
+
+  const draftTitle = normalizeDuplicateTitle(draft.title);
+  const savedTitle = normalizeDuplicateTitle(saved.title);
+  if (!draftTitle || !savedTitle) return false;
+
+  return draftTitle.includes(savedTitle) || savedTitle.includes(draftTitle);
+}
+
 function dedupeCmsItems(items: CmsContentItem[]) {
   const map = new Map<string, CmsContentItem>();
 
@@ -253,7 +279,11 @@ function dedupeCmsItems(items: CmsContentItem[]) {
     }
   });
 
-  return [...map.values()].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  const latestItems = [...map.values()].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  return latestItems.filter((item) => {
+    if (!isEmptyAutosaveDraft(item)) return true;
+    return !latestItems.some((other) => isLikelyAutosaveDuplicate(item, other));
+  });
 }
 
 export async function listCmsContentItems() {

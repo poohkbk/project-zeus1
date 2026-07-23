@@ -33,15 +33,59 @@ function writeJson<T>(key: string, value: T) {
 }
 
 export function loadCmsItems() {
-  return readJson<CmsContentItem[]>(CONTENT_KEY, cmsSeedItems);
+  return dedupeCmsContentItems(readJson<CmsContentItem[]>(CONTENT_KEY, cmsSeedItems));
 }
 
 export function saveCmsItems(items: CmsContentItem[]) {
-  const saved = writeJson(CONTENT_KEY, items);
+  const safeItems = dedupeCmsContentItems(items);
+  const saved = writeJson(CONTENT_KEY, safeItems);
   if (!saved) {
-    const lightweightItems = items.map((item) => ({ ...item, heroImage: "" }));
+    const lightweightItems = safeItems.map((item) => ({ ...item, heroImage: "" }));
     writeJson(CONTENT_KEY, lightweightItems);
   }
+}
+
+function normalizeDuplicateTitle(value: string) {
+  return value.normalize("NFKC").toLowerCase().replace(/\s+/g, " ").trim();
+}
+
+function isEmptyAutosaveDraft(item: CmsContentItem) {
+  return (
+    item.status === "draft" &&
+    Boolean(item.title.trim()) &&
+    !item.summary.trim() &&
+    !item.body.trim() &&
+    !item.heroImage &&
+    item.tags.length === 0
+  );
+}
+
+function isLikelyAutosaveDuplicate(draft: CmsContentItem, saved: CmsContentItem) {
+  if (draft.id === saved.id || draft.type !== saved.type) return false;
+  if (isEmptyAutosaveDraft(saved)) return false;
+
+  const draftTitle = normalizeDuplicateTitle(draft.title);
+  const savedTitle = normalizeDuplicateTitle(saved.title);
+  if (!draftTitle || !savedTitle) return false;
+
+  return draftTitle.includes(savedTitle) || savedTitle.includes(draftTitle);
+}
+
+export function dedupeCmsContentItems(items: CmsContentItem[]) {
+  const latestById = new Map<string, CmsContentItem>();
+
+  items.forEach((item) => {
+    const existing = latestById.get(item.id);
+    if (!existing || item.updatedAt.localeCompare(existing.updatedAt) > 0) {
+      latestById.set(item.id, item);
+    }
+  });
+
+  const latestItems = [...latestById.values()].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  return latestItems.filter((item) => {
+    if (!isEmptyAutosaveDraft(item)) return true;
+    return !latestItems.some((other) => isLikelyAutosaveDuplicate(item, other));
+  });
 }
 
 export async function loadCmsItemsFromServer() {

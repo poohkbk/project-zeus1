@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ChangeEvent, DragEvent, useEffect, useMemo, useRef, useState } from "react";
+import { ChangeEvent, DragEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { cmsCategoryLabels, cmsTypeLabels } from "@/data/cms-seed";
 import { createLocalAiSuggestion } from "@/lib/admin/ai/draft-service";
 import {
@@ -100,8 +100,15 @@ function resizeImageFile(file: File): Promise<string> {
 }
 
 export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: string }) {
+  const draftItemRef = useRef<CmsContentItem | null>(null);
+  const getDraftItem = useCallback(() => {
+    if (!draftItemRef.current || draftItemRef.current.type !== type) {
+      draftItemRef.current = createEmptyCmsItem(type);
+    }
+    return draftItemRef.current;
+  }, [type]);
   const [items, setItems] = useState<CmsContentItem[]>([]);
-  const [item, setItem] = useState<CmsContentItem>(() => createEmptyCmsItem(type));
+  const [item, setItem] = useState<CmsContentItem>(() => (id ? createEmptyCmsItem(type) : getDraftItem()));
   const [step, setStep] = useState(1);
   const [saveState, setSaveState] = useState("저장 전");
   const [aiInput, setAiInput] = useState("");
@@ -124,7 +131,11 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
     itemsRef.current = loaded;
     setItems(loaded);
     const found = id ? loaded.find((entry) => entry.id === id) : undefined;
-    setItem(found ?? createEmptyCmsItem(type));
+    if (id) {
+      setItem(found ?? createEmptyCmsItem(type));
+    } else {
+      setItem((current) => (current.type === type ? current : getDraftItem()));
+    }
 
     loadCmsItemsFromServer()
       .then((serverItems) => {
@@ -134,16 +145,16 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
         saveCmsItems(serverItems);
         const serverFound = id ? serverItems.find((entry) => entry.id === id) : undefined;
         if (serverFound) setItem(serverFound);
-        else if (!id) setItem(createEmptyCmsItem(type));
         setSaveState("Supabase 연결됨");
       })
       .catch(() => setSaveState("브라우저 임시저장 모드"));
-  }, [type, id]);
+  }, [type, id, getDraftItem]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
       if (!item.title && !item.body && !item.heroImage) return;
       const nextItem = { ...item, updatedAt: new Date().toISOString() };
+      if (!id) draftItemRef.current = nextItem;
       const exists = itemsRef.current.some((entry) => entry.id === nextItem.id);
       const nextItems = exists
         ? itemsRef.current.map((entry) => (entry.id === nextItem.id ? nextItem : entry))
@@ -158,7 +169,7 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
     }, 900);
 
     return () => window.clearTimeout(timer);
-  }, [item]);
+  }, [item, id]);
 
   const suggestion = useMemo(
     () => (aiInput ? createLocalAiSuggestion(type, aiInput) : undefined),
@@ -171,6 +182,7 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
     completed?: "draft" | "published" | "scheduled",
   ) {
     const nextItem = { ...(itemOverride ?? item), updatedAt: new Date().toISOString() };
+    if (!id) draftItemRef.current = nextItem;
     const currentItems = itemsRef.current.length > 0 ? itemsRef.current : items;
     const exists = currentItems.some((entry) => entry.id === nextItem.id);
     const nextItems = exists
