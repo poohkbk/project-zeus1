@@ -444,6 +444,7 @@ export async function deleteCmsContentItem(item: CmsContentItem) {
   }
 
   if (isUuid(id) && (await runDelete("id", (query) => query.eq("id", id)))) return true;
+  if (errors.length === 0) return false;
 
   throw new Error(errors.at(-1) ?? "삭제할 콘텐츠를 Supabase에서 찾지 못했습니다.");
 }
