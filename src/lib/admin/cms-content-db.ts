@@ -225,6 +225,37 @@ function toBasicFaqRow(item: CmsContentItem) {
   return omitKeys(toFaqRow(item), ["cms_id", "content", "published_at"]);
 }
 
+function rowForItem(item: CmsContentItem) {
+  if (item.type === "case") return toCaseRow(item);
+  if (item.type === "guide") return toGuideRow(item);
+  return toFaqRow(item);
+}
+
+function legacyRowForItem(item: CmsContentItem) {
+  if (item.type === "case") return omitCmsId(toCaseRow(item));
+  if (item.type === "guide") return omitCmsId(toGuideRow(item));
+  return omitCmsId(toFaqRow(item));
+}
+
+function basicLegacyRowForItem(item: CmsContentItem) {
+  if (item.type === "case") return toBasicCaseRow(item);
+  if (item.type === "guide") return toBasicGuideRow(item);
+  return toBasicFaqRow(item);
+}
+
+function dedupeCmsItems(items: CmsContentItem[]) {
+  const map = new Map<string, CmsContentItem>();
+
+  items.forEach((item) => {
+    const existing = map.get(item.id);
+    if (!existing || item.updatedAt.localeCompare(existing.updatedAt) > 0) {
+      map.set(item.id, item);
+    }
+  });
+
+  return [...map.values()].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+}
+
 export async function listCmsContentItems() {
   const supabase = createAdminClient();
   if (!supabase) return undefined;
@@ -237,13 +268,71 @@ export async function listCmsContentItems() {
     }),
   );
 
-  return results.flat().sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  return dedupeCmsItems(results.flat());
 }
 
 export async function upsertCmsContentItem(item: CmsContentItem) {
   const supabase = createAdminClient();
   if (!supabase) throw new Error("Supabase 관리자 키가 설정되어 있지 않습니다.");
   const admin = supabase;
+  const table = tableByType[item.type];
+
+  async function selectExistingIds(query: PromiseLike<{ data: Array<{ id: string }> | null; error: { message: string } | null }>) {
+    const { data, error } = await query;
+    if (error) {
+      if (error.message.includes("does not exist")) return undefined;
+      return undefined;
+    }
+    return data?.map((row) => row.id) ?? [];
+  }
+
+  async function findExistingRowIds() {
+    const ids = new Set<string>();
+    const byCmsId = await selectExistingIds(
+      admin.from(table).select("id").eq("cms_id", item.id).order("updated_at", { ascending: false }).limit(20) as unknown as PromiseLike<{
+        data: Array<{ id: string }> | null;
+        error: { message: string } | null;
+      }>,
+    );
+    byCmsId?.forEach((id) => ids.add(id));
+
+    const byContentId = await selectExistingIds(
+      admin.from(table).select("id").filter("content->>id", "eq", item.id).order("updated_at", { ascending: false }).limit(20) as unknown as PromiseLike<{
+        data: Array<{ id: string }> | null;
+        error: { message: string } | null;
+      }>,
+    );
+    byContentId?.forEach((id) => ids.add(id));
+
+    return [...ids];
+  }
+
+  async function deleteIdentityDuplicates(keepId: string, duplicateIds: string[]) {
+    const idsToDelete = duplicateIds.filter((id) => id !== keepId);
+    if (idsToDelete.length === 0) return;
+
+    await admin.from(table).delete().in("id", idsToDelete);
+  }
+
+  async function updateExistingRow(rowId: string, duplicateIds: string[]) {
+    const updates = [rowForItem(item), legacyRowForItem(item), basicLegacyRowForItem(item)];
+    const updateErrors: string[] = [];
+
+    for (const updateRow of updates) {
+      const { data, error } = await admin.from(table).update(updateRow).eq("id", rowId).select("id").maybeSingle();
+      if (!error) {
+        await deleteIdentityDuplicates(rowId, duplicateIds).catch(() => undefined);
+        await mergeContentTags(item.tags).catch(() => undefined);
+        return data as { id: string } | null;
+      }
+      updateErrors.push(error.message);
+    }
+
+    throw new Error(updateErrors.at(-1) ?? "기존 콘텐츠를 Supabase에서 수정하지 못했습니다.");
+  }
+
+  const existingRowIds = await findExistingRowIds();
+  if (existingRowIds.length > 0) return updateExistingRow(existingRowIds[0], existingRowIds);
 
   async function runWithCmsId() {
     const query =
