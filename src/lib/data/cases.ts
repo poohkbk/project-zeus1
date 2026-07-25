@@ -61,7 +61,7 @@ function toCaseCardContent(caseItem: PublicCaseContent): CaseCardContent {
     subcategory: caseItem.subcategory,
     title: caseItem.title,
     excerpt: caseItem.excerpt,
-    heroImage: caseItem.heroImage,
+    heroImage: getPublicImageUrl(caseItem.heroImage),
     accent: caseItem.accent,
     tags: caseItem.tags,
     visibility: caseItem.visibility,
@@ -85,7 +85,7 @@ function toCaseCardFromRow(row: CaseListRow): CaseCardContent {
     subcategory: categoryLabel,
     title: row.title,
     excerpt: row.summary ?? "",
-    heroImage: row.hero_image_url ?? undefined,
+    heroImage: getPublicImageUrl(row.hero_image_url),
     accent: "navy",
     tags: row.tags ?? [],
     visibility: {
@@ -116,6 +116,13 @@ function isCaseContent(value: unknown): value is PublicCaseContent {
 
 function isCmsContentItem(value: unknown): value is CmsContentItem {
   return isRecord(value) && typeof value.id === "string" && value.type === "case";
+}
+
+function getPublicImageUrl(value?: string | null) {
+  const imageUrl = value?.trim();
+  if (!imageUrl) return undefined;
+  if (imageUrl.startsWith("/") || imageUrl.startsWith("https://")) return imageUrl;
+  return undefined;
 }
 
 function normalizeCaseSlug(value?: string | null) {
@@ -173,7 +180,7 @@ function toPublicCaseFromCmsItem(item: CmsContentItem, row: CaseRow): PublicCase
     subcategory: cmsCategoryLabels[item.category] ?? row.category,
     title: item.title || row.title,
     excerpt: item.summary || row.summary || "",
-    heroImage: item.heroImage || row.hero_image_url || undefined,
+    heroImage: getPublicImageUrl(item.heroImage || row.hero_image_url),
     accent: "navy",
     tags: item.tags ?? row.tags ?? [],
     visibility: {
@@ -217,7 +224,7 @@ function toPublicCase(row: CaseRow): PublicCaseContent {
     subcategory: row.category,
     title: row.title,
     excerpt: row.summary ?? "",
-    heroImage: row.hero_image_url ?? undefined,
+    heroImage: getPublicImageUrl(row.hero_image_url),
     accent: "navy",
     tags: row.tags ?? [],
     visibility: {
