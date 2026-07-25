@@ -61,7 +61,7 @@ function toCaseCardContent(caseItem: PublicCaseContent): CaseCardContent {
     subcategory: caseItem.subcategory,
     title: caseItem.title,
     excerpt: caseItem.excerpt,
-    heroImage: getPublicImageUrl(caseItem.heroImage),
+    heroImage: getPublicImageUrl(caseItem.heroImage, caseItem.id),
     accent: caseItem.accent,
     tags: caseItem.tags,
     visibility: caseItem.visibility,
@@ -85,7 +85,7 @@ function toCaseCardFromRow(row: CaseListRow): CaseCardContent {
     subcategory: categoryLabel,
     title: row.title,
     excerpt: row.summary ?? "",
-    heroImage: getPublicImageUrl(row.hero_image_url),
+    heroImage: getPublicImageUrl(row.hero_image_url, row.id),
     accent: "navy",
     tags: row.tags ?? [],
     visibility: {
@@ -118,10 +118,13 @@ function isCmsContentItem(value: unknown): value is CmsContentItem {
   return isRecord(value) && typeof value.id === "string" && value.type === "case";
 }
 
-function getPublicImageUrl(value?: string | null) {
+function getPublicImageUrl(value?: string | null, caseId?: string) {
   const imageUrl = value?.trim();
   if (!imageUrl) return undefined;
   if (imageUrl.startsWith("/") || imageUrl.startsWith("https://")) return imageUrl;
+  if (caseId && imageUrl.startsWith("data:image/")) {
+    return `/api/cases/${encodeURIComponent(caseId)}/image`;
+  }
   return undefined;
 }
 
@@ -180,7 +183,7 @@ function toPublicCaseFromCmsItem(item: CmsContentItem, row: CaseRow): PublicCase
     subcategory: cmsCategoryLabels[item.category] ?? row.category,
     title: item.title || row.title,
     excerpt: item.summary || row.summary || "",
-    heroImage: getPublicImageUrl(item.heroImage || row.hero_image_url),
+    heroImage: getPublicImageUrl(item.heroImage || row.hero_image_url, row.id),
     accent: "navy",
     tags: item.tags ?? row.tags ?? [],
     visibility: {
@@ -224,7 +227,7 @@ function toPublicCase(row: CaseRow): PublicCaseContent {
     subcategory: row.category,
     title: row.title,
     excerpt: row.summary ?? "",
-    heroImage: getPublicImageUrl(row.hero_image_url),
+    heroImage: getPublicImageUrl(row.hero_image_url, row.id),
     accent: "navy",
     tags: row.tags ?? [],
     visibility: {
@@ -294,7 +297,7 @@ const fetchPublishedCaseCards = unstable_cache(
     if (error || !data || data.length === 0) return fallbackCases.map(toCaseCardContent);
     return (data as unknown as CaseListRow[]).map(toCaseCardFromRow);
   },
-  ["published-case-cards"],
+  ["published-case-cards-v2"],
   { revalidate: 60, tags: ["published-cases"] },
 );
 
