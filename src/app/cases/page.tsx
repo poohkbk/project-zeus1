@@ -4,7 +4,7 @@ import { CasesListHero } from "@/components/cases/CasesListHero";
 import { FeaturedCases } from "@/components/cases/FeaturedCases";
 import { PracticeCTA } from "@/components/practice/PracticeCTA";
 import { getPracticeAreas } from "@/data/practice";
-import { getFeaturedCases, getPublishedCases } from "@/lib/data/cases";
+import { getCasesListing } from "@/lib/data/cases";
 
 export const metadata: Metadata = {
   title: "승소사례",
@@ -14,27 +14,15 @@ export const metadata: Metadata = {
 
 export const revalidate = 60;
 
-type CasesPageProps = {
-  searchParams: Promise<{
-    category?: string;
-    tags?: string;
-    q?: string;
-    sort?: string;
-  }>;
-};
-
-export default async function CasesPage({ searchParams }: CasesPageProps) {
-  const params = await searchParams;
-  const cases = await getPublishedCases();
-  const featured = await getFeaturedCases({ placement: "category", limit: 6 });
-  const searchRecommendations = await getFeaturedCases({ placement: "search", limit: 3 });
+export default async function CasesPage() {
+  const { cases, featured, searchRecommendations } = await getCasesListing();
   const fallbackPractice = getPracticeAreas()[0];
 
   return (
     <main>
       <CasesListHero />
       <FeaturedCases cases={featured} />
-      <CasesExplorer cases={cases} searchRecommendations={searchRecommendations} initialParams={params} />
+      <CasesExplorer cases={cases} searchRecommendations={searchRecommendations} />
       <PracticeCTA practice={fallbackPractice} />
     </main>
   );

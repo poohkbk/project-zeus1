@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { tagLabels } from "@/lib/case-taxonomy";
 import type { PublicCaseContent } from "@/types/case";
@@ -26,8 +27,13 @@ export function CaseDetailHero({ caseItem }: { caseItem: PublicCaseContent }) {
         </div>
         {caseItem.heroImage ? (
           <figure className="case-detail-visual has-image">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={caseItem.heroImage} alt={`${caseItem.title} 대표 이미지`} />
+            <Image
+              src={caseItem.heroImage}
+              alt={`${caseItem.title} 대표 이미지`}
+              fill
+              priority
+              sizes="(max-width: 900px) 100vw, 42vw"
+            />
           </figure>
         ) : (
           <div className="case-detail-visual" aria-hidden="true">

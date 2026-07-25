@@ -1,14 +1,11 @@
 import type { Metadata, Viewport } from "next";
-import { headers } from "next/headers";
 import Image from "next/image";
 import Link from "next/link";
 import Script from "next/script";
 import type { ReactNode } from "react";
 import "./globals.css";
-import { BlockedAccess } from "@/components/analytics/BlockedAccess";
 import { VisitTracker } from "@/components/analytics/VisitTracker";
 import { siteConfig } from "@/config/site";
-import { isIpBlocked } from "@/lib/admin/ip-blocklist";
 import { siteUrl } from "@/lib/seo/metadata";
 
 const googleTagManagerId = "GTM-N2R7KMKV";
@@ -118,19 +115,7 @@ function Footer() {
   );
 }
 
-function getClientIp(headerList: Headers) {
-  const forwardedFor = headerList.get("x-forwarded-for")?.split(",")[0]?.trim();
-  const realIp = headerList.get("x-real-ip")?.trim();
-  return forwardedFor || realIp || "local-preview";
-}
-
-export default async function RootLayout({ children }: { children: ReactNode }) {
-  const headerList = await headers();
-  const pathname = headerList.get("x-zeu-pathname") ?? "/";
-  const ip = getClientIp(headerList);
-  const isAdminArea = pathname.startsWith("/admin") || pathname.startsWith("/api");
-  const blocked = !isAdminArea && (await isIpBlocked(ip));
-
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="ko">
       <head>
@@ -152,16 +137,10 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
             title="Google Tag Manager"
           />
         </noscript>
-        {blocked ? (
-          <BlockedAccess ip={ip} />
-        ) : (
-          <>
-            <VisitTracker />
-            <Header />
-            {children}
-            <Footer />
-          </>
-        )}
+        <VisitTracker />
+        <Header />
+        {children}
+        <Footer />
       </body>
     </html>
   );

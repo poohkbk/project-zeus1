@@ -1,4 +1,5 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { revalidateTag, unstable_cache } from "next/cache";
 import path from "path";
 import type { AnalyticsBlockedIp } from "@/types/analytics";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -42,7 +43,7 @@ function saveBlockedIpsToFile(blockedIps: AnalyticsBlockedIp[]) {
   writeFileSync(BLOCKED_IPS_FILE, JSON.stringify(blockedIps, null, 2));
 }
 
-export async function loadBlockedIps(): Promise<AnalyticsBlockedIp[]> {
+async function fetchBlockedIps(): Promise<AnalyticsBlockedIp[]> {
   const supabase = createAdminClient();
   if (supabase) {
     const { data, error } = await supabase
@@ -54,6 +55,15 @@ export async function loadBlockedIps(): Promise<AnalyticsBlockedIp[]> {
   }
 
   return loadBlockedIpsFromFile();
+}
+
+const loadCachedBlockedIps = unstable_cache(fetchBlockedIps, ["analytics-blocked-ips"], {
+  revalidate: 60,
+  tags: ["analytics-blocked-ips"],
+});
+
+export async function loadBlockedIps(): Promise<AnalyticsBlockedIp[]> {
+  return loadCachedBlockedIps();
 }
 
 export async function isIpBlocked(ip: string) {
@@ -77,7 +87,10 @@ export async function blockIp(ip: string, reason?: string) {
       { onConflict: "ip" },
     );
 
-    if (!error) return loadBlockedIps();
+    if (!error) {
+      revalidateTag("analytics-blocked-ips");
+      return fetchBlockedIps();
+    }
   }
 
   const blockedIps = loadBlockedIpsFromFile();
@@ -92,6 +105,7 @@ export async function blockIp(ip: string, reason?: string) {
     ...blockedIps,
   ];
   saveBlockedIpsToFile(nextBlockedIps);
+  revalidateTag("analytics-blocked-ips");
   return nextBlockedIps;
 }
 
@@ -100,10 +114,14 @@ export async function unblockIp(ip: string) {
   const supabase = createAdminClient();
   if (supabase) {
     const { error } = await supabase.from("analytics_blocked_ips").delete().eq("ip", normalizedIp);
-    if (!error) return loadBlockedIps();
+    if (!error) {
+      revalidateTag("analytics-blocked-ips");
+      return fetchBlockedIps();
+    }
   }
 
   const nextBlockedIps = loadBlockedIpsFromFile().filter((item) => item.ip !== normalizedIp);
   saveBlockedIpsToFile(nextBlockedIps);
+  revalidateTag("analytics-blocked-ips");
   return nextBlockedIps;
 }

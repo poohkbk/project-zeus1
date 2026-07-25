@@ -43,6 +43,7 @@ export const metadata: Metadata = {
 };
 
 export const revalidate = 60;
+export const dynamic = "force-static";
 
 export default function Home() {
   return (

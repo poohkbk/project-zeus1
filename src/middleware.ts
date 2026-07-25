@@ -13,6 +13,13 @@ export async function middleware(request: NextRequest) {
     },
   });
 
+  // Public pages do not use a Supabase session. Avoid a remote auth request on
+  // every page view and only refresh cookies for the protected admin surface.
+  const isAdminRequest =
+    request.nextUrl.pathname.startsWith("/admin") ||
+    request.nextUrl.pathname.startsWith("/api/admin");
+  if (!isAdminRequest) return applySecurityHeaders(response);
+
   const supabaseUrl = getSupabaseUrl();
   const supabaseKey = getSupabasePublishableKey();
   if (!supabaseUrl || !supabaseKey) return applySecurityHeaders(response);
@@ -40,5 +47,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|images/).*)"],
+  matcher: ["/admin/:path*", "/api/:path*"],
 };

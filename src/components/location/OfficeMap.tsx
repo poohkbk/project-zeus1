@@ -46,9 +46,11 @@ function getStatusDescription(status: MapStatus) {
 }
 
 export function OfficeMap({ compact = false }: OfficeMapProps) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<HTMLDivElement | null>(null);
   const initializedRef = useRef(false);
   const [status, setStatus] = useState<MapStatus>("loading");
+  const [shouldLoadMap, setShouldLoadMap] = useState(false);
   const [scriptReady, setScriptReady] = useState(false);
   const clientId = process.env.NEXT_PUBLIC_NAVER_MAPS_CLIENT_ID || defaultNaverMapsClientId;
   const latitude = siteConfig.location.latitude;
@@ -58,6 +60,24 @@ export function OfficeMap({ compact = false }: OfficeMapProps) {
     () => (clientId ? `https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=${encodeURIComponent(clientId)}` : ""),
     [clientId],
   );
+
+  useEffect(() => {
+    const element = containerRef.current;
+    if (!element) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setShouldLoadMap(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "300px" },
+    );
+
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     window.navermap_authFailure = () => {
@@ -77,6 +97,7 @@ export function OfficeMap({ compact = false }: OfficeMapProps) {
       setStatus("missing-config");
       return;
     }
+    if (!shouldLoadMap) return;
 
     if (scriptReady && !window.naver?.maps) {
       const timer = window.setTimeout(() => {
@@ -132,11 +153,15 @@ export function OfficeMap({ compact = false }: OfficeMapProps) {
     } catch {
       setStatus("error");
     }
-  }, [canLoadMap, compact, latitude, longitude, scriptReady]);
+  }, [canLoadMap, compact, latitude, longitude, scriptReady, shouldLoadMap]);
 
   return (
-    <div className={compact ? "office-map compact" : "office-map"} aria-label="법률사무소 제우 위치 지도">
-      {canLoadMap ? (
+    <div
+      ref={containerRef}
+      className={compact ? "office-map compact" : "office-map"}
+      aria-label="법률사무소 제우 위치 지도"
+    >
+      {canLoadMap && shouldLoadMap ? (
         <Script
           id="naver-maps-sdk"
           src={scriptSrc}

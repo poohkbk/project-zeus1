@@ -1,29 +1,24 @@
 import { tagLabels } from "@/lib/case-taxonomy";
-import type { CaseCategory, CaseFilterState, CaseSortOption, PublicCaseContent } from "@/types/case";
+import type { CaseCardContent, CaseCategory, CaseFilterState, CaseSortOption } from "@/types/case";
 
 export function normalizeSearchText(value: string) {
   return value.trim().replace(/\s+/g, " ").toLowerCase();
 }
 
-export function createCaseSearchIndex(caseItem: PublicCaseContent) {
+export function createCaseSearchIndex(caseItem: CaseCardContent) {
   return normalizeSearchText(
     [
       caseItem.title,
       caseItem.excerpt,
       caseItem.categoryLabel,
       caseItem.subcategory,
-      caseItem.summary,
-      caseItem.resultTitle,
-      caseItem.resultDescription,
-      caseItem.reconstructedFacts.join(" "),
-      caseItem.issues.map((issue) => `${issue.title} ${issue.description}`).join(" "),
-      caseItem.response.map((step) => `${step.title} ${step.description}`).join(" "),
+      caseItem.searchText ?? "",
       caseItem.tags.map((tag) => tagLabels[tag] ?? "").join(" "),
     ].join(" "),
   );
 }
 
-export function getCaseSearchScore(caseItem: PublicCaseContent, query: string) {
+export function getCaseSearchScore(caseItem: CaseCardContent, query: string) {
   const normalized = normalizeSearchText(query);
   if (!normalized) return 0;
   const words = normalized.split(" ");
@@ -37,15 +32,15 @@ export function getCaseSearchScore(caseItem: PublicCaseContent, query: string) {
   if (normalizeSearchText(caseItem.subcategory).includes(normalized)) score += 15;
   if (caseItem.tags.some((tag) => normalizeSearchText(tagLabels[tag] ?? "").includes(normalized))) score += 12;
   if (normalizeSearchText(caseItem.excerpt).includes(normalized)) score += 8;
-  if (normalizeSearchText(caseItem.summary).includes(normalized)) score += 5;
+  if (normalizeSearchText(caseItem.searchText ?? "").includes(normalized)) score += 5;
   return score;
 }
 
-function compareLatest(a: PublicCaseContent, b: PublicCaseContent) {
+function compareLatest(a: CaseCardContent, b: CaseCardContent) {
   return b.visibility.publishedAt.localeCompare(a.visibility.publishedAt);
 }
 
-function compareFeatured(a: PublicCaseContent, b: PublicCaseContent) {
+function compareFeatured(a: CaseCardContent, b: CaseCardContent) {
   const aRecommended = Number(a.visibility.showOnSearch || a.visibility.isFeatured);
   const bRecommended = Number(b.visibility.showOnSearch || b.visibility.isFeatured);
   if (bRecommended !== aRecommended) return bRecommended - aRecommended;
@@ -56,7 +51,7 @@ function compareFeatured(a: PublicCaseContent, b: PublicCaseContent) {
 }
 
 export function filterAndSortCases(
-  cases: PublicCaseContent[],
+  cases: CaseCardContent[],
   filter: CaseFilterState,
   tagMatchMode: "or" | "and" = "or",
 ) {

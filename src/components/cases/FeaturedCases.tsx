@@ -1,8 +1,8 @@
 import { Reveal } from "@/components/animation/Reveal";
 import { CaseCard } from "@/components/cases/CaseCard";
-import type { PublicCaseContent } from "@/types/case";
+import type { CaseCardContent } from "@/types/case";
 
-export function FeaturedCases({ cases }: { cases: PublicCaseContent[] }) {
+export function FeaturedCases({ cases }: { cases: CaseCardContent[] }) {
   if (cases.length === 0) return null;
 
   return (

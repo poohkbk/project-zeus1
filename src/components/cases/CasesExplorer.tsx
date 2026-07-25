@@ -5,17 +5,11 @@ import { CaseCard } from "@/components/cases/CaseCard";
 import { EmptyCasesState } from "@/components/cases/EmptyCasesState";
 import { categoryLabels, tagLabels, tagsByCategory } from "@/lib/case-taxonomy";
 import { filterAndSortCases, isCaseCategory } from "@/lib/case-filter";
-import type { CaseCategory, CaseFilterState, CaseSortOption, PublicCaseContent } from "@/types/case";
+import type { CaseCardContent, CaseCategory, CaseFilterState, CaseSortOption } from "@/types/case";
 
 type CasesExplorerProps = {
-  cases: PublicCaseContent[];
-  searchRecommendations: PublicCaseContent[];
-  initialParams: {
-    category?: string;
-    tags?: string;
-    q?: string;
-    sort?: string;
-  };
+  cases: CaseCardContent[];
+  searchRecommendations: CaseCardContent[];
 };
 
 const initialVisibleCount = 12;
@@ -29,26 +23,46 @@ function parseCategory(value: string | undefined): CaseCategory | "all" {
   return value && isCaseCategory(value) ? value : "all";
 }
 
-export function CasesExplorer({ cases, searchRecommendations, initialParams }: CasesExplorerProps) {
+const defaultFilter: CaseFilterState = {
+  category: "all",
+  tags: [],
+  q: "",
+  sort: "latest",
+};
+
+export function CasesExplorer({ cases, searchRecommendations }: CasesExplorerProps) {
   const [filter, setFilter] = useState<CaseFilterState>({
-    category: parseCategory(initialParams.category),
-    tags: initialParams.tags ? initialParams.tags.split(",").filter(Boolean) : [],
-    q: initialParams.q ?? "",
-    sort: parseSort(initialParams.sort),
+    ...defaultFilter,
   });
   const [visibleCount, setVisibleCount] = useState(initialVisibleCount);
-  const [draftQuery, setDraftQuery] = useState(filter.q);
+  const [draftQuery, setDraftQuery] = useState("");
+  const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const nextFilter: CaseFilterState = {
+      category: parseCategory(params.get("category") ?? undefined),
+      tags: params.get("tags")?.split(",").filter(Boolean) ?? [],
+      q: params.get("q") ?? "",
+      sort: parseSort(params.get("sort") ?? undefined),
+    };
+    setFilter(nextFilter);
+    setDraftQuery(nextFilter.q);
+    setInitialized(true);
+  }, []);
+
+  useEffect(() => {
+    if (!initialized) return;
     const timer = window.setTimeout(() => {
       setFilter((current) => ({ ...current, q: draftQuery }));
       setVisibleCount(initialVisibleCount);
     }, 300);
 
     return () => window.clearTimeout(timer);
-  }, [draftQuery]);
+  }, [draftQuery, initialized]);
 
   useEffect(() => {
+    if (!initialized) return;
     const params = new URLSearchParams();
     if (filter.category !== "all") params.set("category", filter.category);
     if (filter.tags.length > 0) params.set("tags", filter.tags.join(","));
@@ -56,7 +70,7 @@ export function CasesExplorer({ cases, searchRecommendations, initialParams }: C
     if (filter.sort !== "latest") params.set("sort", filter.sort);
     const next = params.toString() ? `/cases?${params}` : "/cases";
     window.history.replaceState(null, "", next);
-  }, [filter]);
+  }, [filter, initialized]);
 
   const availableTags = tagsByCategory[filter.category];
   const results = useMemo(() => filterAndSortCases(cases, filter), [cases, filter]);
@@ -79,7 +93,7 @@ export function CasesExplorer({ cases, searchRecommendations, initialParams }: C
 
   const reset = () => {
     setDraftQuery("");
-    setFilter({ category: "all", tags: [], q: "", sort: "latest" });
+    setFilter(defaultFilter);
     setVisibleCount(initialVisibleCount);
   };
 

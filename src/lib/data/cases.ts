@@ -1,4 +1,5 @@
 import { unstable_cache } from "next/cache";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { caseContents, toPublicCaseContent } from "@/data/cases";
 import { cmsCategoryLabels } from "@/data/cms-seed";
 import {
@@ -8,12 +9,102 @@ import {
   type GetFeaturedCasesOptions,
 } from "@/lib/case-selectors";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getSupabasePublishableKey, getSupabaseUrl } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 import type { CaseRow } from "@/types/database";
-import type { CaseContent, PublicCaseContent } from "@/types/case";
+import type { CaseCardContent, CaseContent, CasePlacement, PublicCaseContent } from "@/types/case";
 import type { CmsContentItem } from "@/types/cms";
 
 const fallbackCases = caseContents.filter((item) => isPublishedCase(item)).map(toPublicCaseContent);
+
+const caseListColumns = [
+  "id",
+  "title",
+  "page_address",
+  "slug",
+  "category",
+  "summary",
+  "status",
+  "tags",
+  "hero_image_url",
+  "is_featured",
+  "show_on_home",
+  "show_on_category",
+  "show_on_practice",
+  "show_on_search",
+  "featured_order",
+  "featured_start_at",
+  "featured_end_at",
+  "published_at",
+  "created_at",
+  "updated_at",
+].join(",");
+
+type CaseListRow = Omit<CaseRow, "body" | "content" | "hero_image_alt">;
+
+function createPublicReadClient() {
+  const url = getSupabaseUrl();
+  const key = getSupabasePublishableKey();
+  if (!url || !key) return undefined;
+  return createSupabaseClient(url, key, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+}
+
+function toCaseCardContent(caseItem: PublicCaseContent): CaseCardContent {
+  return {
+    id: caseItem.id,
+    slug: caseItem.slug,
+    href: caseItem.href,
+    category: caseItem.category,
+    categoryLabel: caseItem.categoryLabel,
+    subcategory: caseItem.subcategory,
+    title: caseItem.title,
+    excerpt: caseItem.excerpt,
+    heroImage: caseItem.heroImage,
+    accent: caseItem.accent,
+    tags: caseItem.tags,
+    visibility: caseItem.visibility,
+    searchText: caseItem.summary,
+  };
+}
+
+function toCaseCardFromRow(row: CaseListRow): CaseCardContent {
+  const slug = getSlug(row as CaseRow);
+  const category = toLocalCategory(row.category);
+  const categoryLabel =
+    cmsCategoryLabels[row.category as keyof typeof cmsCategoryLabels] ?? row.category;
+  const publishedAt = row.published_at ?? row.created_at;
+
+  return {
+    id: row.id,
+    slug,
+    href: `/cases/${slug}`,
+    category,
+    categoryLabel,
+    subcategory: categoryLabel,
+    title: row.title,
+    excerpt: row.summary ?? "",
+    heroImage: row.hero_image_url ?? undefined,
+    accent: "navy",
+    tags: row.tags ?? [],
+    visibility: {
+      isFeatured: row.is_featured,
+      showOnHome: row.show_on_home,
+      showOnCategory: row.show_on_category,
+      showOnPractice: row.show_on_practice,
+      showOnSearch: row.show_on_search,
+      featuredOrder: row.featured_order ?? undefined,
+      featuredStartAt: row.featured_start_at ?? undefined,
+      featuredEndAt: row.featured_end_at ?? undefined,
+      published: row.status === "published",
+      publishedAt,
+      updatedAt: row.updated_at,
+      createdAt: row.created_at,
+    },
+    searchText: row.summary ?? "",
+  };
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -179,6 +270,27 @@ const fetchPublishedCaseRowsFromAdmin = unstable_cache(
   { revalidate: 60, tags: ["published-cases"] },
 );
 
+const fetchPublishedCaseCards = unstable_cache(
+  async (): Promise<CaseCardContent[]> => {
+    const supabase = createAdminClient() ?? createPublicReadClient();
+    if (!supabase) return fallbackCases.map(toCaseCardContent);
+
+    const now = new Date().toISOString();
+    const { data, error } = await supabase
+      .from("cases")
+      .select(caseListColumns)
+      .eq("status", "published")
+      .or(`published_at.is.null,published_at.lte.${now}`)
+      .order("published_at", { ascending: false, nullsFirst: false })
+      .order("created_at", { ascending: false });
+
+    if (error || !data || data.length === 0) return fallbackCases.map(toCaseCardContent);
+    return (data as unknown as CaseListRow[]).map(toCaseCardFromRow);
+  },
+  ["published-case-cards"],
+  { revalidate: 60, tags: ["published-cases"] },
+);
+
 async function fetchPublishedCaseRowsFromPublicClient() {
   const supabase = await createClient();
   if (!supabase) return undefined;
@@ -246,6 +358,39 @@ async function fetchPublishedCaseRowBySlug(slug: string) {
 export async function getPublishedCases(): Promise<PublicCaseContent[]> {
   const rows = await fetchPublishedCaseRows();
   return rows?.map(toPublicCase) ?? fallbackCases;
+}
+
+function getFeaturedCaseCards(
+  cases: CaseCardContent[],
+  placement: CasePlacement,
+  limit: number,
+  now = new Date(),
+) {
+  const featured = cases
+    .filter((caseItem) => isWithinFeaturedPeriod(caseItem as CaseContent, now))
+    .filter((caseItem) => isVisibleAtPlacement(caseItem as PublicCaseContent, placement))
+    .sort((a, b) => compareFeaturedCases(a as CaseContent, b as CaseContent))
+    .slice(0, limit);
+
+  if (featured.length >= limit || placement === "practice") return featured;
+
+  const selectedIds = new Set(featured.map((caseItem) => caseItem.id));
+  const latest = cases
+    .filter((caseItem) => !selectedIds.has(caseItem.id))
+    .filter((caseItem) => caseItem.visibility.showOnSearch !== false)
+    .sort((a, b) => b.visibility.publishedAt.localeCompare(a.visibility.publishedAt))
+    .slice(0, limit - featured.length);
+
+  return [...featured, ...latest];
+}
+
+export async function getCasesListing() {
+  const cases = await fetchPublishedCaseCards();
+  return {
+    cases,
+    featured: getFeaturedCaseCards(cases, "category", 6),
+    searchRecommendations: getFeaturedCaseCards(cases, "search", 3),
+  };
 }
 
 export async function getCaseBySlug(slug: string): Promise<PublicCaseContent | undefined> {

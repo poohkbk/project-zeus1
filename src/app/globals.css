@@ -3126,6 +3126,7 @@
 }
 
 .case-card-media {
+  position: relative;
   display: grid;
   place-items: center;
   aspect-ratio: 3 / 2;
@@ -3146,6 +3147,96 @@
   height: 100%;
   object-fit: cover;
   display: block;
+}
+
+.case-detail-visual.has-image {
+  position: relative;
+}
+
+.cases-loading-hero {
+  padding: 100px 0 72px;
+  background: linear-gradient(135deg, #00152d 0%, #062b55 100%);
+}
+
+.cases-loading .loading-line,
+.case-loading-media {
+  display: block;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #e7edf1 25%, #f6f8fa 50%, #e7edf1 75%);
+  background-size: 200% 100%;
+  animation: loading-shimmer 1.4s ease-in-out infinite;
+}
+
+.cases-loading-hero .loading-line {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.12) 25%,
+    rgba(255, 255, 255, 0.24) 50%,
+    rgba(255, 255, 255, 0.12) 75%
+  );
+  background-size: 200% 100%;
+}
+
+.loading-line {
+  width: 100%;
+  height: 14px;
+  margin-bottom: 14px;
+}
+
+.loading-line.short {
+  width: 110px;
+}
+
+.loading-line.title {
+  width: min(340px, 75%);
+  height: 48px;
+}
+
+.loading-line.heading {
+  width: 78%;
+  height: 24px;
+}
+
+.loading-line.copy {
+  width: min(560px, 92%);
+}
+
+.loading-line.copy.compact {
+  width: 68%;
+}
+
+.cases-loading-controls {
+  display: grid;
+  grid-template-columns: 1fr 180px;
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.loading-line.input,
+.loading-line.select {
+  height: 48px;
+}
+
+.case-loading-card {
+  overflow: hidden;
+  border: 1px solid rgba(0, 27, 54, 0.1);
+  border-radius: 18px;
+  background: var(--white);
+}
+
+.case-loading-media {
+  aspect-ratio: 3 / 2;
+  border-radius: 0;
+}
+
+.case-loading-card > div {
+  padding: 22px;
+}
+
+@keyframes loading-shimmer {
+  to {
+    background-position: -200% 0;
+  }
 }
 
 .case-card-body {
@@ -5689,16 +5780,18 @@ svg {
 }
 
 .reveal {
-  opacity: 0;
-  transform: translateY(22px);
-  transition:
-    opacity 640ms ease var(--reveal-delay, 0ms),
-    transform 640ms ease var(--reveal-delay, 0ms);
+  animation: reveal-in 640ms ease var(--reveal-delay, 0ms) both;
 }
 
-.reveal.is-visible {
-  opacity: 1;
-  transform: translateY(0);
+@keyframes reveal-in {
+  from {
+    opacity: 0;
+    transform: translateY(22px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 :focus-visible {

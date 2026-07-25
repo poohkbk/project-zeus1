@@ -7,7 +7,7 @@ import type {
   AnalyticsVisit,
 } from "@/types/analytics";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { loadBlockedIps } from "./ip-blocklist";
+import { isIpBlocked, loadBlockedIps } from "./ip-blocklist";
 
 const ANALYTICS_DIR = path.join(process.cwd(), "data");
 const ANALYTICS_FILE = path.join(ANALYTICS_DIR, "analytics-visits.json");
@@ -126,7 +126,7 @@ type AnalyticsVisitRow = {
 export type AnalyticsRecordResult = {
   visit?: AnalyticsVisit;
   storage: "supabase" | "local" | "none";
-  reason?: "missing_supabase_env" | "supabase_insert_failed" | "local_fallback_failed";
+  reason?: "blocked_ip" | "missing_supabase_env" | "supabase_insert_failed" | "local_fallback_failed";
 };
 
 function toVisit(row: AnalyticsVisitRow): AnalyticsVisit {
@@ -154,6 +154,13 @@ async function readVisitsFromSupabase() {
 }
 
 export async function recordAnalyticsVisit(visit: Omit<AnalyticsVisit, "id" | "visitedAt">) {
+  if (await isIpBlocked(visit.ip)) {
+    return {
+      storage: "none",
+      reason: "blocked_ip",
+    } satisfies AnalyticsRecordResult;
+  }
+
   const supabase = createAdminClient();
   if (supabase) {
     const { data, error } = await supabase

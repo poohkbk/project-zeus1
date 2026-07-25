@@ -70,6 +70,24 @@ export type PublicCaseContent = Omit<
   | "internalNotes"
 >;
 
+export type CaseCardContent = Pick<
+  PublicCaseContent,
+  | "id"
+  | "slug"
+  | "href"
+  | "category"
+  | "categoryLabel"
+  | "subcategory"
+  | "title"
+  | "excerpt"
+  | "heroImage"
+  | "accent"
+  | "tags"
+  | "visibility"
+> & {
+  searchText?: string;
+};
+
 export interface CaseFilterState {
   category: CaseCategory | "all";
   tags: string[];
