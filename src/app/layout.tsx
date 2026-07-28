@@ -22,11 +22,11 @@ export const metadata: Metadata = {
   },
   verification: {
     google: process.env.GOOGLE_SITE_VERIFICATION || undefined,
-    other: process.env.NAVER_SITE_VERIFICATION
-      ? {
-          "naver-site-verification": process.env.NAVER_SITE_VERIFICATION,
-        }
-      : undefined,
+    other: {
+      "naver-site-verification":
+        process.env.NAVER_SITE_VERIFICATION ||
+        "eec14d15104936a0774f1b5fef42af28400ad609",
+    },
   },
   icons: {
     icon: [
