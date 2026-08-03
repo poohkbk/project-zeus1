@@ -437,6 +437,10 @@ export async function getFeaturedCases({
   now = new Date(),
 }: GetFeaturedCasesOptions): Promise<PublicCaseContent[]> {
   const cases = await getPublishedCases();
+  if (placement === "home") {
+    return getHomeFeaturedCases(cases, limit, now);
+  }
+
   const featured = cases
     .filter((caseItem) => isWithinFeaturedPeriod(caseItem as CaseContent, now))
     .filter((caseItem) => isVisibleAtPlacement(caseItem, placement))
@@ -453,4 +457,39 @@ export async function getFeaturedCases({
     .slice(0, limit - featured.length);
 
   return [...featured, ...latest];
+}
+
+const homeFeaturedLimits: ReadonlyArray<{
+  category: PublicCaseContent["category"];
+  limit: number;
+}> = [
+  { category: "civil", limit: 2 },
+  { category: "criminal", limit: 1 },
+  { category: "divorce", limit: 2 },
+  { category: "inheritance", limit: 1 },
+];
+
+function getHomeFeaturedCases(cases: PublicCaseContent[], limit: number, now: Date) {
+  const selected: PublicCaseContent[] = [];
+
+  for (const group of homeFeaturedLimits) {
+    if (selected.length >= limit) break;
+    const groupLimit = Math.min(group.limit, limit - selected.length);
+    const categoryCases = cases.filter((caseItem) => caseItem.category === group.category);
+    const featured = categoryCases
+      .filter((caseItem) => isWithinFeaturedPeriod(caseItem as CaseContent, now))
+      .filter((caseItem) => isVisibleAtPlacement(caseItem, "home"))
+      .sort((a, b) => compareFeaturedCases(a as CaseContent, b as CaseContent))
+      .slice(0, groupLimit);
+    const selectedIds = new Set(featured.map((caseItem) => caseItem.id));
+    const latest = categoryCases
+      .filter((caseItem) => !selectedIds.has(caseItem.id))
+      .filter((caseItem) => caseItem.visibility.showOnSearch !== false)
+      .sort((a, b) => b.visibility.publishedAt.localeCompare(a.visibility.publishedAt))
+      .slice(0, groupLimit - featured.length);
+
+    selected.push(...featured, ...latest);
+  }
+
+  return selected;
 }

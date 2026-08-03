@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { cmsCategoryLabels, cmsTypeLabels } from "@/data/cms-seed";
 import { loadCmsItems, loadCmsItemsFromServer, saveCmsItems, saveCmsItemToServer } from "@/lib/admin/cms-store";
-import type { CmsContentItem, CmsContentType } from "@/types/cms";
+import type { CmsCategory, CmsContentItem, CmsContentType } from "@/types/cms";
 import { statusLabel, typePath } from "./AdminDashboard";
 
 export function ContentListPage({ type }: { type: CmsContentType }) {
@@ -215,11 +215,18 @@ function FeaturedManager({
 }) {
   const featured = items
     .filter((item) => item.type === "case" && item.visibility.isFeatured && item.status !== "trash")
-    .sort((a, b) => (a.visibility.featuredOrder ?? 99) - (b.visibility.featuredOrder ?? 99))
-    .slice(0, 6);
+    .sort((a, b) => (a.visibility.featuredOrder ?? 99) - (b.visibility.featuredOrder ?? 99));
+
+  const featuredGroups = HOME_FEATURED_GROUPS.map((group) => ({
+    ...group,
+    items: featured.filter((item) => item.category === group.category).slice(0, group.limit),
+  }));
 
   function move(item: CmsContentItem, direction: -1 | 1) {
-    const ordered = featured.slice();
+    const group = HOME_FEATURED_GROUPS.find((entry) => entry.category === item.category);
+    const ordered = featured
+      .filter((entry) => entry.category === item.category)
+      .slice(0, group?.limit ?? 0);
     const index = ordered.findIndex((entry) => entry.id === item.id);
     const nextIndex = index + direction;
     if (nextIndex < 0 || nextIndex >= ordered.length) return;
@@ -261,21 +268,51 @@ function FeaturedManager({
     <section className="admin-panel admin-featured-manager">
       <div className="admin-panel-title">
         <h2>메인 대표 승소사례</h2>
-        <p>현재 노출 중인 사례를 1~6번 순서로 관리합니다.</p>
+        <p>민사 2건, 형사 1건, 이혼·가사 2건, 상속 1건을 분야별로 관리합니다.</p>
       </div>
-      <div className="admin-featured-row">
-        {featured.map((item) => (
-          <article key={item.id}>
-            <span>{item.visibility.featuredOrder ?? "-"}</span>
-            <strong>{item.title}</strong>
-            <div>
-              <button type="button" onClick={() => move(item, -1)}>위로</button>
-              <button type="button" onClick={() => move(item, 1)}>아래로</button>
-              <button type="button" onClick={() => unpin(item)}>고정 해제</button>
+      <div className="admin-featured-groups">
+        {featuredGroups.map((group) => (
+          <section className="admin-featured-group" key={group.category}>
+            <header>
+              <h3>{group.label}</h3>
+              <span>{group.items.length}/{group.limit}건</span>
+            </header>
+            <div className="admin-featured-row">
+              {Array.from({ length: group.limit }, (_, index) => {
+                const item = group.items[index];
+                return item ? (
+                  <article key={item.id}>
+                    <span>{index + 1}</span>
+                    <strong>{item.title}</strong>
+                    <div>
+                      <button type="button" onClick={() => move(item, -1)}>위로</button>
+                      <button type="button" onClick={() => move(item, 1)}>아래로</button>
+                      <button type="button" onClick={() => unpin(item)}>고정 해제</button>
+                    </div>
+                  </article>
+                ) : (
+                  <article className="admin-featured-empty" key={`${group.category}-${index}`}>
+                    <span>{index + 1}</span>
+                    <strong>노출할 {group.label} 사례가 없습니다.</strong>
+                    <small>사례 수정 화면에서 대표 노출을 설정해 주세요.</small>
+                  </article>
+                );
+              })}
             </div>
-          </article>
+          </section>
         ))}
       </div>
     </section>
   );
 }
+
+const HOME_FEATURED_GROUPS: ReadonlyArray<{
+  category: CmsCategory;
+  label: string;
+  limit: number;
+}> = [
+  { category: "civil", label: "민사", limit: 2 },
+  { category: "criminal", label: "형사", limit: 1 },
+  { category: "divorce", label: "이혼·가사", limit: 2 },
+  { category: "inheritance", label: "상속", limit: 1 },
+];

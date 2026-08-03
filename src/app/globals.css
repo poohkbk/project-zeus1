@@ -1305,8 +1305,40 @@
 
 .admin-featured-row {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
+}
+
+.admin-featured-groups {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.admin-featured-group {
+  min-width: 0;
+}
+
+.admin-featured-group > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.admin-featured-group > header h3 {
+  margin: 0;
+  color: #0f2d52;
+}
+
+.admin-featured-group > header span {
+  border-radius: 999px;
+  background: #eef6f8;
+  color: #0f7c82;
+  padding: 5px 9px;
+  font-size: 0.82rem;
+  font-weight: 900;
 }
 
 .admin-featured-row article,
@@ -1407,6 +1439,21 @@
   display: block;
   margin: 12px 0;
   color: #0f2d52;
+}
+
+.admin-featured-row .admin-featured-empty {
+  border-style: dashed;
+  background: #ffffff;
+}
+
+.admin-featured-empty strong {
+  margin-bottom: 6px;
+  color: #526273;
+}
+
+.admin-featured-empty small {
+  color: #7a8795;
+  line-height: 1.5;
 }
 
 .admin-editor-layout {
@@ -2213,6 +2260,7 @@
   .admin-upload-guide,
   .admin-taxonomy-add,
   .admin-consultation-print dl,
+  .admin-featured-groups,
   .admin-featured-row,
   .admin-outline-pair {
     grid-template-columns: 1fr;
