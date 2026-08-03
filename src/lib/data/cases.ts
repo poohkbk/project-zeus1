@@ -394,11 +394,29 @@ function getFeaturedCaseCards(
   return [...featured, ...latest];
 }
 
+function getBalancedFeaturedCaseCards(
+  cases: CaseCardContent[],
+  placement: CasePlacement,
+  limit: number,
+  now = new Date(),
+) {
+  const selected: CaseCardContent[] = [];
+
+  for (const group of homeFeaturedLimits) {
+    if (selected.length >= limit) break;
+    const groupLimit = Math.min(group.limit, limit - selected.length);
+    const categoryCases = cases.filter((caseItem) => caseItem.category === group.category);
+    selected.push(...getFeaturedCaseCards(categoryCases, placement, groupLimit, now));
+  }
+
+  return selected;
+}
+
 export async function getCasesListing() {
   const cases = await fetchPublishedCaseCards();
   return {
     cases,
-    featured: getFeaturedCaseCards(cases, "category", 6),
+    featured: getBalancedFeaturedCaseCards(cases, "category", 6),
     searchRecommendations: getFeaturedCaseCards(cases, "search", 3),
   };
 }

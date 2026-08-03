@@ -272,7 +272,7 @@ function FeaturedManager({
       </div>
       <div className="admin-featured-groups">
         {featuredGroups.map((group) => (
-          <section className="admin-featured-group" key={group.category}>
+          <section className="admin-featured-group" data-limit={group.limit} key={group.category}>
             <header>
               <h3>{group.label}</h3>
               <span>{group.items.length}/{group.limit}건</span>
