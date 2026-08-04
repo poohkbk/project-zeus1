@@ -15,7 +15,22 @@ import type { CaseRow } from "@/types/database";
 import type { CaseCardContent, CaseContent, CasePlacement, PublicCaseContent } from "@/types/case";
 import type { CmsContentItem } from "@/types/cms";
 
-const fallbackCases = caseContents.filter((item) => isPublishedCase(item)).map(toPublicCaseContent);
+const fallbackCaseImages: Record<CaseContent["category"], string> = {
+  civil: "/images/practice/civil.jpg",
+  criminal: "/images/practice/criminal.jpg",
+  divorce: "/images/practice/divorce.jpg",
+  inheritance: "/images/practice/inheritance.jpg",
+};
+
+const fallbackCases = caseContents
+  .filter((item) => isPublishedCase(item))
+  .map((item) => {
+    const caseItem = toPublicCaseContent(item);
+    return {
+      ...caseItem,
+      heroImage: caseItem.heroImage || fallbackCaseImages[caseItem.category],
+    };
+  });
 
 const caseListColumns = [
   "id",
