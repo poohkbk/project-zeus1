@@ -98,7 +98,7 @@ export function AdminDashboard() {
                 <div>
                   <span>{cmsTypeLabels[item.type]}</span>
                   <h3>{item.title || "제목 없는 글"}</h3>
-                  <p>{item.summary || "목록에 보일 짧은 설명을 입력해 주세요."}</p>
+                  <p>{item.type === "testimonial" ? item.body || "후기 내용을 입력해 주세요." : item.summary || "목록에 보일 짧은 설명을 입력해 주세요."}</p>
                 </div>
                 <div className="admin-card-actions">
                   <strong data-status={item.status}>{statusLabel(item.status)}</strong>

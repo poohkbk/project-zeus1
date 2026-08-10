@@ -32,7 +32,7 @@ export function ContentListPage({ type }: { type: CmsContentType }) {
     () =>
       items.filter((item) => {
         const matchesType = item.type === type;
-        const matchesQuery = `${item.title} ${item.summary} ${item.tags.join(" ")}`
+        const matchesQuery = `${item.title} ${item.summary} ${item.body} ${item.tags.join(" ")}`
           .toLowerCase()
           .includes(query.toLowerCase());
         const matchesStatus = status === "all" || item.status === status;
@@ -190,9 +190,11 @@ function displayTitle(item: CmsContentItem) {
 }
 
 function displaySummary(item: CmsContentItem) {
-  const value = item.type === "faq" ? item.body : item.summary;
+  const value = item.type === "faq" || item.type === "testimonial" ? item.body : item.summary;
   if (value.trim()) return value;
-  return item.type === "faq" ? "답변이 비어 있습니다. 수정 화면에서 답변을 입력해 주세요." : "목록 설명이 비어 있습니다.";
+  if (item.type === "faq") return "답변이 비어 있습니다. 수정 화면에서 답변을 입력해 주세요.";
+  if (item.type === "testimonial") return "후기 내용이 비어 있습니다. 수정 화면에서 내용을 입력해 주세요.";
+  return "목록 설명이 비어 있습니다.";
 }
 
 function publishValidationMessage(item: CmsContentItem) {

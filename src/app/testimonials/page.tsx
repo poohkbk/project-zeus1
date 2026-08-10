@@ -41,7 +41,6 @@ export default async function TestimonialsPage() {
               <div className="testimonial-copy">
                 <span>{cmsCategoryLabels[item.category as keyof typeof cmsCategoryLabels] ?? "법률상담"}</span>
                 <h2>{item.title}</h2>
-                {item.summary ? <strong>{item.summary}</strong> : null}
                 <p>{item.body}</p>
               </div>
             </article>

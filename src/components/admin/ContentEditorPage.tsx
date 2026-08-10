@@ -572,15 +572,17 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
                       </select>
                     </label>
                   </div>
-                  <label>
-                    {type === "testimonial" ? "후기 한 줄 요약" : "목록에 보일 짧은 설명"}
-                    <textarea
-                      value={item.summary}
-                      onChange={(event) => update("summary", event.target.value)}
-                      placeholder={type === "testimonial" ? "후기에서 가장 인상적인 내용을 한 문장으로 적어주세요." : "제목 아래에 표시될 짧은 설명입니다."}
-                    />
-                    <small className="admin-field-guide">권장 80~140자. 목록 카드와 검색 미리보기에 쓰입니다.</small>
-                  </label>
+                  {type !== "testimonial" ? (
+                    <label>
+                      목록에 보일 짧은 설명
+                      <textarea
+                        value={item.summary}
+                        onChange={(event) => update("summary", event.target.value)}
+                        placeholder="제목 아래에 표시될 짧은 설명입니다."
+                      />
+                      <small className="admin-field-guide">권장 80~140자. 목록 카드와 검색 미리보기에 쓰입니다.</small>
+                    </label>
+                  ) : null}
 
                   <div className="admin-image-uploader">
                     <div>
@@ -922,7 +924,7 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
               </div>
               <div className="admin-seo-box">
                 <h3>검색 노출 설정</h3>
-                <p>비워두면 제목과 목록 설명을 기준으로 자동 생성됩니다.</p>
+                <p>{type === "testimonial" ? "비워두면 제목과 후기 내용을 기준으로 자동 생성됩니다." : "비워두면 제목과 목록 설명을 기준으로 자동 생성됩니다."}</p>
                 <div className="admin-form-grid">
                   <label>
                     검색결과 제목
@@ -958,7 +960,7 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
                   <textarea
                     value={item.seo?.description ?? ""}
                     onChange={(event) => updateSeo("description", event.target.value)}
-                    placeholder={item.summary || "검색결과에 보일 1~2문장 설명"}
+                    placeholder={(type === "testimonial" ? item.body : item.summary) || "검색결과에 보일 1~2문장 설명"}
                   />
                   <small className="admin-field-guide">권장 70~110자. 검색결과에서 클릭할 이유가 보이게 적어주세요.</small>
                 </label>
@@ -1022,6 +1024,17 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
                     <span>답변</span>
                     <strong>{item.body || "비어 있음"}</strong>
                   </article>
+                ) : type === "testimonial" ? (
+                  <>
+                    <article>
+                      <span>후기 내용</span>
+                      <strong>{item.body || "비어 있음"}</strong>
+                    </article>
+                    <article>
+                      <span>후기 이미지</span>
+                      <strong>{item.heroImage ? "추가됨" : "없음 (선택사항)"}</strong>
+                    </article>
+                  </>
                 ) : (
                   <>
                     <article>
@@ -1090,7 +1103,7 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
               ) : null}
               <span>{cmsCategoryLabels[item.category]}</span>
               <h3>{item.title || "제목이 여기에 표시됩니다"}</h3>
-              <p>{type === "faq" ? item.body || "답변이 여기에 표시됩니다." : item.summary || "목록 설명이 여기에 표시됩니다."}</p>
+              <p>{type === "faq" ? item.body || "답변이 여기에 표시됩니다." : type === "testimonial" ? item.body || "후기 내용이 여기에 표시됩니다." : item.summary || "목록 설명이 여기에 표시됩니다."}</p>
               <small>{item.tags.join(" · ") || "태그 없음"}</small>
             </article>
           </div>

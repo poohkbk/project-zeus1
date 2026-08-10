@@ -5,7 +5,6 @@ export type PublicTestimonial = {
   id: string;
   title: string;
   category: string;
-  summary: string;
   body: string;
   imageUrl?: string;
   imageAlt?: string;
@@ -42,7 +41,6 @@ export const getPublishedTestimonials = unstable_cache(
       id: row.id,
       title: row.title,
       category: row.category,
-      summary: row.summary ?? "",
       body: row.body,
       imageUrl: row.hero_image_url ?? undefined,
       imageAlt: row.hero_image_alt ?? undefined,
