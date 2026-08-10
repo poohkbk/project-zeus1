@@ -5,6 +5,7 @@ import Script from "next/script";
 import type { ReactNode } from "react";
 import "./globals.css";
 import { VisitTracker } from "@/components/analytics/VisitTracker";
+import { MobileMenu } from "@/components/layout/MobileMenu";
 import { siteConfig } from "@/config/site";
 import { siteUrl } from "@/lib/seo/metadata";
 
@@ -85,6 +86,7 @@ function Header() {
         <a className="header-call" href={siteConfig.phoneHref}>
           {siteConfig.phone}
         </a>
+        <MobileMenu />
       </div>
     </header>
   );
