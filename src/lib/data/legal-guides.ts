@@ -125,7 +125,8 @@ async function fetchPublishedRows() {
 
 export async function getPublishedLegalGuides(): Promise<LegalGuideContent[]> {
   const rows = await fetchPublishedRows();
-  return rows?.map(toLegalGuide) ?? fallbackGuides;
+  const guideRows = rows?.filter((row) => !isRecord(row.content) || row.content.type !== "testimonial");
+  return guideRows?.map(toLegalGuide) ?? fallbackGuides;
 }
 
 export async function getHomeLegalGuides(limit = 4): Promise<LegalGuideContent[]> {
@@ -148,8 +149,10 @@ export async function getLegalGuidesByCategory(category: string): Promise<LegalG
 export async function getLegalGuideBySlug(slug: string): Promise<LegalGuideContent | undefined> {
   const normalizedSlug = normalizeGuideSlug(slug);
   const rows = await fetchPublishedRows();
-  const row = rows?.find((item) =>
-    [item.slug, item.page_address, item.id].some((value) => normalizeGuideSlug(value) === normalizedSlug),
+  const row = rows?.find(
+    (item) =>
+      (!isRecord(item.content) || item.content.type !== "testimonial") &&
+      [item.slug, item.page_address, item.id].some((value) => normalizeGuideSlug(value) === normalizedSlug),
   );
 
   if (row) return toLegalGuide(row);

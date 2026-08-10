@@ -119,6 +119,8 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
   const [completedAction, setCompletedAction] = useState<"draft" | "published" | "scheduled" | undefined>();
   const [recommendedTags, setRecommendedTags] = useState<string[]>([]);
   const itemsRef = useRef<CmsContentItem[]>([]);
+  const manualSaveRef = useRef(false);
+  const skipNextAutosaveRef = useRef(false);
 
   useEffect(() => {
     const localTags = loadCmsTaxonomy().tags;
@@ -151,7 +153,13 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
   }, [type, id, getDraftItem]);
 
   useEffect(() => {
+    if (skipNextAutosaveRef.current) {
+      skipNextAutosaveRef.current = false;
+      return;
+    }
+
     const timer = window.setTimeout(() => {
+      if (manualSaveRef.current) return;
       if (!item.title && !item.body && !item.heroImage) return;
       const nextItem = { ...item, updatedAt: new Date().toISOString() };
       if (!id) draftItemRef.current = nextItem;
@@ -190,6 +198,8 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
       : [nextItem, ...currentItems];
     setCompletedAction(undefined);
     setActionPending(message);
+    manualSaveRef.current = true;
+    skipNextAutosaveRef.current = true;
     itemsRef.current = nextItems;
     setItem(nextItem);
     setItems(nextItems);
@@ -198,11 +208,16 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
     try {
       await saveCmsItemToServer(nextItem);
       setSaveState(`${message} · Supabase 반영됨`);
+      if (completed) setCompletedAction(completed);
     } catch (error) {
       const detail = error instanceof Error ? error.message : "Supabase 저장에 실패했습니다.";
-      setSaveState(`${message} · ${detail}`);
+      setSaveState(
+        completed === "published"
+          ? `공개 실패 · ${detail} 홈페이지에는 아직 공개되지 않았습니다.`
+          : `${message} 실패 · ${detail}`,
+      );
     } finally {
-      if (completed) setCompletedAction(completed);
+      manualSaveRef.current = false;
       setActionPending(undefined);
     }
   }

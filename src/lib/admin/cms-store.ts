@@ -7,7 +7,7 @@ import type { CmsAdminUser, CmsContentItem, CmsContentType, CmsTaxonomy } from "
 const CONTENT_KEY = "zeu-cms-content-v1";
 const ADMINS_KEY = "zeu-cms-admins-v1";
 const TAXONOMY_KEY = "zeu-cms-taxonomy-v1";
-const SAVE_TIMEOUT_MS = 15000;
+const SAVE_TIMEOUT_MS = 30000;
 
 function readJson<T>(key: string, fallback: T): T {
   if (typeof window === "undefined") return fallback;
@@ -113,7 +113,7 @@ export async function saveCmsItemToServer(item: CmsContentItem) {
     }
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") {
-      throw new Error("Supabase 저장 응답이 지연되어 브라우저 임시저장으로 전환했습니다.");
+      throw new Error("Supabase 저장 응답이 30초 이상 지연되었습니다. 잠시 후 다시 저장해 주세요.");
     }
     throw error;
   } finally {

@@ -47,7 +47,7 @@ const tableByType: Record<CmsContentType, ContentTable> = {
   case: "cases",
   guide: "legal_guides",
   faq: "faqs",
-  testimonial: "testimonials",
+  testimonial: "legal_guides",
 };
 
 function isCmsContentItem(value: unknown): value is CmsContentItem {
@@ -200,26 +200,6 @@ function toFaqRow(item: CmsContentItem) {
   };
 }
 
-function toTestimonialRow(item: CmsContentItem) {
-  return {
-    cms_id: item.id,
-    title: item.title || "제목 없는 의뢰인 후기",
-    category: item.category,
-    summary: "",
-    body: item.body || "후기 내용을 입력해 주세요.",
-    status: item.status,
-    tags: item.tags,
-    hero_image_url: item.heroImage || null,
-    hero_image_alt: item.heroImageAlt || null,
-    is_featured: item.visibility.isFeatured,
-    show_on_home: item.visibility.showOnHome,
-    show_on_search: item.visibility.showOnSearch,
-    sort_order: item.visibility.featuredOrder ?? null,
-    content: item,
-    published_at: publishedAtFor(item),
-  };
-}
-
 function omitCmsId<T extends { cms_id?: string | null }>(row: T) {
   const rest = { ...row };
   delete rest.cms_id;
@@ -246,28 +226,24 @@ function toBasicFaqRow(item: CmsContentItem) {
   return omitKeys(toFaqRow(item), ["cms_id", "content", "published_at"]);
 }
 
-function toBasicTestimonialRow(item: CmsContentItem) {
-  return omitKeys(toTestimonialRow(item), ["cms_id", "content", "published_at"]);
-}
-
 function rowForItem(item: CmsContentItem) {
   if (item.type === "case") return toCaseRow(item);
   if (item.type === "guide") return toGuideRow(item);
-  if (item.type === "testimonial") return toTestimonialRow(item);
+  if (item.type === "testimonial") return toGuideRow(item);
   return toFaqRow(item);
 }
 
 function legacyRowForItem(item: CmsContentItem) {
   if (item.type === "case") return omitCmsId(toCaseRow(item));
   if (item.type === "guide") return omitCmsId(toGuideRow(item));
-  if (item.type === "testimonial") return omitCmsId(toTestimonialRow(item));
+  if (item.type === "testimonial") return omitCmsId(toGuideRow(item));
   return omitCmsId(toFaqRow(item));
 }
 
 function basicLegacyRowForItem(item: CmsContentItem) {
   if (item.type === "case") return toBasicCaseRow(item);
   if (item.type === "guide") return toBasicGuideRow(item);
-  if (item.type === "testimonial") return toBasicTestimonialRow(item);
+  if (item.type === "testimonial") return toBasicGuideRow(item);
   return toBasicFaqRow(item);
 }
 
@@ -318,8 +294,13 @@ export async function listCmsContentItems() {
   const supabase = createAdminClient();
   if (!supabase) return undefined;
 
+  const storedContentTables: Array<[CmsContentType, ContentTable]> = [
+    ["case", "cases"],
+    ["guide", "legal_guides"],
+    ["faq", "faqs"],
+  ];
   const results = await Promise.all(
-    (Object.entries(tableByType) as Array<[CmsContentType, ContentTable]>).map(async ([type, table]) => {
+    storedContentTables.map(async ([type, table]) => {
       const { data, error } = await supabase.from(table).select("*").order("updated_at", { ascending: false });
       if (error) throw error;
       return ((data ?? []) as ContentRow[]).map((row) => toCmsItem(row, type));
@@ -399,7 +380,7 @@ export async function upsertCmsContentItem(item: CmsContentItem) {
         : item.type === "guide"
           ? admin.from("legal_guides").upsert(toGuideRow(item), { onConflict: "cms_id" })
           : item.type === "testimonial"
-            ? admin.from("testimonials").upsert(toTestimonialRow(item), { onConflict: "cms_id" })
+            ? admin.from("legal_guides").upsert(toGuideRow(item), { onConflict: "cms_id" })
           : admin.from("faqs").upsert(toFaqRow(item), { onConflict: "cms_id" });
 
     return query.select("id").maybeSingle();
@@ -412,7 +393,7 @@ export async function upsertCmsContentItem(item: CmsContentItem) {
         : item.type === "guide"
           ? admin.from("legal_guides").upsert(omitCmsId(toGuideRow(item)), { onConflict: "page_address" })
           : item.type === "testimonial"
-            ? admin.from("testimonials").upsert(omitCmsId(toTestimonialRow(item)), { onConflict: "title" })
+            ? admin.from("legal_guides").upsert(omitCmsId(toGuideRow(item)), { onConflict: "page_address" })
           : admin.from("faqs").upsert(omitCmsId(toFaqRow(item)), { onConflict: "question" });
 
     return query.select("id").maybeSingle();
@@ -425,7 +406,7 @@ export async function upsertCmsContentItem(item: CmsContentItem) {
         : item.type === "guide"
           ? admin.from("legal_guides").upsert(toBasicGuideRow(item), { onConflict: "page_address" })
           : item.type === "testimonial"
-            ? admin.from("testimonials").upsert(toBasicTestimonialRow(item), { onConflict: "title" })
+            ? admin.from("legal_guides").upsert(toBasicGuideRow(item), { onConflict: "page_address" })
           : admin.from("faqs").upsert(toBasicFaqRow(item), { onConflict: "question" });
 
     return query.select("id").maybeSingle();
