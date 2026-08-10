@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { createPortal } from "react-dom";
 import { useEffect, useId, useState } from "react";
 import { siteConfig } from "@/config/site";
 
@@ -51,8 +52,9 @@ export function MobileMenu() {
         <span />
         <span />
       </button>
-      {open ? (
-        <>
+      {open && typeof document !== "undefined"
+        ? createPortal(
+          <>
           <button className="mobile-menu-backdrop" type="button" aria-label="메뉴 닫기" onClick={() => setOpen(false)} />
           <nav id={menuId} className="mobile-menu-panel" aria-label="모바일 주요 메뉴">
             <div className="mobile-menu-heading">
@@ -69,8 +71,10 @@ export function MobileMenu() {
             </div>
             <a className="mobile-menu-call" href={siteConfig.phoneHref}>전화상담 {siteConfig.phone}</a>
           </nav>
-        </>
-      ) : null}
+          </>,
+          document.body,
+        )
+        : null}
     </div>
   );
 }
