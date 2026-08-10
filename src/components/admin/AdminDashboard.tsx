@@ -10,6 +10,7 @@ const quickLinks: Array<{ href: string; label: string; type: CmsContentType }> =
   { href: "/admin/cases/new", label: "+ 승소사례 작성", type: "case" },
   { href: "/admin/guides/new", label: "+ 법률가이드 작성", type: "guide" },
   { href: "/admin/faqs/new", label: "+ FAQ 작성", type: "faq" },
+  { href: "/admin/testimonials/new", label: "+ 의뢰인 후기 작성", type: "testimonial" },
 ];
 
 export function AdminDashboard() {
@@ -26,6 +27,7 @@ export function AdminDashboard() {
       case: items.filter((item) => item.type === "case" && item.status === "published").length,
       guide: items.filter((item) => item.type === "guide" && item.status === "published").length,
       faq: items.filter((item) => item.type === "faq" && item.status === "published").length,
+      testimonial: items.filter((item) => item.type === "testimonial" && item.status === "published").length,
       draft: items.filter((item) => item.status === "draft").length,
       featured: items.filter((item) => item.visibility.isFeatured).length,
       admins: admins.filter((admin) => admin.active).length,
@@ -65,6 +67,10 @@ export function AdminDashboard() {
         <article>
           <strong>{stats.faq}</strong>
           <span>공개 중인 FAQ</span>
+        </article>
+        <article>
+          <strong>{stats.testimonial}</strong>
+          <span>공개 중인 의뢰인 후기</span>
         </article>
         <article>
           <strong>{stats.draft}</strong>
@@ -116,6 +122,7 @@ export function AdminDashboard() {
 export function typePath(type: CmsContentType) {
   if (type === "case") return "cases";
   if (type === "guide") return "guides";
+  if (type === "testimonial") return "testimonials";
   return "faqs";
 }
 

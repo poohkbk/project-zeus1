@@ -497,7 +497,7 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
 
           {step === 1 ? (
             <section className="admin-editor-panel">
-              <h2>{type === "faq" ? "질문과 답변" : "기본 내용"}</h2>
+              <h2>{type === "faq" ? "질문과 답변" : type === "testimonial" ? "후기 기본 내용" : "기본 내용"}</h2>
               {type === "faq" ? (
                 <>
                   <div className="admin-guide-outline-editor">
@@ -552,12 +552,12 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
                       <input
                         value={item.title}
                         onChange={(event) => update("title", event.target.value)}
-                        placeholder="예: 계약금 반환 승소사례"
+                        placeholder={type === "testimonial" ? "예: 끝까지 세심하게 설명해 주셔서 감사했습니다" : "예: 계약금 반환 승소사례"}
                       />
                       <small className="admin-field-guide">권장 25~45자. 핵심 사건유형과 결과가 보이게 적어주세요.</small>
                     </label>
                     <label>
-                      사건 분야 <span>*</span>
+                      {type === "testimonial" ? "상담 분야" : "사건 분야"} <span>*</span>
                       <select
                         value={item.category}
                         onChange={(event) =>
@@ -573,19 +573,19 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
                     </label>
                   </div>
                   <label>
-                    목록에 보일 짧은 설명
+                    {type === "testimonial" ? "후기 한 줄 요약" : "목록에 보일 짧은 설명"}
                     <textarea
                       value={item.summary}
                       onChange={(event) => update("summary", event.target.value)}
-                      placeholder="제목 아래에 표시될 짧은 설명입니다."
+                      placeholder={type === "testimonial" ? "후기에서 가장 인상적인 내용을 한 문장으로 적어주세요." : "제목 아래에 표시될 짧은 설명입니다."}
                     />
                     <small className="admin-field-guide">권장 80~140자. 목록 카드와 검색 미리보기에 쓰입니다.</small>
                   </label>
 
                   <div className="admin-image-uploader">
                     <div>
-                      <h3>대표 이미지</h3>
-                      <p>새 글 작성 중 바로 이미지를 추가하고 미리볼 수 있습니다.</p>
+                      <h3>{type === "testimonial" ? "후기 이미지 (선택)" : "대표 이미지"}</h3>
+                      <p>{type === "testimonial" ? "이미지 없이 글만 작성해도 됩니다. 필요한 경우에만 첨부해 주세요." : "새 글 작성 중 바로 이미지를 추가하고 미리볼 수 있습니다."}</p>
                       <ul className="admin-upload-guide">
                         <li>권장 크기: 1200 x 800px</li>
                         <li>권장 비율: 가로형 3:2 또는 4:3</li>
@@ -649,8 +649,22 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
 
           {type !== "faq" && step === bodyStep ? (
             <section className="admin-editor-panel">
-              <h2>본문 작성</h2>
-              {type === "case" ? (
+              <h2>{type === "testimonial" ? "후기 내용" : "본문 작성"}</h2>
+              {type === "testimonial" ? (
+                <>
+                  <label>
+                    의뢰인 후기 <span>*</span>
+                    <textarea
+                      className="admin-body-editor"
+                      value={item.body}
+                      onChange={(event) => update("body", event.target.value)}
+                      placeholder="상담 과정, 사건 진행 중 좋았던 점, 사건이 끝난 뒤 느낀 점 등을 자유롭게 적어주세요. 이름과 연락처 등 개인정보는 제외해 주세요."
+                    />
+                    <small className="admin-field-guide">글 중심으로 충분히 작성할 수 있습니다. 문단은 줄바꿈으로 구분해 주세요.</small>
+                  </label>
+                  {tagAndAiTools}
+                </>
+              ) : type === "case" ? (
                 <>
                   <div className="admin-case-simple-editor">
                     <label>
@@ -1096,6 +1110,12 @@ function publishValidationMessage(item: CmsContentItem) {
   if (item.type === "faq") {
     if (!item.title.trim()) return "FAQ 질문을 입력해야 공개할 수 있습니다.";
     if (!item.body.trim()) return "FAQ 답변을 입력해야 공개할 수 있습니다.";
+    return "";
+  }
+
+  if (item.type === "testimonial") {
+    if (!item.title.trim()) return "후기 제목을 입력해야 공개할 수 있습니다.";
+    if (!item.body.trim()) return "후기 내용을 입력해야 공개할 수 있습니다.";
     return "";
   }
 

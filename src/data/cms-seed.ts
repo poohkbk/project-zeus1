@@ -12,6 +12,7 @@ export const cmsTypeLabels: Record<CmsContentType, string> = {
   case: "승소사례",
   guide: "법률가이드",
   faq: "FAQ",
+  testimonial: "의뢰인 후기",
 };
 
 export const cmsDefaultTags = [

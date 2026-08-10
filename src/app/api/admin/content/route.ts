@@ -8,6 +8,11 @@ import type { CmsContentItem, CmsContentType } from "@/types/cms";
 export const dynamic = "force-dynamic";
 
 function revalidatePublicContent(item: CmsContentItem) {
+  if (item.type === "testimonial") {
+    revalidateTag("published-testimonials");
+    revalidatePath("/testimonials");
+    return;
+  }
   if (item.type === "faq") {
     revalidateTag("published-faqs");
     revalidatePath("/faq");
@@ -81,13 +86,16 @@ export async function DELETE(request: NextRequest) {
   const id = String(body.item?.id ?? request.nextUrl.searchParams.get("id") ?? "").trim();
   const type = String(body.item?.type ?? request.nextUrl.searchParams.get("type") ?? "").trim() as CmsContentType;
 
-  if (!id || !["case", "guide", "faq"].includes(type)) {
+  if (!id || !["case", "guide", "faq", "testimonial"].includes(type)) {
     return NextResponse.json({ message: "삭제할 콘텐츠 정보가 올바르지 않습니다." }, { status: 400 });
   }
 
   try {
     await deleteCmsContentItem(body.item ?? ({ id, type } as CmsContentItem));
-    if (type === "faq") {
+    if (type === "testimonial") {
+      revalidateTag("published-testimonials");
+      revalidatePath("/testimonials");
+    } else if (type === "faq") {
       revalidateTag("published-faqs");
       revalidatePath("/faq");
       revalidatePath("/practice");

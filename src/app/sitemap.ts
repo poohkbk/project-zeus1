@@ -18,6 +18,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     entry("/cases"),
     entry("/legal-guide"),
     entry("/faq"),
+    entry("/testimonials"),
     entry("/about/lawyer"),
     entry("/about/location"),
     entry("/consultation"),

@@ -24,6 +24,7 @@ function getContentType(segment?: string): CmsContentType | undefined {
   if (segment === "cases") return "case";
   if (segment === "guides") return "guide";
   if (segment === "faqs") return "faq";
+  if (segment === "testimonials") return "testimonial";
   return undefined;
 }
 

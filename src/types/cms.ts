@@ -1,4 +1,4 @@
-export type CmsContentType = "case" | "guide" | "faq";
+export type CmsContentType = "case" | "guide" | "faq" | "testimonial";
 export type CmsStatus = "draft" | "published" | "private" | "scheduled" | "trash";
 export type CmsCategory = "civil" | "criminal" | "divorce" | "inheritance" | "administrative";
 export type CmsRole = "super_admin" | "admin";

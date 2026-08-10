@@ -202,6 +202,12 @@ function publishValidationMessage(item: CmsContentItem) {
     return "";
   }
 
+  if (item.type === "testimonial") {
+    if (!item.title.trim()) return "후기 제목을 입력해야 공개할 수 있습니다.";
+    if (!item.body.trim()) return "후기 내용을 입력해야 공개할 수 있습니다.";
+    return "";
+  }
+
   if (!item.title.trim()) return "제목을 입력해야 공개할 수 있습니다.";
   return "";
 }

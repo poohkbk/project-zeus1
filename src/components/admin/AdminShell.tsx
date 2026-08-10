@@ -12,6 +12,7 @@ const navItems = [
   { href: "/admin/cases", label: "승소사례" },
   { href: "/admin/guides", label: "법률가이드" },
   { href: "/admin/faqs", label: "FAQ" },
+  { href: "/admin/testimonials", label: "의뢰인 후기" },
   { href: "/admin/taxonomy", label: "분야·태그" },
   { href: "/admin/trash", label: "휴지통" },
   { href: "/admin/settings/admins", label: "관리자" },
