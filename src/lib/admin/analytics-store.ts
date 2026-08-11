@@ -12,6 +12,7 @@ import { isIpBlocked, loadBlockedIps } from "./ip-blocklist";
 const ANALYTICS_DIR = path.join(process.cwd(), "data");
 const ANALYTICS_FILE = path.join(ANALYTICS_DIR, "analytics-visits.json");
 const MAX_VISITS = 5000;
+const SUPABASE_PAGE_SIZE = 1000;
 const canUseFileStore = !process.env.VERCEL;
 const memoryVisits: AnalyticsVisit[] = [];
 
@@ -143,14 +144,25 @@ async function readVisitsFromSupabase() {
   const supabase = createAdminClient();
   if (!supabase) return undefined;
 
-  const { data, error } = await supabase
-    .from("analytics_visits")
-    .select("id, ip, path, user_agent, visited_at")
-    .order("visited_at", { ascending: false })
-    .limit(MAX_VISITS);
+  const rows: AnalyticsVisitRow[] = [];
+  let offset = 0;
 
-  if (error) return undefined;
-  return ((data ?? []) as AnalyticsVisitRow[]).map(toVisit);
+  while (true) {
+    const { data, error } = await supabase
+      .from("analytics_visits")
+      .select("id, ip, path, user_agent, visited_at")
+      .order("visited_at", { ascending: false })
+      .order("id", { ascending: false })
+      .range(offset, offset + SUPABASE_PAGE_SIZE - 1);
+
+    if (error) return undefined;
+    const page = (data ?? []) as AnalyticsVisitRow[];
+    rows.push(...page);
+    if (page.length < SUPABASE_PAGE_SIZE) break;
+    offset += SUPABASE_PAGE_SIZE;
+  }
+
+  return Array.from(new Map(rows.map((row) => [row.id, row])).values()).map(toVisit);
 }
 
 export async function recordAnalyticsVisit(visit: Omit<AnalyticsVisit, "id" | "visitedAt">) {
