@@ -679,7 +679,6 @@ export function ContentEditorPage({ type, id }: { type: CmsContentType; id?: str
                     />
                     <small className="admin-field-guide">글 중심으로 충분히 작성할 수 있습니다. 문단은 줄바꿈으로 구분해 주세요.</small>
                   </label>
-                  {tagAndAiTools}
                 </>
               ) : type === "case" ? (
                 <>
