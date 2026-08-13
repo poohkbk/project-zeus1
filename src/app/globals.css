@@ -2309,29 +2309,60 @@
 }
 
 @media print {
-  body * {
-    visibility: hidden !important;
+  @page {
+    size: A4;
+    margin: 12mm;
   }
 
-  .admin-consultation-print,
-  .admin-consultation-print * {
-    visibility: visible !important;
-  }
-
-  .admin-consultation-print {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    border: 0;
-    box-shadow: none;
-    padding: 24px;
+  html,
+  body {
+    width: auto !important;
+    height: auto !important;
+    overflow: visible !important;
+    background: #ffffff !important;
   }
 
   .site-header,
+  .site-footer,
   .admin-sidebar,
-  .admin-consultation-actions,
-  .admin-consultation-memo {
+  .admin-topbar,
+  .admin-screen > :not(.admin-consultation-layout),
+  .admin-consultation-layout > .admin-panel:first-child,
+  .admin-consultation-detail > :not(.admin-consultation-print) {
     display: none !important;
+  }
+
+  .admin-app,
+  .admin-main,
+  .admin-screen,
+  .admin-consultation-layout,
+  .admin-consultation-detail {
+    position: static !important;
+    width: auto !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    display: block !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: #ffffff !important;
+    box-shadow: none !important;
+  }
+
+  .admin-consultation-print {
+    position: static !important;
+    width: auto !important;
+    margin: 0 !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    break-after: avoid-page;
+  }
+
+  .admin-consultation-print header,
+  .admin-consultation-print dl,
+  .admin-consultation-print section {
+    break-inside: avoid;
   }
 }
 
