@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { aiCategoryOptions } from "@/data/ai/categories";
 import { siteConfig } from "@/config/site";
 import { SimpleIcon } from "@/components/icons/SimpleIcon";
 import type {
@@ -12,7 +11,6 @@ import type {
   AiGuideQuestion,
   AiGuideResult,
   AiGuideUiState,
-  AiLegalCategory,
 } from "@/types/ai-guide";
 
 const starterQuestions = [
@@ -111,9 +109,7 @@ export function AiGuideShell() {
   const router = useRouter();
   const [uiState, setUiState] = useState<AiGuideUiState>("start");
   const [question, setQuestion] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<AiLegalCategory | "">("");
   const [sessionId, setSessionId] = useState("");
-  const [classification, setClassification] = useState<AiClassificationResult>();
   const [questions, setQuestions] = useState<AiGuideQuestion[]>([]);
   const [answers, setAnswers] = useState<AiGuideAnswer[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -121,6 +117,7 @@ export function AiGuideShell() {
   const [result, setResult] = useState<AiGuideResult>();
   const [errorMessage, setErrorMessage] = useState("");
   const [redactionFindings, setRedactionFindings] = useState<string[]>([]);
+  const [answerPending, setAnswerPending] = useState(false);
 
   const currentQuestion = questions[currentIndex];
   const progress = useMemo(() => {
@@ -128,58 +125,50 @@ export function AiGuideShell() {
     return Math.round((answers.length / questions.length) * 100);
   }, [answers.length, questions.length]);
 
-  async function startGuide(category?: AiLegalCategory) {
+  const autoAdvanceChoice = Boolean(
+    currentQuestion?.options?.length &&
+    currentQuestion.options.some((option) => option.value === "yes") &&
+    currentQuestion.options.some((option) => option.value === "no") &&
+    currentQuestion.options.every((option) => ["yes", "no", "unknown"].includes(option.value)),
+  );
+
+  async function startGuide() {
     setErrorMessage("");
     setUiState("classifying");
     try {
       const response = await postJson<SessionResponse>("/api/ai-guide/session", {
         question,
-        category: category || selectedCategory || undefined,
       });
       setSessionId(response.sessionId);
-      setClassification(response.classification);
       setRedactionFindings(response.redactionFindings);
       if (response.safetyGuidance?.flags.length) {
         await createResult(response.sessionId);
         return;
       }
-      setUiState("confirming_category");
+      const classified = await postJson<ClassifyResponse>("/api/ai-guide/classify", {
+        sessionId: response.sessionId,
+        category: response.classification.category,
+      });
+      setQuestions(classified.questions);
+      setAnswers([]);
+      setCurrentIndex(0);
+      setCurrentValue("");
+      if (classified.questions.length === 0) {
+        await createResult(response.sessionId);
+        return;
+      }
+      setUiState("questioning");
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "AI 안내를 시작하지 못했습니다.");
       setUiState("failed");
     }
   }
 
-  async function confirmCategory(category?: AiLegalCategory) {
-    if (!sessionId || !classification) return;
+  async function submitAnswer(valueOverride?: string) {
+    const answerValue = valueOverride ?? currentValue;
+    if (!sessionId || !currentQuestion || answerPending) return;
     setErrorMessage("");
-    setUiState("classifying");
-    try {
-      const response = await postJson<ClassifyResponse>("/api/ai-guide/classify", {
-        sessionId,
-        category: category ?? classification.category,
-      });
-      setClassification(response.classification);
-      setQuestions(response.questions);
-      setAnswers([]);
-      setCurrentIndex(0);
-      setCurrentValue("");
-      if (response.questions.length === 0) {
-        setQuestion("");
-        setSelectedCategory("");
-        setUiState("start");
-        return;
-      }
-      setUiState("questioning");
-    } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "분류를 확정하지 못했습니다.");
-      setUiState("failed");
-    }
-  }
-
-  async function submitAnswer() {
-    if (!sessionId || !currentQuestion) return;
-    setErrorMessage("");
+    setAnswerPending(true);
     try {
       const response = await postJson<AnswerResponse>("/api/ai-guide/answer", {
         sessionId,
@@ -187,7 +176,7 @@ export function AiGuideShell() {
         answer: {
           questionId: currentQuestion.id,
           field: currentQuestion.field,
-          value: currentValue || null,
+          value: answerValue || null,
         },
       });
       setAnswers(response.answers);
@@ -202,7 +191,14 @@ export function AiGuideShell() {
       await createResult();
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "답변을 저장하지 못했습니다.");
+    } finally {
+      setAnswerPending(false);
     }
+  }
+
+  function changeAnswer(value: string) {
+    setCurrentValue(value);
+    if (autoAdvanceChoice) void submitAnswer(value);
   }
 
   async function createResult(targetSessionId = sessionId) {
@@ -223,7 +219,7 @@ export function AiGuideShell() {
 
   function goBack() {
     if (currentIndex <= 0) {
-      setUiState("confirming_category");
+      setUiState("start");
       return;
     }
     const previousIndex = currentIndex - 1;
@@ -255,7 +251,7 @@ export function AiGuideShell() {
           <span className="section-kicker">AI Legal Consultation</span>
           <h1>법률사무소 제우 AI 상담</h1>
           <p>
-            사건 분야를 먼저 나누고, 필요한 자료와 관련 콘텐츠를 정리해 상담 전 준비를 돕습니다.
+            상담 내용을 AI가 분석하고, 필요한 자료와 관련 콘텐츠를 정리해 상담 전 준비를 돕습니다.
             승소 여부나 처분 결과를 단정하지 않습니다.
           </p>
         </div>
@@ -279,56 +275,19 @@ export function AiGuideShell() {
               placeholder="예: 돈을 빌려줬는데 못 받고 있습니다."
               maxLength={1000}
             />
-            <div className="ai-category-grid" aria-label="사건 분야 직접 선택">
-              {aiCategoryOptions.map((category) => (
-                <button
-                  type="button"
-                  key={category.value}
-                  data-active={selectedCategory === category.value}
-                  onClick={() => setSelectedCategory(category.value)}
-                >
-                  {category.label}
-                </button>
-              ))}
-            </div>
-            <div className="ai-starter-row">
+            <div className="ai-starter-row" aria-label="상담 내용 입력 예시">
               {starterQuestions.map((starter) => (
-                <button type="button" key={starter} onClick={() => setQuestion(starter)}>
-                  {starter}
-                </button>
+                <span key={starter}>{starter}</span>
               ))}
             </div>
             <button
               type="button"
               className="btn btn-primary"
-              disabled={uiState === "classifying" || (!question.trim() && !selectedCategory)}
+              disabled={uiState === "classifying" || !question.trim()}
               onClick={() => startGuide()}
             >
               {uiState === "classifying" ? "분석 중..." : "질문하기"}
             </button>
-          </div>
-        ) : null}
-
-        {uiState === "confirming_category" && classification ? (
-          <div className="ai-guide-confirm">
-            <span className="section-kicker">분류 확인</span>
-            <h2>{classification.categoryLabel} {classification.subcategoryLabel ? `· ${classification.subcategoryLabel}` : ""}</h2>
-            <p>{classification.reasonSummary}</p>
-            {redactionFindings.length > 0 ? (
-              <p className="ai-safety-note">개인정보로 보이는 항목을 가린 뒤 분석했습니다: {redactionFindings.join(", ")}</p>
-            ) : null}
-            <div className="ai-guide-actions">
-              <button className="btn btn-primary" type="button" onClick={() => confirmCategory()}>
-                맞습니다
-              </button>
-              <div className="ai-category-grid compact">
-                {aiCategoryOptions.map((category) => (
-                  <button type="button" key={category.value} onClick={() => confirmCategory(category.value)}>
-                    {category.label}
-                  </button>
-                ))}
-              </div>
-            </div>
           </div>
         ) : null}
 
@@ -340,20 +299,25 @@ export function AiGuideShell() {
             </div>
             <h2>{currentQuestion.question}</h2>
             {currentQuestion.helpText ? <p>{currentQuestion.helpText}</p> : null}
-            <QuestionInput question={currentQuestion} value={currentValue} onChange={setCurrentValue} />
+            {redactionFindings.length > 0 && currentIndex === 0 ? (
+              <p className="ai-safety-note">개인정보로 보이는 항목을 가린 뒤 분석했습니다: {redactionFindings.join(", ")}</p>
+            ) : null}
+            <QuestionInput question={currentQuestion} value={currentValue} onChange={changeAnswer} />
             {errorMessage ? <p className="ai-guide-error-text">{errorMessage}</p> : null}
             <div className="ai-guide-actions">
               <button type="button" className="btn btn-secondary" onClick={goBack}>
                 이전
               </button>
-              <button
-                type="button"
-                className="btn btn-primary"
-                disabled={currentQuestion.required && !currentValue}
-                onClick={submitAnswer}
-              >
-                다음
-              </button>
+              {!autoAdvanceChoice ? (
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  disabled={answerPending || (currentQuestion.required && !currentValue)}
+                  onClick={() => submitAnswer()}
+                >
+                  {answerPending ? "저장 중..." : "다음"}
+                </button>
+              ) : null}
             </div>
           </div>
         ) : null}

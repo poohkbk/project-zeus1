@@ -207,19 +207,17 @@
 }
 
 .ai-category-grid button,
-.ai-starter-row button {
+.ai-starter-row span {
   border: 1px solid rgba(12, 51, 83, 0.16);
   background: #fff;
   color: var(--main-text);
   border-radius: 8px;
   padding: 12px 14px;
   font-weight: 800;
-  cursor: pointer;
 }
 
 .ai-category-grid button[data-active="true"],
-.ai-category-grid button:hover,
-.ai-starter-row button:hover {
+.ai-category-grid button:hover {
   background: #0b3d58;
   color: #fff;
   border-color: #0b3d58;
@@ -232,7 +230,7 @@
   margin-bottom: 18px;
 }
 
-.ai-starter-row button {
+.ai-starter-row span {
   font-size: 14px;
   padding: 9px 12px;
 }
