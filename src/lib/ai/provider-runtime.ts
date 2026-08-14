@@ -127,7 +127,18 @@ export async function createTailoredQuestions(
     recordGenerativeUsage(response.usage);
     if (response.data.length < 3) return fallbackQuestions;
     const category = classification.category === "unclear" ? "civil" : classification.category;
-    const questions: AiGuideQuestion[] = response.data.map((draft, index) => ({
+    const expandedDrafts = response.data.flatMap((draft) => draft.type === "date"
+      ? [
+          draft,
+          {
+            question: `방금 입력한 날짜에는 어떤 일이 있었고, 이 사건에서 왜 중요한 날짜인가요?`,
+            helpText: "예: 돈을 갚기로 한 날, 소장을 받은 날, 부정행위를 처음 알게 된 날입니다.",
+            type: "long_text" as const,
+            required: true,
+          },
+        ]
+      : [draft]).slice(0, 6);
+    const questions: AiGuideQuestion[] = expandedDrafts.map((draft, index) => ({
       id: `ai-followup-${index + 1}`,
       category,
       order: index + 1,

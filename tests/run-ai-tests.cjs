@@ -442,6 +442,13 @@ test("unit/provider: OpenAI provider creates safe tailored follow-up questions",
   assert.equal(flow?.[4].options, undefined);
 });
 
+test("screen-contract: AI date questions also ask why the date matters", () => {
+  const runtime = fs.readFileSync(path.join(projectRoot, "src/lib/ai/provider-runtime.ts"), "utf8");
+  const provider = fs.readFileSync(path.join(projectRoot, "src/lib/ai/openai-provider.ts"), "utf8");
+  assert.match(runtime, /왜 중요한 날짜인가요/);
+  assert.match(provider, /immediately following question must ask/);
+});
+
 test("unit/provider: OpenAI provider fails on timeout and invalid JSON", async () => {
   const timeoutProvider = new OpenAiLegalGuideProvider({
     apiKey: "test-key",
