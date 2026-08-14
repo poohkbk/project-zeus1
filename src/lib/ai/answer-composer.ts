@@ -124,21 +124,21 @@ export function buildAiGuideResult(
     .slice(0, 8);
   const missingInformation = answers
     .filter((answer) => answer.value === "unknown" || answer.value === "" || answer.value === null)
-    .map((answer) => `${answerFieldLabels[answer.field] ?? findQuestion(answer.field, questions)?.question ?? answer.field} 확인 필요`)
+    .map((answer) => `${answerFieldLabels[answer.field] ?? findQuestion(answer.field, questions)?.question ?? answer.field} 항목을 확인해주세요.`)
     .slice(0, 6);
   const availableEvidence = answers.filter(isPositiveEvidence).map((answer) => formatAnswer(answer, questions)).slice(0, 6);
 
   if (classification.category === "unclear") {
-    missingInformation.push("사건 분야를 더 확인해야 합니다.");
+    missingInformation.push("분쟁이 시작된 경위와 상대방의 입장을 확인해주세요.");
   }
   if (classification.category === "administrative") {
-    missingInformation.push("처분일, 통지 수령일, 효력 발생일을 구분해 확인해야 합니다.");
+    missingInformation.push("처분일, 통지 수령일, 효력 발생일이 각각 언제인지 확인해주세요.");
   }
   if (classification.category === "inheritance") {
-    missingInformation.push("사망일과 상속 관련 기한 확인이 필요합니다.");
+    missingInformation.push("사망일과 상속 사실을 알게 된 날짜가 언제인지 확인해주세요.");
   }
   if (classification.category === "civil" && answerMap.get("writtenAgreementExists") !== "yes") {
-    missingInformation.push("차용증이나 계약서를 보완할 대체 증거가 필요합니다.");
+    missingInformation.push("차용증·계약서가 없다면 이체내역이나 대화 기록이 있는지 확인해주세요.");
   }
   if (safetyGuidance.flags.includes("evidence-preservation")) {
     missingInformation.push("증거는 삭제하거나 숨기지 말고 원본 상태로 보존해야 합니다.");

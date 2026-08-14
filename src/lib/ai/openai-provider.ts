@@ -58,6 +58,19 @@ function stringArray(value: unknown, limit: number) {
   return value.filter((item): item is string => typeof item === "string").slice(0, limit);
 }
 
+function softenMissingInformation(item: string) {
+  return item
+    .replace(/확인이 필요합니다\.?$/, "확인해주세요.")
+    .replace(/([이가]) 필요합니다\.?$/, "$1 있는지 확인해주세요.")
+    .replace(/ 필요합니다\.?$/, " 있는지 확인해주세요.");
+}
+
+function softenRecommendedDocument(item: string) {
+  return item
+    .replace(/([이가]) 필요합니다\.?$/, "$1 있다면 준비해주세요.")
+    .replace(/ 필요합니다\.?$/, " 있다면 준비해주세요.");
+}
+
 function parseJsonObject(content: unknown) {
   if (typeof content !== "string") throw new AiProviderError("invalid_json");
   try {
@@ -94,10 +107,10 @@ function validateResultDraft(value: Record<string, unknown>): AiProviderResultDr
   return {
     situationSummary: safeString(value.situationSummary, 520),
     confirmedFacts: stringArray(value.confirmedFacts, 8),
-    missingInformation: stringArray(value.missingInformation, 8)?.filter(
-      (item) => !["추가 확인이 필요합니다.", "추가 확인이 필요합니다", "확인이 필요합니다."].includes(item.trim()),
-    ),
-    recommendedDocuments: stringArray(value.recommendedDocuments, 8),
+    missingInformation: stringArray(value.missingInformation, 8)
+      ?.filter((item) => !["추가 확인이 필요합니다.", "추가 확인이 필요합니다", "확인이 필요합니다."].includes(item.trim()))
+      .map(softenMissingInformation),
+    recommendedDocuments: stringArray(value.recommendedDocuments, 8)?.map(softenRecommendedDocument),
     sectionComments: comments && typeof comments === "object" ? {
       confirmedFacts: safeString(comments.confirmedFacts, 80) ?? "확인된 사실을 바탕으로 핵심 쟁점을 더 살펴볼 수 있습니다.",
       missingInformation: safeString(comments.missingInformation, 80) ?? "남은 사실관계는 변호사 상담에서 구체적으로 확인해보세요.",
@@ -221,7 +234,7 @@ export class OpenAiLegalGuideProvider implements AiLegalGuideProvider {
       {
         role: "system",
         content:
-          "You write cautious Korean legal intake results for LAW OFFICE ZEU. Return JSON only. Never guarantee acquittal, victory, sentence, property division ratio, or administrative outcome. Do not cite content not provided. Missing information must identify concrete unknown facts; never output a generic phrase such as '추가 확인이 필요합니다'.",
+          "You write cautious Korean legal intake results for LAW OFFICE ZEU. Return JSON only. Never guarantee acquittal, victory, sentence, property division ratio, or administrative outcome. Do not cite content not provided. Missing information must identify concrete unknown facts and use a checking phrase such as '있는지 확인해주세요', never '필요합니다'. Recommended documents are optional aids, not prerequisites for litigation; never use '필요합니다' and prefer wording such as '있다면 준비해주세요' or short document names.",
       },
       {
         role: "user",
@@ -251,8 +264,8 @@ export class OpenAiLegalGuideProvider implements AiLegalGuideProvider {
           outputSchema: {
             situationSummary: "Korean, cautious, under 520 chars",
             confirmedFacts: ["facts confirmed by the user's actual answers, Korean, max 8"],
-            missingInformation: ["specific unanswered fact such as exact date, other party's position, document terms, amount, procedural status, or original document availability; Korean, max 8; never generic"],
-            recommendedDocuments: ["documents specifically useful for these facts and answers, Korean, max 8"],
+            missingInformation: ["specific unanswered fact phrased as a request to check whether it exists; Korean, max 8; never use 필요합니다; never generic"],
+            recommendedDocuments: ["optional documents useful for consultation; Korean, max 8; never imply the document is required to pursue the case; never use 필요합니다"],
             sectionComments: {
               confirmedFacts: "about 50 Korean characters, brief interpretation of confirmed facts",
               missingInformation: "about 50 Korean characters, naturally recommend lawyer consultation for unresolved issues",

@@ -463,11 +463,14 @@ function ResultList({
   comment?: string;
   fallbackComment: string;
 }) {
+  const displayItems = items.map((item) => softenResultItem(title, item));
   return (
     <section className="ai-result-card">
       <h3>{title}</h3>
       <ul>
-        {items.length > 0 ? items.map((item) => <li key={item}>{item}</li>) : <li>현재 입력 내용에서 확인할 항목이 없습니다.</li>}
+        {displayItems.length > 0
+          ? displayItems.map((item, index) => <li key={`${item}-${index}`}>{item}</li>)
+          : <li>현재 입력 내용에서 확인할 항목이 없습니다.</li>}
       </ul>
       <p className="ai-result-card-comment">
         <strong>AI 의견</strong>
@@ -475,6 +478,21 @@ function ResultList({
       </p>
     </section>
   );
+}
+
+function softenResultItem(title: string, item: string) {
+  if (title === "추가 확인이 필요한 사항") {
+    return item
+      .replace(/확인이 필요합니다\.?$/, "확인해주세요.")
+      .replace(/([이가]) 필요합니다\.?$/, "$1 있는지 확인해주세요.")
+      .replace(/ 필요합니다\.?$/, " 있는지 확인해주세요.");
+  }
+  if (title === "준비하면 좋은 자료") {
+    return item
+      .replace(/([이가]) 필요합니다\.?$/, "$1 있다면 준비해주세요.")
+      .replace(/ 필요합니다\.?$/, " 있다면 준비해주세요.");
+  }
+  return item;
 }
 
 function RelatedSection({ title, items }: { title: string; items: AiGuideResult["relatedContent"]["cases"] }) {
