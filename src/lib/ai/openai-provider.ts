@@ -133,6 +133,10 @@ function validateQuestionDrafts(value: Record<string, unknown>): AiProviderQuest
       ? (draft.type as AiProviderQuestionDraft["type"])
       : "short_text";
     if (!question) return [];
+    const genericDateQuestion = type === "date"
+      && /중요한\s*날짜|관련(?:된|한)\s*날짜|특별한\s*날짜/.test(question)
+      && !/결혼|혼인|별거|계약|변제|상환|사망|상속|인지|알게\s*된|접수|제출|송달|수령|처분|출석|재판|사고|폭언|폭행|미지급|퇴거|해지|해제/.test(question);
+    if (genericDateQuestion) return [];
     const options = Array.isArray(draft.options)
       ? draft.options.slice(0, 5).flatMap((option) => {
           if (!option || typeof option !== "object" || Array.isArray(option)) return [];
@@ -296,7 +300,7 @@ export class OpenAiLegalGuideProvider implements AiLegalGuideProvider {
       {
         role: "system",
         content:
-          "You create a short Korean legal consultation intake flow for LAW OFFICE ZEU. Return JSON only. Ask only facts needed for a lawyer to understand the matter. Never request resident registration numbers, account passwords, unnecessary identifying data, illegal acts, or predictions of case outcomes. Questions must be neutral, plain Korean, and one fact per question. For criminal matters, the first question must determine whether the user is a victim/complainant, suspect/accused/defendant, or witness, and all later questions must match that role. Every question genuinely answerable with yes or no must use type 'boolean' with options [{value:'yes',label:'예'},{value:'no',label:'아니오'}]. Questions containing what/which/when/where/who/why/how/how much or asking for a desired outcome, explanation, or specific details must use short_text or long_text, never boolean. Never ask only for an unspecified 'important date'. A date question must identify the event (for example contract date, repayment due date, discovery date, service date), and the immediately following question must ask what happened on that date or why that date is legally important.",
+          "You create a short Korean legal consultation intake flow for LAW OFFICE ZEU. Return JSON only. Ask only facts needed for a lawyer to understand the matter. Never request resident registration numbers, account passwords, unnecessary identifying data, illegal acts, or predictions of case outcomes. Questions must be neutral, plain Korean, and one fact per question. For criminal matters, the first question must determine whether the user is a victim/complainant, suspect/accused/defendant, or witness, and all later questions must match that role. Every question genuinely answerable with yes or no must use type 'boolean' with options [{value:'yes',label:'예'},{value:'no',label:'아니오'}]. Questions containing what/which/when/where/who/why/how/how much or asking for a desired outcome, explanation, or specific details must use short_text or long_text, never boolean. Never ask for an unspecified 'important date'. Every date question must name the exact event, such as marriage date, separation date, repayment due date, discovery date, or document service date. When the event is already named in the date question, do not ask a follow-up about what happened on that date or why it matters; that would be redundant. Do not ask the user to describe what happened on a marriage date, contract date, death date, filing date, service date, or any other self-explanatory date.",
       },
       {
         role: "user",

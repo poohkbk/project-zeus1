@@ -474,11 +474,12 @@ test("unit/provider: OpenAI provider creates safe tailored follow-up questions",
   assert.equal(flow?.[4].options, undefined);
 });
 
-test("screen-contract: AI date questions also ask why the date matters", () => {
+test("screen-contract: AI date questions name the event without redundant explanation questions", () => {
   const runtime = fs.readFileSync(path.join(projectRoot, "src/lib/ai/provider-runtime.ts"), "utf8");
   const provider = fs.readFileSync(path.join(projectRoot, "src/lib/ai/openai-provider.ts"), "utf8");
-  assert.match(runtime, /왜 중요한 날짜인가요/);
-  assert.match(provider, /immediately following question must ask/);
+  assert.doesNotMatch(runtime, /방금 입력한 날짜에는 어떤 일이 있었고/);
+  assert.match(provider, /Every date question must name the exact event/);
+  assert.match(provider, /do not ask a follow-up about what happened on that date/);
 });
 
 test("unit/provider: OpenAI provider fails on timeout and invalid JSON", async () => {
