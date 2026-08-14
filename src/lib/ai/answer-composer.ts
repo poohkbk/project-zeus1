@@ -183,9 +183,9 @@ function buildStrictGuidance(
   }
 
   if (classification.category === "divorce") {
-    if (answerMap.get("affairIssue") === "yes" || classification.subcategory === "affair") return {
-      missingInformation: ["부정행위가 시작된 시기와 알게 된 경위를 확인해주세요.", "혼인관계가 파탄된 시점과 현재 배우자와의 관계를 확인해주세요.", "상간 상대방의 인적사항을 알고 있는지 확인해주세요."],
-      recommendedDocuments: ["부정행위 관련 대화·사진·숙박·결제 자료", "혼인관계증명서·가족관계증명서", "혼인생활과 파탄 경위 정리", "상간 상대방 확인 자료", "소장·답변서·조정서류"],
+    if (answerMap.get("affairIssue") === "yes" || classification.subcategory === "affair" || /상간|외도|불륜|부정행위|바람/.test(initialQuestion)) return {
+      missingInformation: ["부정행위가 시작된 시기와 알게 된 날짜를 확인해주세요.", "상간 상대방이 혼인 사실을 알고 있었는지 확인해주세요.", "부정행위 전 혼인관계가 이미 파탄된 상태였는지 확인해주세요.", "상간 상대방의 이름·연락처 등 특정 정보가 있는지 확인해주세요.", "부정행위를 안 날부터 현재까지의 기간을 확인해주세요."],
+      recommendedDocuments: ["부정행위 관련 대화·사진·숙박·결제 자료", "상간 상대방이 혼인 사실을 알았음을 보여주는 자료", "혼인관계증명서·가족관계증명서", "부정행위를 알게 된 경위와 날짜 정리", "상간 상대방 확인 자료", "상간자와 주고받은 연락·내용증명·소송서류"],
     };
     if (answerMap.get("custodyConcern") === "yes" || classification.subcategory === "custody") return {
       missingInformation: ["자녀의 현재 양육자와 생활환경을 확인해주세요.", "희망하는 친권·양육권·면접교섭 내용을 확인해주세요.", "현재 양육비 지급 여부와 자녀 지출을 확인해주세요."],
@@ -231,12 +231,25 @@ export function buildAiGuideResult(
   answers: AiGuideAnswer[],
   questions: AiGuideQuestion[] = [],
 ): AiGuideResult {
-  const category = classification.category === "unclear" ? "civil" : classification.category;
   const answerMap = getAnswerMap(answers);
-  const urgency = evaluateUrgency(classification.category, answers, initialQuestionRedacted);
+  const answerContext = answers.flatMap((answer) => Array.isArray(answer.value) ? answer.value : [String(answer.value ?? "")]);
+  const positiveQuestionContext = answers
+    .filter((answer) => answer.value === "yes")
+    .map((answer) => findQuestion(answer.field, questions)?.question ?? "");
+  const consultationContext = [initialQuestionRedacted, ...answerContext, ...positiveQuestionContext].join(" ");
+  const affairIntent = classification.category === "divorce" && /상간|외도|불륜|부정행위|바람/.test(consultationContext);
+  const effectiveClassification: AiClassificationResult = affairIntent ? {
+    ...classification,
+    subcategory: "affair",
+    subcategoryLabel: aiSubcategoryLabels.affair,
+    matchedTags: Array.from(new Set([...classification.matchedTags, "affair", "damages"])),
+    reasonSummary: "후속 답변에서 상간자 손해배상 의사가 확인되었습니다.",
+  } : classification;
+  const category = effectiveClassification.category === "unclear" ? "civil" : effectiveClassification.category;
+  const urgency = evaluateUrgency(effectiveClassification.category, answers, initialQuestionRedacted);
   const safetyGuidance = evaluateSafetyGuidance(initialQuestionRedacted, answers);
-  const strictGuidance = buildStrictGuidance(classification, answerMap, initialQuestionRedacted);
-  const relatedContent = getAiRelatedContent(classification, answers);
+  const strictGuidance = buildStrictGuidance(effectiveClassification, answerMap, consultationContext);
+  const relatedContent = getAiRelatedContent(effectiveClassification, answers);
   const confirmedFacts = answers
     .filter((answer) => answer.value !== null && answer.value !== "" && answer.value !== "unknown")
     .map((answer) => formatAnswer(answer, questions))
@@ -247,16 +260,16 @@ export function buildAiGuideResult(
     .slice(0, 6);
   const availableEvidence = answers.filter(isPositiveEvidence).map((answer) => formatAnswer(answer, questions)).slice(0, 6);
 
-  if (classification.category === "unclear") {
+  if (effectiveClassification.category === "unclear") {
     missingInformation.push("분쟁이 시작된 경위와 상대방의 입장을 확인해주세요.");
   }
-  if (classification.category === "administrative") {
+  if (effectiveClassification.category === "administrative") {
     missingInformation.push("처분일, 통지 수령일, 효력 발생일이 각각 언제인지 확인해주세요.");
   }
-  if (classification.category === "inheritance") {
+  if (effectiveClassification.category === "inheritance") {
     missingInformation.push("사망일과 상속 사실을 알게 된 날짜가 언제인지 확인해주세요.");
   }
-  if (classification.category === "civil" && classification.subcategory !== "damages" && answerMap.get("writtenAgreementExists") !== "yes") {
+  if (effectiveClassification.category === "civil" && effectiveClassification.subcategory !== "damages" && answerMap.get("writtenAgreementExists") !== "yes") {
     missingInformation.push("차용증·계약서가 없다면 이체내역이나 대화 기록이 있는지 확인해주세요.");
   }
   missingInformation.push(...strictGuidance.missingInformation);
@@ -271,8 +284,8 @@ export function buildAiGuideResult(
   }
 
   const recommendedDocuments = strictGuidance.recommendedDocuments;
-  const situationSummary = `${classification.categoryLabel} ${
-    classification.subcategoryLabel ?? ""
+  const situationSummary = `${effectiveClassification.categoryLabel} ${
+    effectiveClassification.subcategoryLabel ?? ""
   } 관련 상담 전 확인 내용입니다. 현재 정보만으로는 일반 안내만 가능하며, 자료 검토에 따라 방향이 달라질 수 있습니다.`;
   const relatedContentIds = [
     ...relatedContent.practices,
@@ -280,11 +293,11 @@ export function buildAiGuideResult(
     ...relatedContent.guides,
     ...relatedContent.faqs,
   ].map((item) => item.id);
-  const sectionComments = buildSectionComments(classification.category, confirmedFacts, missingInformation);
+  const sectionComments = buildSectionComments(effectiveClassification.category, confirmedFacts, missingInformation);
 
   return {
     sessionId,
-    classification,
+    classification: effectiveClassification,
     urgency,
     situationSummary,
     confirmedFacts: confirmedFacts.length > 0 ? confirmedFacts : ["아직 구체적으로 확인된 답변이 많지 않습니다."],
@@ -294,16 +307,16 @@ export function buildAiGuideResult(
     generalProcess: aiProcessGuides[category],
     relatedContent,
     consultationSummary: {
-      category: classification.category,
-      categoryLabel: classification.categoryLabel,
-      subcategory: classification.subcategory,
-      subcategoryLabel: classification.subcategory ? aiSubcategoryLabels[classification.subcategory] : undefined,
+      category: effectiveClassification.category,
+      categoryLabel: effectiveClassification.categoryLabel,
+      subcategory: effectiveClassification.subcategory,
+      subcategoryLabel: effectiveClassification.subcategory ? aiSubcategoryLabels[effectiveClassification.subcategory] : undefined,
       userQuestion: initialQuestionRedacted,
       situationSummary,
       confirmedFacts: confirmedFacts.slice(0, 8),
       availableEvidence,
       missingInformation: Array.from(new Set(missingInformation)).slice(0, 8),
-      keyIssues: [classification.subcategoryLabel ?? aiCategoryLabels[classification.category]].filter(Boolean),
+      keyIssues: [effectiveClassification.subcategoryLabel ?? aiCategoryLabels[effectiveClassification.category]].filter(Boolean),
       urgencyLevel: urgency.level,
       urgencyReasons: urgency.reasons,
       relatedContentIds,

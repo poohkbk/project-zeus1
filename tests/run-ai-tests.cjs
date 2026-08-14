@@ -293,6 +293,23 @@ test("unit: strict guidance separates criminal roles and legal categories", () =
   assert.ok(disciplineResult.recommendedDocuments.some((item) => item.includes("징계의결서")));
 });
 
+test("unit: follow-up answers override broad divorce classification for affair claims", () => {
+  const classification = classifyLegalQuestion("이혼 문제로 상담하고 싶습니다.");
+  const questions = [
+    { id: "ai-followup-1", field: "aiFollowup1", category: "divorce", order: 1, type: "long_text", question: "이혼을 원하지 않으면서도 어떤 결과를 원하시나요?", required: true },
+    { id: "ai-followup-2", field: "aiFollowup2", category: "divorce", order: 2, type: "boolean", question: "배우자의 부정행위 증거가 있나요?", required: true, options: [{ value: "yes", label: "예" }, { value: "no", label: "아니오" }] },
+  ];
+  const result = buildAiGuideResult("affair-followup", "현재 이혼 절차는 없습니다.", classification, [
+    answer("ai-followup-1", "aiFollowup1", "이혼은 원하지 않고 상간자에게 책임을 묻고 싶습니다."),
+    answer("ai-followup-2", "aiFollowup2", "yes"),
+  ], questions);
+
+  assert.equal(result.classification.subcategory, "affair");
+  assert.ok(result.missingInformation.some((item) => item.includes("혼인 사실")));
+  assert.ok(result.recommendedDocuments.some((item) => item.includes("부정행위")));
+  assert.equal(result.recommendedDocuments.some((item) => /부동산|예금|퇴직금|재산 형성/.test(item)), false);
+});
+
 test("unit: calculates session expiry and rate limits", () => {
   const expiresAt = new Date(createExpiry(7));
   const diffDays = Math.round((expiresAt.getTime() - Date.now()) / 86_400_000);
