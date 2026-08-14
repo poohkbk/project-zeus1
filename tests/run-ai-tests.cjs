@@ -369,6 +369,17 @@ test("unit: pre-litigation divorce guidance excludes pleadings not yet received"
   assert.ok(pendingSuit.recommendedDocuments.some((item) => /소장|답변서|조정서류/.test(item)));
 });
 
+test("unit: de facto marriage guidance avoids divorce wording and uses status evidence", () => {
+  const input = "사실혼 관계가 종료되어 재산분할을 청구하고 싶습니다.";
+  const result = buildAiGuideResult("de-facto-property", input, classifyLegalQuestion(input), [
+    answer("ai-followup-1", "aiFollowup1", "현재 법적 절차는 진행 중이지 않습니다."),
+  ]);
+  assert.equal(result.missingInformation.some((item) => /이혼 의사|이혼 소송/.test(item)), false);
+  assert.ok(result.missingInformation.some((item) => /부부로 생활|공동생활|사실혼/.test(item)));
+  assert.ok(result.recommendedDocuments.some((item) => /공동 주소|공동생활비|가족행사/.test(item)));
+  assert.equal(result.recommendedDocuments.some((item) => /소장|답변서|조정서류/.test(item)), false);
+});
+
 test("unit: follow-up answers override broad civil classification for debt claims", () => {
   const classification = classifyLegalQuestion("민사 문제로 상담하고 싶습니다.", "civil");
   const questions = [

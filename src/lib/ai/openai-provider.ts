@@ -137,9 +137,8 @@ function validateQuestionDrafts(value: Record<string, unknown>): AiProviderQuest
       && /중요한\s*날짜|관련(?:된|한)\s*날짜|특별한\s*날짜/.test(question)
       && !/결혼|혼인|별거|계약|변제|상환|사망|상속|인지|알게\s*된|접수|제출|송달|수령|처분|출석|재판|사고|폭언|폭행|미지급|퇴거|해지|해제/.test(question);
     if (genericDateQuestion) return [];
-    const vagueDocumentQuestion = /중요한\s*서류|관련(?:된|한)\s*서류|준비(?:한|할|하는)\s*서류|서류가\s*있나요/.test(question)
+    const vagueDocumentQuestion = /중요한\s*(?:서류|증거)|관련(?:된|한)\s*(?:서류|증거)|준비(?:한|할|하는)\s*(?:서류|증거)|(?:서류|증거)(?:가|를)\s*(?:있나요|가지고|보유)/.test(question)
       && !/계약서|차용증|소장|고소장|처분서|진단서|등기|가족관계|혼인관계|계좌|녹음|영상|문자|영수증|공소장|판결|조정/.test(question);
-    if (vagueDocumentQuestion) return [];
     const options = Array.isArray(draft.options)
       ? draft.options.slice(0, 5).flatMap((option) => {
           if (!option || typeof option !== "object" || Array.isArray(option)) return [];
@@ -152,11 +151,13 @@ function validateQuestionDrafts(value: Record<string, unknown>): AiProviderQuest
     const openQuestion = /무엇|어떤|언제|어디|누구|왜|얼마|어떻게|말씀해|알려주|설명해|구체적/.test(question);
     const booleanQuestion = !openQuestion && (type === "boolean" || (["short_text", "long_text"].includes(type ?? "") && /(?:있나요|없나요|인가요|하나요|했나요|받았나요|되었나요|중인가요|맞나요)\?$/.test(question)));
     return [{
-      question,
-      helpText: safeString(draft.helpText, 220),
-      type: booleanQuestion ? "boolean" : type === "boolean" ? "long_text" : type === "single_choice" && (!options || options.length < 2) ? "short_text" : type,
+      question: vagueDocumentQuestion ? "보유하고 있는 서류나 증거의 종류와 내용을 구체적으로 적어주세요." : question,
+      helpText: vagueDocumentQuestion
+        ? "예: 계약서, 계좌내역, 문자·카카오톡, 사진, 녹음, 신고·진료 기록. 자료가 없다면 ‘없음’이라고 적어주세요."
+        : safeString(draft.helpText, 220),
+      type: vagueDocumentQuestion ? "long_text" : booleanQuestion ? "boolean" : type === "boolean" ? "long_text" : type === "single_choice" && (!options || options.length < 2) ? "short_text" : type,
       required: draft.required !== false,
-      options: booleanQuestion
+      options: vagueDocumentQuestion ? undefined : booleanQuestion
         ? [{ value: "yes", label: "예" }, { value: "no", label: "아니오" }]
         : type === "boolean"
           ? undefined
@@ -303,7 +304,7 @@ export class OpenAiLegalGuideProvider implements AiLegalGuideProvider {
       {
         role: "system",
         content:
-          "You create a short Korean legal consultation intake flow for LAW OFFICE ZEU. Return JSON only. Ask only facts needed for a lawyer to understand the matter. Never request resident registration numbers, account passwords, unnecessary identifying data, illegal acts, or predictions of case outcomes. Questions must be neutral, plain Korean, and one fact per question. For criminal matters, the first question must determine whether the user is a victim/complainant, suspect/accused/defendant, or witness, and all later questions must match that role. Every question genuinely answerable with yes or no must use type 'boolean' with options [{value:'yes',label:'예'},{value:'no',label:'아니오'}]. Questions containing what/which/when/where/who/why/how/how much or asking for a desired outcome, explanation, or specific details must use short_text or long_text, never boolean. Never ask vague questions such as whether the user has 'important documents' or 'documents related to preparing for divorce'. Name the exact evidence or document and explain its relevance in the question, or omit the question. Never ask for an unspecified 'important date'. Every date question must name the exact event, such as marriage date, separation date, repayment due date, discovery date, or document service date. When the event is already named in the date question, do not ask a follow-up about what happened on that date or why it matters; that would be redundant. Do not ask the user to describe what happened on a marriage date, contract date, death date, filing date, service date, or any other self-explanatory date.",
+          "You create a short Korean legal consultation intake flow for LAW OFFICE ZEU. Return JSON only. Ask only facts needed for a lawyer to understand the matter. Never request resident registration numbers, account passwords, unnecessary identifying data, illegal acts, or predictions of case outcomes. Questions must be neutral, plain Korean, and one fact per question. For criminal matters, the first question must determine whether the user is a victim/complainant, suspect/accused/defendant, or witness, and all later questions must match that role. Every question genuinely answerable with yes or no must use type 'boolean' with options [{value:'yes',label:'예'},{value:'no',label:'아니오'}]. Questions containing what/which/when/where/who/why/how/how much or asking for a desired outcome, explanation, or specific details must use short_text or long_text, never boolean. Evidence and document questions must never be yes/no. Ask the user to list the exact case-specific evidence they have, give relevant examples in helpText, and explicitly instruct them to enter '없음' when they have none. For a de facto marriage, examples should include proof of cohabitation, shared address or household expenses, wedding/family recognition, messages, photos, joint assets, and contributions. Never ask vague questions such as whether the user has 'important documents' or 'documents related to preparing for divorce'. Name the exact evidence or document and explain its relevance in the question. Never ask for an unspecified 'important date'. Every date question must name the exact event, such as marriage date, separation date, repayment due date, discovery date, or document service date. When the event is already named in the date question, do not ask a follow-up about what happened on that date or why it matters; that would be redundant. Do not ask the user to describe what happened on a marriage date, contract date, death date, filing date, service date, or any other self-explanatory date.",
       },
       {
         role: "user",
