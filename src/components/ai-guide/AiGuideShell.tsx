@@ -390,7 +390,10 @@ export function AiGuideShell() {
               />
             </div>
             <div className="ai-result-consultation-cta">
-              <p>확인된 내용과 준비 자료를 바탕으로 변호사 상담을 이어가세요.</p>
+              <p>
+                <strong>간단 상담 의견</strong>
+                <span>{buildConsultationCtaComment(result)}</span>
+              </p>
               <button type="button" className="btn btn-primary" onClick={transferToConsultation}>
                 바로 상담 신청하기
               </button>
@@ -493,6 +496,20 @@ function softenResultItem(title: string, item: string) {
       .replace(/ 필요합니다\.?$/, " 있다면 준비해주세요.");
   }
   return item;
+}
+
+function buildConsultationCtaComment(result: AiGuideResult) {
+  const issueLabel = result.classification.subcategoryLabel || result.classification.categoryLabel;
+  const confirmed = result.confirmedFacts
+    .filter((item) => !item.includes("아직 구체적으로 확인된"))
+    .slice(0, 2)
+    .map((item) => item.length > 75 ? `${item.slice(0, 72)}…` : item);
+
+  if (confirmed.length === 0) {
+    return `${issueLabel} 관련 사실관계를 조금 더 확인하면 적절한 대응 방향을 정할 수 있습니다.`;
+  }
+
+  return `${issueLabel} 관련하여 ${confirmed.join(" · ")} 내용이 확인되었습니다. 구체적인 대응은 변호사 상담에서 검토해보세요.`;
 }
 
 function RelatedSection({ title, items }: { title: string; items: AiGuideResult["relatedContent"]["cases"] }) {
