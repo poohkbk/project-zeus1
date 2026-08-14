@@ -19,6 +19,17 @@ function shouldShowQuestion(question: AiGuideQuestion, answers: AiGuideAnswer[])
   return true;
 }
 
+const booleanQuestionEnding = /(?:있나요|없나요|인가요|하나요|했나요|받았나요|되었나요|중인가요|맞나요)\?$/;
+
+function isBooleanQuestion(question: string, type?: AiGuideQuestion["type"]) {
+  return type === "boolean" || (["short_text", "long_text"].includes(type ?? "") && booleanQuestionEnding.test(question.trim()));
+}
+
+const yesNoOptions = [
+  { value: "yes", label: "예" },
+  { value: "no", label: "아니오" },
+];
+
 export function getQuestionsForCategory(category: AiLegalCategory, answers: AiGuideAnswer[] = []) {
   if (category === "unclear") return [];
   return aiQuestionFlows[category]
@@ -51,16 +62,21 @@ export function sanitizeQuestionFlow(value: unknown, category: AiLegalCategory) 
             : [],
         )
       : undefined;
+    const booleanQuestion = isBooleanQuestion(candidate.question, candidate.type);
     return [{
       id: candidate.id,
       category,
       order: index + 1,
       field: candidate.field,
-      type: candidate.type!,
+      type: booleanQuestion ? "boolean" : candidate.type!,
       question: candidate.question.slice(0, 180),
       helpText: typeof candidate.helpText === "string" ? candidate.helpText.slice(0, 220) : undefined,
       required: candidate.required !== false,
-      options: candidate.type === "single_choice" && (options?.length ?? 0) >= 2 ? options : undefined,
+      options: booleanQuestion
+        ? yesNoOptions
+        : candidate.type === "single_choice" && (options?.length ?? 0) >= 2
+          ? options
+          : undefined,
     }];
   });
   return questions.length === value.length ? questions : undefined;

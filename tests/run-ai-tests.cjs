@@ -314,6 +314,7 @@ test("unit/provider: OpenAI provider creates safe tailored follow-up questions",
                     ],
                   },
                   { question: "현재 보유한 계약 관련 자료를 알려주세요.", type: "long_text", required: false },
+                  { question: "사고와 관련된 경찰 보고서가 있나요?", type: "short_text", required: true },
                 ],
               }),
             },
@@ -329,8 +330,13 @@ test("unit/provider: OpenAI provider creates safe tailored follow-up questions",
     answers: [],
     promptVersion: "test",
   });
-  assert.equal(response.data.length, 3);
+  assert.equal(response.data.length, 4);
   assert.equal(response.data[0].type, "date");
+  assert.equal(response.data[3].type, "boolean");
+  assert.deepEqual(response.data[3].options, [
+    { value: "yes", label: "예" },
+    { value: "no", label: "아니오" },
+  ]);
 
   const flow = sanitizeQuestionFlow(
     response.data.map((question, index) => ({
@@ -342,8 +348,10 @@ test("unit/provider: OpenAI provider creates safe tailored follow-up questions",
     })),
     "civil",
   );
-  assert.equal(flow?.length, 3);
+  assert.equal(flow?.length, 4);
   assert.equal(flow?.[1].options?.length, 2);
+  assert.equal(flow?.[3].type, "boolean");
+  assert.deepEqual(flow?.[3].options?.map((option) => option.value), ["yes", "no"]);
 });
 
 test("unit/provider: OpenAI provider fails on timeout and invalid JSON", async () => {

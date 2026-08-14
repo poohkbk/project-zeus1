@@ -141,12 +141,15 @@ function validateQuestionDrafts(value: Record<string, unknown>): AiProviderQuest
           return label && optionValue ? [{ label, value: optionValue }] : [];
         })
       : undefined;
+    const booleanQuestion = type === "boolean" || (["short_text", "long_text"].includes(type ?? "") && /(?:있나요|없나요|인가요|하나요|했나요|받았나요|되었나요|중인가요|맞나요)\?$/.test(question));
     return [{
       question,
       helpText: safeString(draft.helpText, 220),
-      type: type === "single_choice" && (!options || options.length < 2) ? "short_text" : type,
+      type: booleanQuestion ? "boolean" : type === "single_choice" && (!options || options.length < 2) ? "short_text" : type,
       required: draft.required !== false,
-      options,
+      options: booleanQuestion
+        ? [{ value: "yes", label: "예" }, { value: "no", label: "아니오" }]
+        : options,
     }];
   });
 }
@@ -288,7 +291,7 @@ export class OpenAiLegalGuideProvider implements AiLegalGuideProvider {
       {
         role: "system",
         content:
-          "You create a short Korean legal consultation intake flow for LAW OFFICE ZEU. Return JSON only. Ask only facts needed for a lawyer to understand the matter. Never request resident registration numbers, account passwords, unnecessary identifying data, illegal acts, or predictions of case outcomes. Questions must be neutral, plain Korean, and one fact per question.",
+          "You create a short Korean legal consultation intake flow for LAW OFFICE ZEU. Return JSON only. Ask only facts needed for a lawyer to understand the matter. Never request resident registration numbers, account passwords, unnecessary identifying data, illegal acts, or predictions of case outcomes. Questions must be neutral, plain Korean, and one fact per question. Every question answerable with yes or no must use type 'boolean' with options [{value:'yes',label:'예'},{value:'no',label:'아니오'}]; never use short_text or long_text for a yes/no question.",
       },
       {
         role: "user",
