@@ -392,7 +392,7 @@ export function AiGuideShell() {
             <div className="ai-result-consultation-cta">
               <p>
                 <strong>간단 상담 의견</strong>
-                <span>{buildConsultationCtaComment(result)}</span>
+                <span>{result.consultationOpinion?.trim() || buildConsultationCtaComment(result)}</span>
               </p>
               <button type="button" className="btn btn-primary" onClick={transferToConsultation}>
                 바로 상담 신청하기
@@ -501,16 +501,10 @@ function softenResultItem(title: string, item: string) {
 function buildConsultationCtaComment(result: AiGuideResult) {
   const issueLabel = result.classification.subcategoryLabel || result.classification.categoryLabel;
   const reviewTarget = getLegalReviewTarget(result);
-  const confirmed = result.confirmedFacts
-    .filter((item) => !item.includes("아직 구체적으로 확인된"))
-    .slice(0, 2)
-    .map((item) => item.length > 75 ? `${item.slice(0, 72)}…` : item);
-
-  if (confirmed.length === 0) {
-    return `${issueLabel} 관련하여 ${reviewTarget} 가능성을 검토하는 것은 가능합니다. 구체적인 판단을 위해 사실관계와 자료를 더 확인해야 합니다.`;
+  if (result.classification.subcategory === "debt") {
+    return `돈을 빌려준 사실과 변제 약정이 확인된다면 ${reviewTarget}를 검토할 수 있습니다. 차용증, 송금 내역과 변제기 도래 여부에 따라 지급명령 또는 민사소송 등 적절한 회수 절차를 상담해보세요.`;
   }
-
-  return `${issueLabel} 관련하여 ${confirmed.join(" · ")} 내용이 확인되었습니다. 현재 내용으로 ${reviewTarget} 가능성을 검토하는 것은 가능합니다. 구체적인 판단은 변호사 상담에서 확인해보세요.`;
+  return `${issueLabel} 사건에서 확인된 사실을 토대로 ${reviewTarget}를 검토할 수 있습니다. 보유 자료와 남은 사실관계를 함께 살펴 가장 적절한 대응 방법을 상담해보세요.`;
 }
 
 function getLegalReviewTarget(result: AiGuideResult) {

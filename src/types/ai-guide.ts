@@ -127,6 +127,7 @@ export interface AiGuideResult {
   confirmedFacts: string[];
   missingInformation: string[];
   recommendedDocuments: string[];
+  consultationOpinion?: string;
   sectionComments?: {
     confirmedFacts: string;
     missingInformation: string;

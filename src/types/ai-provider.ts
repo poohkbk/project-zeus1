@@ -21,6 +21,7 @@ export interface AiProviderResultDraft {
   confirmedFacts?: string[];
   missingInformation?: string[];
   recommendedDocuments?: string[];
+  consultationOpinion?: string;
   sectionComments?: AiGuideResult["sectionComments"];
   relatedContentIds?: string[];
   safetyNotice?: string;

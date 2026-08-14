@@ -111,6 +111,7 @@ function validateResultDraft(value: Record<string, unknown>): AiProviderResultDr
       ?.filter((item) => !["추가 확인이 필요합니다.", "추가 확인이 필요합니다", "확인이 필요합니다."].includes(item.trim()))
       .map(softenMissingInformation),
     recommendedDocuments: stringArray(value.recommendedDocuments, 8)?.map(softenRecommendedDocument),
+    consultationOpinion: safeString(value.consultationOpinion, 520),
     sectionComments: comments && typeof comments === "object" ? {
       confirmedFacts: safeString(comments.confirmedFacts, 80) ?? "확인된 사실을 바탕으로 핵심 쟁점을 더 살펴볼 수 있습니다.",
       missingInformation: safeString(comments.missingInformation, 80) ?? "남은 사실관계는 변호사 상담에서 구체적으로 확인해보세요.",
@@ -240,7 +241,7 @@ export class OpenAiLegalGuideProvider implements AiLegalGuideProvider {
       {
         role: "system",
         content:
-          "You write cautious Korean legal intake results for LAW OFFICE ZEU. Return JSON only. Never guarantee acquittal, victory, sentence, property division ratio, or administrative outcome. Do not cite content not provided. Tailor every fact, question, and document to the user's actual incident; ignore irrelevant generic rule-result items. For a traffic accident, never mention loan notes, loan agreements, contracts, or bank transfers; focus on accident circumstances, police/insurance reports, fault, treatment, dashcam, medical and damage records. Missing information must identify concrete unknown facts and use a checking phrase such as '있는지 확인해주세요', never '필요합니다'. Recommended documents are optional aids, not prerequisites for litigation; never use '필요합니다' and prefer wording such as '있다면 준비해주세요' or short document names.",
+          "You write cautious Korean legal intake results for LAW OFFICE ZEU. Return JSON only. Never guarantee acquittal, victory, sentence, property division ratio, or administrative outcome. Do not cite content not provided. Tailor every fact, question, and document to the user's actual incident; ignore irrelevant generic rule-result items. For a traffic accident, never mention loan notes, loan agreements, contracts, or bank transfers; focus on accident circumstances, police/insurance reports, fault, treatment, dashcam, medical and damage records. Missing information must identify concrete unknown facts and use a checking phrase such as '있는지 확인해주세요', never '필요합니다'. Recommended documents are optional aids, not prerequisites for litigation; never use '필요합니다' and prefer wording such as '있다면 준비해주세요' or short document names. The consultationOpinion must be a genuinely useful preliminary legal comment, not a transcript or concatenation of questions and answers. State the core factual meaning, a legally available response that can be reviewed, and the one or two conditions that materially affect that review. Use cautious but concrete language such as '청구를 검토할 수 있습니다' or '대응 가능성이 있습니다'; do not merely say that legal review is possible. Never begin with a generic category label and never copy question marks from intake questions.",
       },
       {
         role: "user",
@@ -272,6 +273,7 @@ export class OpenAiLegalGuideProvider implements AiLegalGuideProvider {
             confirmedFacts: ["facts confirmed by the user's actual answers, Korean, max 8"],
             missingInformation: ["specific unanswered fact phrased as a request to check whether it exists; Korean, max 8; never use 필요합니다; never generic"],
             recommendedDocuments: ["optional documents useful for consultation; Korean, max 8; never imply the document is required to pursue the case; never use 필요합니다"],
+            consultationOpinion: "2-4 natural Korean sentences, under 520 characters. Give a concrete preliminary legal view based on the facts, identify the legal response that may be pursued, and explain the decisive conditions. Do not repeat intake questions or guarantee an outcome.",
             sectionComments: {
               confirmedFacts: "about 50 Korean characters, brief interpretation of confirmed facts",
               missingInformation: "about 50 Korean characters, naturally recommend lawyer consultation for unresolved issues",
@@ -420,6 +422,7 @@ export function applyProviderResultDraft(
     missingInformation: "남은 쟁점은 변호사 상담을 통해 구체적으로 확인해보세요.",
     recommendedDocuments: "관련 자료를 지참하면 보다 정확한 상담에 도움이 됩니다.",
   };
+  const consultationOpinion = draft.consultationOpinion?.trim() || ruleResult.consultationOpinion;
   const allowedRelatedIds = new Set(draft.relatedContentIds ?? []);
   const relatedContent = draft.relatedContentIds
     ? {
@@ -436,6 +439,7 @@ export function applyProviderResultDraft(
     confirmedFacts,
     missingInformation,
     recommendedDocuments,
+    consultationOpinion,
     sectionComments,
     relatedContent,
     safetyNotice,
