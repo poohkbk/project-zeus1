@@ -131,12 +131,17 @@ export async function createTailoredQuestions(
       id: `ai-followup-${index + 1}`,
       category,
       order: index + 1,
-      field: `aiFollowup${index + 1}`,
-      type: draft.type ?? "short_text",
-      question: draft.question ?? "추가로 확인할 내용을 입력해주세요.",
+      field: category === "criminal" && index === 0 ? "partyRole" : `aiFollowup${index + 1}`,
+      type: category === "criminal" && index === 0 ? "single_choice" : draft.type ?? "short_text",
+      question: category === "criminal" && index === 0 ? "현재 어느 입장에 가깝습니까?" : draft.question ?? "추가로 확인할 내용을 입력해주세요.",
       helpText: draft.helpText,
       required: draft.required !== false,
-      options: draft.options?.map((option) => ({
+      options: category === "criminal" && index === 0 ? [
+        { value: "suspect", label: "피의자·피고소인·피고인" },
+        { value: "victim", label: "피해자·고소인" },
+        { value: "witness", label: "참고인·증인" },
+        { value: "unknown", label: "잘 모르겠습니다" },
+      ] : draft.options?.map((option) => ({
         value: option.value ?? "",
         label: option.label ?? "",
       })).filter((option) => option.value && option.label),

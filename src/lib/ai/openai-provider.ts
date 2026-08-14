@@ -291,7 +291,7 @@ export class OpenAiLegalGuideProvider implements AiLegalGuideProvider {
       {
         role: "system",
         content:
-          "You create a short Korean legal consultation intake flow for LAW OFFICE ZEU. Return JSON only. Ask only facts needed for a lawyer to understand the matter. Never request resident registration numbers, account passwords, unnecessary identifying data, illegal acts, or predictions of case outcomes. Questions must be neutral, plain Korean, and one fact per question. Every question answerable with yes or no must use type 'boolean' with options [{value:'yes',label:'예'},{value:'no',label:'아니오'}]; never use short_text or long_text for a yes/no question.",
+          "You create a short Korean legal consultation intake flow for LAW OFFICE ZEU. Return JSON only. Ask only facts needed for a lawyer to understand the matter. Never request resident registration numbers, account passwords, unnecessary identifying data, illegal acts, or predictions of case outcomes. Questions must be neutral, plain Korean, and one fact per question. For criminal matters, the first question must determine whether the user is a victim/complainant, suspect/accused/defendant, or witness, and all later questions must match that role. Every question answerable with yes or no must use type 'boolean' with options [{value:'yes',label:'예'},{value:'no',label:'아니오'}]; never use short_text or long_text for a yes/no question.",
       },
       {
         role: "user",
@@ -405,14 +405,12 @@ export function applyProviderResultDraft(
     administrative: ["처분서 수령일과 불복기한", "처분 사유와 제출된 소명자료의 내용"],
     unclear: ["분쟁이 시작된 경위와 상대방의 입장", "중요한 날짜·금액·보유 문서의 구체적인 내용"],
   };
-  const missingInformation = removeTrafficIrrelevantItems(draft.missingInformation?.length
-    ? draft.missingInformation
-    : ruleResult.missingInformation.length
+  const missingInformation = removeTrafficIrrelevantItems(
+    ruleResult.missingInformation.length
       ? ruleResult.missingInformation
-      : concreteFallbackByCategory[ruleResult.classification.category]);
-  const recommendedDocuments = removeTrafficIrrelevantItems(draft.recommendedDocuments?.length
-    ? draft.recommendedDocuments
-    : ruleResult.recommendedDocuments);
+      : concreteFallbackByCategory[ruleResult.classification.category],
+  );
+  const recommendedDocuments = removeTrafficIrrelevantItems(ruleResult.recommendedDocuments);
   const safetyNotice = draft.safetyNotice ?? ruleResult.safetyNotice;
   const sectionComments = draft.sectionComments ?? {
     confirmedFacts: "확인된 사실을 바탕으로 사건의 핵심 쟁점을 정리할 수 있습니다.",

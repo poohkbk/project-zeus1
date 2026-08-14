@@ -1,5 +1,4 @@
 import { aiCategoryLabels, aiSubcategoryLabels } from "@/data/ai/categories";
-import { aiDocumentChecklists } from "@/data/ai/document-checklists";
 import { aiProcessGuides } from "@/data/ai/process-guides";
 import { aiQuestionFlows } from "@/data/ai/question-flows";
 import type { AiClassificationResult, AiGuideAnswer, AiGuideQuestion, AiGuideResult } from "@/types/ai-guide";
@@ -131,6 +130,100 @@ function trafficAccidentGuidance() {
   };
 }
 
+function buildStrictGuidance(
+  classification: AiClassificationResult,
+  answerMap: Map<string, AiGuideAnswer["value"]>,
+  initialQuestion: string,
+) {
+  if (isTrafficAccident(initialQuestion, classification)) return trafficAccidentGuidance();
+
+  if (classification.category === "civil") {
+    const disputeType = String(answerMap.get("disputeType") ?? classification.subcategory ?? "general");
+    if (disputeType === "debt") return {
+      missingInformation: ["돈을 빌려준 날짜와 금액을 확인해주세요.", "변제기와 실제 변제 내역을 확인해주세요.", "상대방에게 반환을 요청한 기록이 있는지 확인해주세요."],
+      recommendedDocuments: ["차용증·각서·공증서", "계좌이체·입금 내역", "변제 약속과 독촉 대화", "내용증명·지급명령·소송서류", "상대방 확인 자료"],
+    };
+    if (disputeType === "contract") return {
+      missingInformation: ["계약 내용과 체결일을 확인해주세요.", "각 당사자가 이행한 내용과 위반 시점을 확인해주세요.", "해제·해지 또는 이행을 요구한 기록이 있는지 확인해주세요."],
+      recommendedDocuments: ["계약서·견적서·발주서", "대금 지급과 이행 내역", "계약 관련 문자·이메일", "해제·해지·이행 요청 자료", "손해 발생 자료"],
+    };
+    if (disputeType === "damages" || classification.subcategory === "damages") return {
+      missingInformation: ["손해가 발생한 날짜와 경위를 확인해주세요.", "상대방의 행위와 손해 사이의 관련성을 확인해주세요.", "현재까지 발생한 손해액과 향후 예상 손해를 확인해주세요."],
+      recommendedDocuments: ["손해 발생 경위 자료", "사진·영상·녹취", "진단서·수리비 등 손해액 자료", "상대방과 주고받은 연락", "보험 또는 보상 관련 자료", "상대방 확인 자료"],
+    };
+    return {
+      missingInformation: ["부동산·임대차 등 분쟁 대상과 권리관계를 확인해주세요.", "점유·사용·대금 지급 경위를 확인해주세요.", "상대방의 현재 요구와 소송 진행 여부를 확인해주세요."],
+      recommendedDocuments: ["등기사항증명서·건축물대장", "임대차·매매·공사 계약 자료", "보증금·대금 지급 내역", "하자·점유 상태 사진", "상대방과 주고받은 연락", "내용증명·법원서류"],
+    };
+  }
+
+  if (classification.category === "criminal") {
+    const role = String(answerMap.get("partyRole") ?? "unknown");
+    const stage = String(answerMap.get("investigationStage") ?? "unknown");
+    if (role === "victim") return {
+      missingInformation: ["피해 일시·장소와 구체적인 경위를 확인해주세요.", "가해자로 보는 상대방과 피해 내용을 확인해주세요.", "고소장 접수 여부와 담당 수사기관을 확인해주세요.", "처벌 의사와 합의 진행 여부를 확인해주세요."],
+      recommendedDocuments: ["피해 경위와 시간순 정리", "문자·녹취·사진·영상 등 피해 증거", "진단서·피해금액 자료", "상대방 확인 자료", "고소장·사건접수증·수사기관 연락", "목격자 정보"],
+    };
+    if (role === "suspect" && stage === "trial") return {
+      missingInformation: ["공소사실과 적용 죄명을 확인해주세요.", "재판 기일과 현재 증거조사 단계를 확인해주세요.", "혐의에 대한 인정·부인 입장과 합의 여부를 확인해주세요."],
+      recommendedDocuments: ["공소장·의견서·증거목록", "사건번호와 재판기일 통지", "혐의를 반박하거나 설명할 자료", "수사기관 진술조서", "합의·피해회복 자료", "정상관계 자료"],
+    };
+    if (role === "suspect") return {
+      missingInformation: ["문제가 된 혐의와 고소 내용을 확인해주세요.", "경찰·검찰 연락 여부와 출석 예정일을 확인해주세요.", "혐의에 대한 인정·부인 입장과 이미 진술한 내용을 확인해주세요.", "압수수색·체포·구속 등 긴급 상황이 있는지 확인해주세요."],
+      recommendedDocuments: ["출석요구 문자·사건번호", "고소 내용이나 혐의를 알 수 있는 자료", "혐의를 반박하거나 설명할 대화·사진·거래 자료", "이미 제출하거나 진술한 내용", "합의·피해회복 관련 자료", "관련 일정 정리"],
+    };
+    if (role === "witness") return {
+      missingInformation: ["어느 기관에서 어떤 이유로 출석을 요청했는지 확인해주세요.", "직접 경험한 사실과 전해 들은 내용을 구분해주세요.", "사건 당사자와의 관계와 관련 자료 보유 여부를 확인해주세요."],
+      recommendedDocuments: ["출석요구 문자·연락 내용", "직접 경험한 사실의 시간순 정리", "당시 작성된 대화·사진·영상", "사건 당사자와의 관계를 설명할 자료"],
+    };
+    return {
+      missingInformation: ["피해자·고소인인지 피의자·피고소인인지 확인해주세요.", "현재 경찰·검찰·재판 중 어느 단계인지 확인해주세요.", "다음 조사일이나 재판일이 정해졌는지 확인해주세요."],
+      recommendedDocuments: ["수사기관·법원에서 받은 연락과 서류", "사건 경위의 시간순 정리", "관련 문자·사진·영상·거래 자료", "사건번호와 향후 일정"],
+    };
+  }
+
+  if (classification.category === "divorce") {
+    if (answerMap.get("affairIssue") === "yes" || classification.subcategory === "affair") return {
+      missingInformation: ["부정행위가 시작된 시기와 알게 된 경위를 확인해주세요.", "혼인관계가 파탄된 시점과 현재 배우자와의 관계를 확인해주세요.", "상간 상대방의 인적사항을 알고 있는지 확인해주세요."],
+      recommendedDocuments: ["부정행위 관련 대화·사진·숙박·결제 자료", "혼인관계증명서·가족관계증명서", "혼인생활과 파탄 경위 정리", "상간 상대방 확인 자료", "소장·답변서·조정서류"],
+    };
+    if (answerMap.get("custodyConcern") === "yes" || classification.subcategory === "custody") return {
+      missingInformation: ["자녀의 현재 양육자와 생활환경을 확인해주세요.", "희망하는 친권·양육권·면접교섭 내용을 확인해주세요.", "현재 양육비 지급 여부와 자녀 지출을 확인해주세요."],
+      recommendedDocuments: ["가족관계증명서·자녀 기본증명서", "양육 현황과 생활환경 자료", "자녀 교육·의료·생활비 내역", "양육비 지급 내역", "면접교섭 관련 대화", "학교·어린이집 관련 자료"],
+    };
+    return {
+      missingInformation: ["이혼 의사와 현재 협의·별거·소송 상태를 확인해주세요.", "혼인 중 형성한 재산과 채무의 명의·가액을 확인해주세요.", "각 재산의 취득 경위와 기여 내용을 확인해주세요."],
+      recommendedDocuments: ["혼인관계증명서·가족관계증명서", "부동산·예금·보험·주식 자료", "대출·채무 자료", "소득·연금·퇴직금 자료", "재산 형성 기여 자료", "소장·답변서·조정서류"],
+    };
+  }
+
+  if (classification.category === "inheritance") {
+    const caseType = String(answerMap.get("caseType") ?? classification.subcategory ?? "general");
+    if (["renunciation", "limited-acceptance"].includes(caseType)) return {
+      missingInformation: ["사망일과 상속 사실을 알게 된 날짜를 확인해주세요.", "상속재산과 채무의 대략적인 규모를 확인해주세요.", "재산을 처분하거나 채무를 변제한 사실이 있는지 확인해주세요."],
+      recommendedDocuments: ["사망진단서·기본증명서", "가족관계증명서", "상속재산 조회 자료", "채무·독촉·소송 자료", "다른 상속인 확인 자료", "재산 처분·채무 변제 내역"],
+    };
+    if (caseType === "reserved-share") return {
+      missingInformation: ["사망일과 증여·유언 내용을 알게 된 날짜를 확인해주세요.", "법정상속인과 생전 증여를 받은 사람을 확인해주세요.", "유언·증여 재산과 남은 상속재산의 가액을 확인해주세요."],
+      recommendedDocuments: ["기본증명서·가족관계증명서", "유언장·증여계약·등기 자료", "금융거래·부동산 가액 자료", "상속재산 목록", "다른 상속인과 주고받은 연락"],
+    };
+    return {
+      missingInformation: ["상속인별 관계와 협의 여부를 확인해주세요.", "분할 대상 재산과 채무의 목록·가액을 확인해주세요.", "생전 증여와 재산 관리 기여가 있었는지 확인해주세요."],
+      recommendedDocuments: ["기본증명서·가족관계증명서", "부동산·예금·주식·보험 자료", "상속채무 자료", "유언장·생전 증여 자료", "상속인 간 협의·연락", "재산 관리·기여 자료"],
+    };
+  }
+
+  const dispositionType = String(answerMap.get("dispositionType") ?? classification.subcategory ?? "administrative-lawsuit");
+  const commonAdministrative = {
+    missingInformation: ["처분 내용과 처분 사유를 확인해주세요.", "처분서를 받은 날짜와 효력 발생일을 확인해주세요.", "이의신청·행정심판·행정소송 진행 여부를 확인해주세요."],
+    recommendedDocuments: ["처분서·통지서·공문", "처분 사유와 근거 자료", "통지 수령일 확인 자료", "사전통지·의견제출·청문 자료", "이의신청·행정심판·소송서류", "처분으로 인한 손해 자료"],
+  };
+  if (dispositionType === "business-suspension") commonAdministrative.recommendedDocuments.push("영업신고·매출·위반 관련 자료");
+  if (dispositionType === "license-cancellation") commonAdministrative.recommendedDocuments.push("면허·자격과 위반 관련 자료");
+  if (dispositionType === "discipline") commonAdministrative.recommendedDocuments.push("징계의결서·소명서·인사기록");
+  return commonAdministrative;
+}
+
 export function buildAiGuideResult(
   sessionId: string,
   initialQuestionRedacted: string,
@@ -142,7 +235,7 @@ export function buildAiGuideResult(
   const answerMap = getAnswerMap(answers);
   const urgency = evaluateUrgency(classification.category, answers, initialQuestionRedacted);
   const safetyGuidance = evaluateSafetyGuidance(initialQuestionRedacted, answers);
-  const trafficAccident = isTrafficAccident(initialQuestionRedacted, classification);
+  const strictGuidance = buildStrictGuidance(classification, answerMap, initialQuestionRedacted);
   const relatedContent = getAiRelatedContent(classification, answers);
   const confirmedFacts = answers
     .filter((answer) => answer.value !== null && answer.value !== "" && answer.value !== "unknown")
@@ -166,9 +259,7 @@ export function buildAiGuideResult(
   if (classification.category === "civil" && classification.subcategory !== "damages" && answerMap.get("writtenAgreementExists") !== "yes") {
     missingInformation.push("차용증·계약서가 없다면 이체내역이나 대화 기록이 있는지 확인해주세요.");
   }
-  if (trafficAccident) {
-    missingInformation.push(...trafficAccidentGuidance().missingInformation);
-  }
+  missingInformation.push(...strictGuidance.missingInformation);
   if (safetyGuidance.flags.includes("evidence-preservation")) {
     missingInformation.push("증거는 삭제하거나 숨기지 말고 원본 상태로 보존해야 합니다.");
   }
@@ -179,11 +270,7 @@ export function buildAiGuideResult(
     missingInformation.push("무죄 여부는 증거와 수사기록 전체를 검토한 뒤 판단해야 합니다.");
   }
 
-  const recommendedDocuments = trafficAccident
-    ? trafficAccidentGuidance().recommendedDocuments
-    : classification.subcategory === "damages"
-      ? ["손해 발생 경위 자료", "사진·영상·녹취", "진단서·수리비 등 손해액 자료", "상대방과 주고받은 연락", "보험 또는 보상 관련 자료", "상대방 확인 자료"]
-      : aiDocumentChecklists[category];
+  const recommendedDocuments = strictGuidance.recommendedDocuments;
   const situationSummary = `${classification.categoryLabel} ${
     classification.subcategoryLabel ?? ""
   } 관련 상담 전 확인 내용입니다. 현재 정보만으로는 일반 안내만 가능하며, 자료 검토에 따라 방향이 달라질 수 있습니다.`;

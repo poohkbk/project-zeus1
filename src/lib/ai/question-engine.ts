@@ -48,9 +48,10 @@ export function sanitizeQuestionFlow(value: unknown, category: AiLegalCategory) 
   const questions = value.flatMap((item, index): AiGuideQuestion[] => {
     if (!item || typeof item !== "object" || Array.isArray(item)) return [];
     const candidate = item as Partial<AiGuideQuestion>;
+    const expectedField = category === "criminal" && index === 0 ? "partyRole" : `aiFollowup${index + 1}`;
     if (
       candidate.id !== `ai-followup-${index + 1}` ||
-      candidate.field !== `aiFollowup${index + 1}` ||
+      candidate.field !== expectedField ||
       typeof candidate.question !== "string" ||
       !candidate.question.trim() ||
       !allowedTypes.has(candidate.type ?? "")

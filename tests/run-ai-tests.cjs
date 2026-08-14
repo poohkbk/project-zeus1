@@ -261,6 +261,38 @@ test("unit: traffic accident result excludes debt documents and recommends accid
   assert.ok(result.missingInformation.some((item) => item.includes("과실비율")));
 });
 
+test("unit: strict guidance separates criminal roles and legal categories", () => {
+  const criminal = classifyLegalQuestion("경찰 고소와 조사 관련 상담입니다.");
+  const victimResult = buildAiGuideResult("criminal-victim", "폭행 피해를 고소하려고 합니다.", criminal, [
+    answer("criminal-party-role", "partyRole", "victim"),
+  ]);
+  const suspectResult = buildAiGuideResult("criminal-suspect", "고소를 당해 경찰 연락을 받았습니다.", criminal, [
+    answer("criminal-party-role", "partyRole", "suspect"),
+  ]);
+  assert.ok(victimResult.recommendedDocuments.some((item) => item.includes("피해 증거")));
+  assert.equal(victimResult.recommendedDocuments.some((item) => item.includes("공소장")), false);
+  assert.ok(suspectResult.recommendedDocuments.some((item) => item.includes("반박")));
+  assert.equal(suspectResult.recommendedDocuments.some((item) => item.includes("고소장·사건접수증")), false);
+
+  const divorce = classifyLegalQuestion("자녀 양육권과 양육비 상담입니다.");
+  const custodyResult = buildAiGuideResult("divorce-custody", "자녀 양육권과 양육비 상담입니다.", divorce, [
+    answer("divorce-custody", "custodyConcern", "yes"),
+  ]);
+  assert.ok(custodyResult.recommendedDocuments.some((item) => item.includes("양육비")));
+
+  const inheritance = classifyLegalQuestion("상속받을 재산보다 채무가 많아 한정승인을 고민합니다.");
+  const inheritanceResult = buildAiGuideResult("inheritance-limited", "상속 채무 한정승인 상담입니다.", inheritance, [
+    answer("inheritance-case-type", "caseType", "limited-acceptance"),
+  ]);
+  assert.ok(inheritanceResult.recommendedDocuments.some((item) => item.includes("채무")));
+
+  const administrative = classifyLegalQuestion("공무원 징계 처분에 불복하려고 합니다.");
+  const disciplineResult = buildAiGuideResult("administrative-discipline", "공무원 징계 처분에 불복하려고 합니다.", administrative, [
+    answer("administrative-disposition-type", "dispositionType", "discipline"),
+  ]);
+  assert.ok(disciplineResult.recommendedDocuments.some((item) => item.includes("징계의결서")));
+});
+
 test("unit: calculates session expiry and rate limits", () => {
   const expiresAt = new Date(createExpiry(7));
   const diffDays = Math.round((expiresAt.getTime() - Date.now()) / 86_400_000);
