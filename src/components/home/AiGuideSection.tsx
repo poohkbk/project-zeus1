@@ -10,7 +10,7 @@ export function AiGuideSection() {
         <Reveal className="ai-copy">
           <div className="ai-section-labels">
             <span className="section-kicker invert">AI Legal Consultation</span>
-            <span className="ai-version-badge">ZEUS AI V1</span>
+            <span className="ai-version-badge">ZEUS AI V2</span>
           </div>
           <h2 id="ai-guide-title">24시간 AI 상담으로 먼저 확인해보세요.</h2>
           <p>
