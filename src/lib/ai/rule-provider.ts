@@ -5,6 +5,9 @@ export const ruleBasedLegalGuideProvider: AiLegalGuideProvider = {
   async classify(_inputRedacted, ruleClassification) {
     return { data: ruleClassification };
   },
+  async createQuestions() {
+    return { data: [] };
+  },
   async composeResult(ruleResult) {
     return {
       data: {

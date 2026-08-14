@@ -36,7 +36,7 @@ require.extensions[".ts"] = function compileTypeScript(module, filename) {
 
 const { classifyLegalQuestion } = require("../src/lib/ai/classifier.ts");
 const { redactSensitiveData } = require("../src/lib/ai/redaction.ts");
-const { getQuestionsForCategory, upsertAnswer } = require("../src/lib/ai/question-engine.ts");
+const { getQuestionsForCategory, sanitizeQuestionFlow, upsertAnswer } = require("../src/lib/ai/question-engine.ts");
 const { evaluateUrgency } = require("../src/lib/ai/urgency.ts");
 const { buildAiGuideResult } = require("../src/lib/ai/answer-composer.ts");
 const { getAiRelatedContent, tagsFromAiContext } = require("../src/lib/ai/content-retrieval.ts");
@@ -283,6 +283,59 @@ test("unit/provider: OpenAI provider accepts structured JSON success", async () 
   assert.equal(response.data.category, "civil");
   assert.equal(response.data.subcategory, "debt");
   assert.equal(response.usage.totalTokens, 15);
+});
+
+test("unit/provider: OpenAI provider creates safe tailored follow-up questions", async () => {
+  const provider = new OpenAiLegalGuideProvider({
+    apiKey: "test-key",
+    fetchImpl: async () =>
+      new Response(
+        JSON.stringify({
+          choices: [{
+            message: {
+              content: JSON.stringify({
+                questions: [
+                  { question: "임대차계약이 종료된 날짜는 언제인가요?", type: "date", required: true },
+                  {
+                    question: "임대인에게 반환을 요청한 자료가 있나요?",
+                    type: "single_choice",
+                    required: true,
+                    options: [
+                      { value: "yes", label: "있습니다" },
+                      { value: "no", label: "없습니다" },
+                    ],
+                  },
+                  { question: "현재 보유한 계약 관련 자료를 알려주세요.", type: "long_text", required: false },
+                ],
+              }),
+            },
+          }],
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      ),
+  });
+  const classification = classifyLegalQuestion("임대차 보증금을 돌려받지 못했습니다.");
+  const response = await provider.createQuestions(classification, {
+    sessionId: "provider-questions",
+    initialQuestionRedacted: "임대차 보증금을 돌려받지 못했습니다.",
+    answers: [],
+    promptVersion: "test",
+  });
+  assert.equal(response.data.length, 3);
+  assert.equal(response.data[0].type, "date");
+
+  const flow = sanitizeQuestionFlow(
+    response.data.map((question, index) => ({
+      ...question,
+      id: `ai-followup-${index + 1}`,
+      field: `aiFollowup${index + 1}`,
+      category: "civil",
+      order: index + 1,
+    })),
+    "civil",
+  );
+  assert.equal(flow?.length, 3);
+  assert.equal(flow?.[1].options?.length, 2);
 });
 
 test("unit/provider: OpenAI provider fails on timeout and invalid JSON", async () => {

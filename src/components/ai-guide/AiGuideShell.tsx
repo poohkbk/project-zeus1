@@ -183,6 +183,7 @@ export function AiGuideShell() {
     try {
       const response = await postJson<AnswerResponse>("/api/ai-guide/answer", {
         sessionId,
+        questions,
         answer: {
           questionId: currentQuestion.id,
           field: currentQuestion.field,

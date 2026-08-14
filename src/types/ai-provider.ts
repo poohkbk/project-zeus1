@@ -1,4 +1,4 @@
-import type { AiClassificationResult, AiGuideAnswer, AiGuideResult } from "./ai-guide";
+import type { AiClassificationResult, AiGuideAnswer, AiGuideQuestion, AiGuideResult } from "./ai-guide";
 
 export interface AiProviderContext {
   sessionId: string;
@@ -21,6 +21,14 @@ export interface AiProviderResultDraft {
   safetyNotice?: string;
 }
 
+export interface AiProviderQuestionDraft {
+  question?: string;
+  helpText?: string;
+  type?: AiGuideQuestion["type"];
+  required?: boolean;
+  options?: Array<{ value?: string; label?: string }>;
+}
+
 export interface AiProviderUsage {
   inputTokens?: number;
   outputTokens?: number;
@@ -40,6 +48,10 @@ export interface AiLegalGuideProvider {
     ruleClassification: AiClassificationResult,
     context: AiProviderContext,
   ): Promise<AiProviderResponse<AiProviderClassification>>;
+  createQuestions(
+    classification: AiClassificationResult,
+    context: AiProviderContext,
+  ): Promise<AiProviderResponse<AiProviderQuestionDraft[]>>;
   composeResult(
     ruleResult: AiGuideResult,
     context: AiProviderContext,

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { classifyLegalQuestion } from "@/lib/ai/classifier";
 import { getQuestionsForCategory } from "@/lib/ai/question-engine";
+import { createTailoredQuestions } from "@/lib/ai/provider-runtime";
 import { isAiSessionOwner } from "@/lib/ai/session-auth";
 import { getAiGuideSession, saveAiGuideEvent, updateAiGuideSession } from "@/lib/ai/session-store";
 import { rejectCrossOriginRequest } from "@/lib/security/request-guard";
@@ -35,8 +36,16 @@ export async function POST(request: NextRequest) {
     subcategory: updated.classification.subcategory,
   });
 
+  const fallbackQuestions = getQuestionsForCategory(updated.classification.category);
+  const questions = await createTailoredQuestions(
+    updated.id,
+    updated.initialQuestionRedacted,
+    updated.classification,
+    fallbackQuestions,
+  );
+
   return NextResponse.json({
     classification: updated.classification,
-    questions: getQuestionsForCategory(updated.classification.category),
+    questions,
   });
 }

@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { redactSensitiveData } from "@/lib/ai/redaction";
-import { getNextQuestion, getQuestionsForCategory, upsertAnswer } from "@/lib/ai/question-engine";
+import { getNextQuestion, getNextQuestionFromFlow, getQuestionsForCategory, sanitizeQuestionFlow, upsertAnswer } from "@/lib/ai/question-engine";
 import { isAiSessionOwner } from "@/lib/ai/session-auth";
 import { getAiGuideSession, saveAiGuideEvent, updateAiGuideSession } from "@/lib/ai/session-store";
 import { rejectCrossOriginRequest } from "@/lib/security/request-guard";
-import type { AiGuideAnswer } from "@/types/ai-guide";
+import type { AiGuideAnswer, AiGuideQuestion } from "@/types/ai-guide";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +15,7 @@ export async function POST(request: NextRequest) {
   const body = (await request.json().catch(() => ({}))) as {
     sessionId?: string;
     answer?: Omit<AiGuideAnswer, "answeredAt">;
+    questions?: AiGuideQuestion[];
   };
   if (!body.sessionId || !body.answer) {
     return NextResponse.json({ message: "답변 정보가 부족합니다." }, { status: 400 });
@@ -34,9 +35,9 @@ export async function POST(request: NextRequest) {
     value,
     answeredAt: new Date().toISOString(),
   });
-  const validQuestionIds = new Set(
-    getQuestionsForCategory(session.classification.category, nextAnswers).map((question) => question.id),
-  );
+  const tailoredQuestions = sanitizeQuestionFlow(body.questions, session.classification.category);
+  const questionFlow = tailoredQuestions ?? getQuestionsForCategory(session.classification.category, nextAnswers);
+  const validQuestionIds = new Set(questionFlow.map((question) => question.id));
   const filteredAnswers = nextAnswers.filter((answer) => validQuestionIds.has(answer.questionId));
   const updated = await updateAiGuideSession({
     ...session,
@@ -48,11 +49,13 @@ export async function POST(request: NextRequest) {
     field: body.answer.field,
   });
 
-  const questions = getQuestionsForCategory(updated.classification.category, updated.answers);
+  const questions = tailoredQuestions ?? getQuestionsForCategory(updated.classification.category, updated.answers);
 
   return NextResponse.json({
     answers: updated.answers,
-    nextQuestion: getNextQuestion(updated.classification.category, updated.answers),
+    nextQuestion: tailoredQuestions
+      ? getNextQuestionFromFlow(questions, updated.answers)
+      : getNextQuestion(updated.classification.category, updated.answers),
     questions,
     totalQuestions: questions.length,
   });

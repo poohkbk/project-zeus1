@@ -1,4 +1,5 @@
 import type { AiClassificationResult, AiGuideAnswer, AiGuideResult } from "@/types/ai-guide";
+import type { AiGuideQuestion } from "@/types/ai-guide";
 import { getOpenAiApiKey, getAiProviderSettings, getPromptVersion } from "./provider-config";
 import {
   applyProviderClassification,
@@ -97,5 +98,56 @@ export async function enhanceResultWithProvider(
       ...ruleResult,
       aiProviderNotice: "현재 AI 연결이 원활하지 않지만 기본 안내는 계속 이용할 수 있습니다.",
     };
+  }
+}
+
+export async function createTailoredQuestions(
+  sessionId: string,
+  initialQuestionRedacted: string,
+  classification: AiClassificationResult,
+  fallbackQuestions: AiGuideQuestion[],
+) {
+  if (!isProviderReady()) return fallbackQuestions;
+  const budget = canUseGenerativeAi();
+  if (!budget.allowed) {
+    recordGenerativeFallback();
+    return fallbackQuestions;
+  }
+
+  try {
+    const provider = new OpenAiLegalGuideProvider({ apiKey: getOpenAiApiKey() });
+    const response = await provider.createQuestions(classification, {
+      sessionId,
+      initialQuestionRedacted,
+      answers: [],
+      promptVersion: getPromptVersion(),
+    });
+    recordGenerativeUsage(response.usage);
+    if (response.data.length < 3) return fallbackQuestions;
+    const category = classification.category === "unclear" ? "civil" : classification.category;
+    const questions: AiGuideQuestion[] = response.data.map((draft, index) => ({
+      id: `ai-followup-${index + 1}`,
+      category,
+      order: index + 1,
+      field: `aiFollowup${index + 1}`,
+      type: draft.type ?? "short_text",
+      question: draft.question ?? "추가로 확인할 내용을 입력해주세요.",
+      helpText: draft.helpText,
+      required: draft.required !== false,
+      options: draft.options?.map((option) => ({
+        value: option.value ?? "",
+        label: option.label ?? "",
+      })).filter((option) => option.value && option.label),
+    }));
+    await saveAiGuideEvent(sessionId, "tailored_questions_created", { count: questions.length });
+    return questions;
+  } catch (error) {
+    recordGenerativeFailure();
+    recordGenerativeFallback();
+    await saveAiGuideEvent(sessionId, "generative_fallback", {
+      reason: error instanceof Error ? error.message : "unknown",
+      stage: "questions",
+    });
+    return fallbackQuestions;
   }
 }

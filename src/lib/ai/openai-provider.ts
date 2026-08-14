@@ -4,6 +4,7 @@ import type {
   AiLegalGuideProvider,
   AiProviderClassification,
   AiProviderContext,
+  AiProviderQuestionDraft,
   AiProviderResponse,
   AiProviderResultDraft,
   AiProviderUsage,
@@ -94,6 +95,36 @@ function validateResultDraft(value: Record<string, unknown>): AiProviderResultDr
     missingInformation: stringArray(value.missingInformation, 8),
     safetyNotice: safeString(value.safetyNotice, 520),
   };
+}
+
+function validateQuestionDrafts(value: Record<string, unknown>): AiProviderQuestionDraft[] {
+  if (!Array.isArray(value.questions)) return [];
+  const allowedTypes = new Set(["single_choice", "date", "short_text", "long_text", "boolean"]);
+  return value.questions.slice(0, 6).flatMap((item) => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) return [];
+    const draft = item as Record<string, unknown>;
+    const question = safeString(draft.question, 180)?.trim();
+    const type = allowedTypes.has(draft.type as string)
+      ? (draft.type as AiProviderQuestionDraft["type"])
+      : "short_text";
+    if (!question) return [];
+    const options = Array.isArray(draft.options)
+      ? draft.options.slice(0, 5).flatMap((option) => {
+          if (!option || typeof option !== "object" || Array.isArray(option)) return [];
+          const entry = option as Record<string, unknown>;
+          const label = safeString(entry.label, 60)?.trim();
+          const optionValue = safeString(entry.value, 40)?.trim();
+          return label && optionValue ? [{ label, value: optionValue }] : [];
+        })
+      : undefined;
+    return [{
+      question,
+      helpText: safeString(draft.helpText, 220),
+      type: type === "single_choice" && (!options || options.length < 2) ? "short_text" : type,
+      required: draft.required !== false,
+      options,
+    }];
+  });
 }
 
 function usageFromResponse(value: Record<string, unknown>): AiProviderUsage {
@@ -211,6 +242,47 @@ export class OpenAiLegalGuideProvider implements AiLegalGuideProvider {
       },
     ]);
     return { data: validateResultDraft(json.data), usage: json.usage };
+  }
+
+  async createQuestions(
+    classification: AiClassificationResult,
+    context: AiProviderContext,
+  ): Promise<AiProviderResponse<AiProviderQuestionDraft[]>> {
+    const json = await this.chatJson([
+      {
+        role: "system",
+        content:
+          "You create a short Korean legal consultation intake flow for LAW OFFICE ZEU. Return JSON only. Ask only facts needed for a lawyer to understand the matter. Never request resident registration numbers, account passwords, unnecessary identifying data, illegal acts, or predictions of case outcomes. Questions must be neutral, plain Korean, and one fact per question.",
+      },
+      {
+        role: "user",
+        content: JSON.stringify({
+          task: "tailored_follow_up_questions",
+          promptVersion: context.promptVersion,
+          classification: {
+            category: classification.category,
+            subcategory: classification.subcategory,
+          },
+          redactedConsultationRequest: context.initialQuestionRedacted.slice(0, this.maxInputChars),
+          requirements: {
+            count: "3 to 6",
+            language: "Korean",
+            allowedTypes: ["single_choice", "date", "short_text", "long_text", "boolean"],
+            includeWhenRelevant: ["current procedural stage", "important dates or deadlines", "available documents or evidence", "the result the user wants"],
+          },
+          outputSchema: {
+            questions: [{
+              question: "specific Korean question",
+              helpText: "optional short example or explanation",
+              type: "allowed type",
+              required: true,
+              options: [{ value: "short-safe-value", label: "Korean label" }],
+            }],
+          },
+        }),
+      },
+    ]);
+    return { data: validateQuestionDrafts(json.data), usage: json.usage };
   }
 
   private async chatJson(messages: Array<{ role: "system" | "user"; content: string }>) {
