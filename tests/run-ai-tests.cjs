@@ -310,6 +310,23 @@ test("unit: follow-up answers override broad divorce classification for affair c
   assert.equal(result.recommendedDocuments.some((item) => /부동산|예금|퇴직금|재산 형성/.test(item)), false);
 });
 
+test("unit: custody goal takes priority over adultery as a secondary divorce fact", () => {
+  const classification = classifyLegalQuestion("배우자의 바람으로 이혼을 고민하고 있습니다.");
+  const questions = [
+    { id: "ai-followup-1", field: "aiFollowup1", category: "divorce", order: 1, type: "long_text", question: "이혼에서 가장 중요하게 생각하는 결과는 무엇인가요?", required: true },
+    { id: "ai-followup-2", field: "aiFollowup2", category: "divorce", order: 2, type: "boolean", question: "자녀 양육 계획이 있나요?", required: true, options: [{ value: "yes", label: "예" }, { value: "no", label: "아니오" }] },
+  ];
+  const result = buildAiGuideResult("custody-over-affair", "배우자의 바람으로 이혼을 고민하고 있습니다.", classification, [
+    answer("ai-followup-1", "aiFollowup1", "양육권을 확보하고 자녀를 계속 양육하는 것이 가장 중요합니다."),
+    answer("ai-followup-2", "aiFollowup2", "yes"),
+  ], questions);
+
+  assert.equal(result.classification.subcategory, "custody");
+  assert.ok(result.missingInformation.some((item) => /주된 양육자|양육 환경/.test(item)));
+  assert.ok(result.recommendedDocuments.some((item) => /양육 분담|돌봄/.test(item)));
+  assert.equal(result.recommendedDocuments.some((item) => /숙박|상간 상대방|부정행위/.test(item)), false);
+});
+
 test("unit: follow-up answers override broad civil classification for debt claims", () => {
   const classification = classifyLegalQuestion("민사 문제로 상담하고 싶습니다.", "civil");
   const questions = [

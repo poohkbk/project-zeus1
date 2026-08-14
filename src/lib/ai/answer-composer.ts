@@ -184,13 +184,13 @@ function buildStrictGuidance(
   }
 
   if (classification.category === "divorce") {
+    if (answerMap.get("custodyConcern") === "yes" || classification.subcategory === "custody") return {
+      missingInformation: ["자녀의 나이와 현재 주된 양육자가 누구인지 확인해주세요.", "각 부모의 양육 환경과 실제 돌봄 시간을 확인해주세요.", "희망하는 친권·양육권·면접교섭 내용을 확인해주세요.", "자녀의 의사와 학교·생활환경을 유지할 수 있는지 확인해주세요.", "현재 양육비 지급 여부와 자녀의 월 지출을 확인해주세요."],
+      recommendedDocuments: ["가족관계증명서·자녀 기본증명서", "현재까지의 양육 분담과 돌봄 일정 정리", "자녀의 학교·어린이집·의료 관련 자료", "주거·근무시간 등 양육 환경 자료", "자녀 교육·의료·생활비 내역", "양육비 지급 내역", "면접교섭과 양육 협의 관련 대화"],
+    };
     if (answerMap.get("affairIssue") === "yes" || classification.subcategory === "affair" || /상간|외도|불륜|부정행위|바람/.test(initialQuestion)) return {
       missingInformation: ["부정행위가 시작된 시기와 알게 된 날짜를 확인해주세요.", "상간 상대방이 혼인 사실을 알고 있었는지 확인해주세요.", "부정행위 전 혼인관계가 이미 파탄된 상태였는지 확인해주세요.", "상간 상대방의 이름·연락처 등 특정 정보가 있는지 확인해주세요.", "부정행위를 안 날부터 현재까지의 기간을 확인해주세요."],
       recommendedDocuments: ["부정행위 관련 대화·사진·숙박·결제 자료", "상간 상대방이 혼인 사실을 알았음을 보여주는 자료", "혼인관계증명서·가족관계증명서", "부정행위를 알게 된 경위와 날짜 정리", "상간 상대방 확인 자료", "상간자와 주고받은 연락·내용증명·소송서류"],
-    };
-    if (answerMap.get("custodyConcern") === "yes" || classification.subcategory === "custody") return {
-      missingInformation: ["자녀의 현재 양육자와 생활환경을 확인해주세요.", "희망하는 친권·양육권·면접교섭 내용을 확인해주세요.", "현재 양육비 지급 여부와 자녀 지출을 확인해주세요."],
-      recommendedDocuments: ["가족관계증명서·자녀 기본증명서", "양육 현황과 생활환경 자료", "자녀 교육·의료·생활비 내역", "양육비 지급 내역", "면접교섭 관련 대화", "학교·어린이집 관련 자료"],
     };
     return {
       missingInformation: ["이혼 의사와 현재 협의·별거·소송 상태를 확인해주세요.", "혼인 중 형성한 재산과 채무의 명의·가액을 확인해주세요.", "각 재산의 취득 경위와 기여 내용을 확인해주세요."],
@@ -251,8 +251,18 @@ export function buildAiGuideResult(
       reasonSummary: "후속 답변에서 빌려준 돈의 반환 문제와 상환 요청 내용이 확인되었습니다.",
     };
   }
+  const custodyIntent = effectiveClassification.category === "divorce"
+    && /양육권|친권|양육비|양육s*계획|자녀s*양육|주된s*양육자/.test(consultationContext);
   const affairIntent = effectiveClassification.category === "divorce" && /상간|외도|불륜|부정행위|바람/.test(consultationContext);
-  if (affairIntent) {
+  if (custodyIntent) {
+    effectiveClassification = {
+      ...effectiveClassification,
+      subcategory: "custody",
+      subcategoryLabel: aiSubcategoryLabels.custody,
+      matchedTags: Array.from(new Set([...effectiveClassification.matchedTags, "custody", "child-support"])),
+      reasonSummary: "상담 답변에서 친권·양육권과 자녀 양육계획이 주된 상담 목표로 확인되었습니다.",
+    };
+  } else if (affairIntent) {
     effectiveClassification = {
       ...effectiveClassification,
       subcategory: "affair",
