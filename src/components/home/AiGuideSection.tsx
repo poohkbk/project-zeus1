@@ -9,16 +9,16 @@ export function AiGuideSection() {
       <div className="site-shell ai-grid">
         <Reveal className="ai-copy">
           <div className="ai-section-labels">
-            <span className="section-kicker invert">AI Legal Guide</span>
+            <span className="section-kicker invert">AI Legal Consultation</span>
             <span className="ai-version-badge">ZEUS AI V1</span>
           </div>
-          <h2 id="ai-guide-title">내 사건은 어디서부터 확인해야 할까요?</h2>
+          <h2 id="ai-guide-title">24시간 AI 상담으로 먼저 확인해보세요.</h2>
           <p>
-            몇 가지 질문에 답하면 관련 업무분야, 준비자료와 상담 방향을 간단히
-            확인할 수 있습니다.
+            궁금한 내용을 입력하고 몇 가지 질문에 답하면 사건 분야, 준비자료와
+            상담 방향을 바로 확인할 수 있습니다.
           </p>
           <Link className="btn btn-accent" href={siteConfig.links.aiGuide}>
-            AI 법률안내 시작
+            AI 상담 시작
           </Link>
           <small>
             AI 안내는 일반적인 정보 제공을 위한 것이며, 구체적인 법률판단을

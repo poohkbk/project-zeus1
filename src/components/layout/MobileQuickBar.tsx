@@ -9,9 +9,9 @@ export function MobileQuickBar() {
         <SimpleIcon name="phone" />
         전화상담
       </a>
-      <Link href={siteConfig.links.aiGuide} aria-label="AI 법률안내">
+      <Link href={siteConfig.links.aiGuide} aria-label="AI 상담">
         <SimpleIcon name="help" />
-        AI
+        AI 상담
       </Link>
       <Link href={siteConfig.links.consultation} aria-label="상담예약">
         <SimpleIcon name="calendar" />

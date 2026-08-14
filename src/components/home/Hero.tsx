@@ -30,6 +30,10 @@ export function Hero() {
               <SimpleIcon name="calendar" />
               온라인 상담예약
             </Link>
+            <Link className="btn btn-accent" href={siteConfig.links.aiGuide}>
+              <SimpleIcon name="help" />
+              AI 상담 시작
+            </Link>
           </div>
           <ul className="trust-list">
             {trustItems.map((item) => (

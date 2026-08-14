@@ -11,6 +11,7 @@ const mobileNavItems = [
   { label: "승소사례", href: siteConfig.links.cases },
   { label: "법률가이드", href: siteConfig.links.legalGuide },
   { label: "FAQ", href: "/faq" },
+  { label: "AI 상담", href: siteConfig.links.aiGuide },
   { label: "의뢰인 후기", href: "/testimonials" },
   { label: "변호사 소개", href: siteConfig.links.lawyer },
   { label: "오시는 길", href: siteConfig.links.location },

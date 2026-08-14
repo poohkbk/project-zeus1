@@ -248,8 +248,8 @@ export function AiGuideShell() {
     <section className="ai-guide" aria-live="polite">
       <div className="site-shell ai-guide-hero">
         <div>
-          <span className="section-kicker">AI Legal Guide</span>
-          <h1>법률사무소 제우 AI 법률안내</h1>
+          <span className="section-kicker">AI Legal Consultation</span>
+          <h1>법률사무소 제우 AI 상담</h1>
           <p>
             사건 분야를 먼저 나누고, 필요한 자료와 관련 콘텐츠를 정리해 상담 전 준비를 돕습니다.
             승소 여부나 처분 결과를 단정하지 않습니다.
