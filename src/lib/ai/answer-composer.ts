@@ -192,9 +192,13 @@ function buildStrictGuidance(
       missingInformation: ["부정행위가 시작된 시기와 알게 된 날짜를 확인해주세요.", "상간 상대방이 혼인 사실을 알고 있었는지 확인해주세요.", "부정행위 전 혼인관계가 이미 파탄된 상태였는지 확인해주세요.", "상간 상대방의 이름·연락처 등 특정 정보가 있는지 확인해주세요.", "부정행위를 안 날부터 현재까지의 기간을 확인해주세요."],
       recommendedDocuments: ["부정행위 관련 대화·사진·숙박·결제 자료", "상간 상대방이 혼인 사실을 알았음을 보여주는 자료", "혼인관계증명서·가족관계증명서", "부정행위를 알게 된 경위와 날짜 정리", "상간 상대방 확인 자료", "상간자와 주고받은 연락·내용증명·소송서류"],
     };
-    if (/폭언|욕설|모욕|가정폭력|물건을\s*집어던|생활비\s*미지급|생활비를?\s*(?:주지|안\s*주)|부양료|경제적\s*(?:방임|통제)/.test(initialQuestion)) return {
-      missingInformation: ["폭언·위협·물건 투척 등이 언제부터 얼마나 반복되었는지 확인해주세요.", "신체적 위협이나 폭행이 있었는지 확인해주세요.", "생활비를 지급하지 않은 기간과 그 전의 지급 방식을 확인해주세요.", "현재 별거 여부와 주거·생계 상황을 확인해주세요.", "상대방의 소득·재산을 알고 있는지 확인해주세요."],
-      recommendedDocuments: ["폭언·위협 당시의 문자·녹음·영상", "파손된 물건이나 현장 사진", "경찰 신고·상담·진료 기록", "생활비 지급·미지급을 확인할 계좌 내역", "가계 지출과 자녀 생활비 내역", "상대방에게 생활비를 요청한 대화", "상대방 소득·재산 관련 자료"],
+    if (/폭언|욕설|모욕|가정폭력|폭행|상해|위협|물건을\s*집어던/.test(initialQuestion)) return {
+      missingInformation: ["폭언·위협·폭행이 언제부터 얼마나 반복되었는지 확인해주세요.", "폭행의 구체적인 방법과 다친 부위를 확인해주세요.", "경찰 신고나 병원 진료를 받은 사실이 있는지 확인해주세요.", "사건을 직접 보거나 들은 사람이 있는지 확인해주세요.", "자녀 앞에서 폭언·폭행이 있었는지 확인해주세요.", "현재 추가 폭력의 위험이 있는지 확인해주세요."],
+      recommendedDocuments: ["폭언·위협 당시의 문자·녹음·영상", "상처와 파손된 물건·현장 사진", "진단서·진료기록·의무기록", "112 신고내역·경찰 사건 자료", "가정폭력 상담소 등 상담 기록", "목격자와 사건별 날짜·경위 정리"],
+    };
+    if (/생활비\s*미지급|생활비를?\s*(?:주지|안\s*주)|부양료|경제적\s*(?:방임|통제)/.test(initialQuestion)) return {
+      missingInformation: ["생활비를 지급하지 않은 기간과 그 전의 지급 방식을 확인해주세요.", "생활비를 요청했을 때 상대방이 어떻게 답했는지 확인해주세요.", "상대방의 소득과 가계 지출 분담 방식을 확인해주세요."],
+      recommendedDocuments: ["생활비 지급·미지급을 확인할 계좌 내역", "가계 지출과 자녀 생활비 내역", "상대방에게 생활비를 요청한 대화", "상대방 소득 관련 자료"],
     };
     return {
       missingInformation: ["이혼 의사와 현재 협의·별거·소송 상태를 확인해주세요.", "혼인 중 형성한 재산과 채무의 명의·가액을 확인해주세요.", "각 재산의 취득 경위와 기여 내용을 확인해주세요."],
@@ -253,6 +257,20 @@ export function buildAiGuideResult(
       subcategoryLabel: aiSubcategoryLabels.debt,
       matchedTags: Array.from(new Set([...effectiveClassification.matchedTags, "debt", "loan", "collection"])),
       reasonSummary: "후속 답변에서 빌려준 돈의 반환 문제와 상환 요청 내용이 확인되었습니다.",
+    };
+  }
+  const domesticViolenceDivorceIntent = /이혼|혼인관계\s*해소|재판상\s*이혼/.test(consultationContext)
+    && /배우자|남편|아내|부부/.test(consultationContext)
+    && /폭언|욕설|모욕|가정폭력|폭행|상해|위협|물건을\s*집어던/.test(consultationContext);
+  if (domesticViolenceDivorceIntent) {
+    effectiveClassification = {
+      ...effectiveClassification,
+      category: "divorce",
+      categoryLabel: aiCategoryLabels.divorce,
+      subcategory: "general",
+      subcategoryLabel: aiSubcategoryLabels.general,
+      matchedTags: Array.from(new Set([...effectiveClassification.matchedTags, "divorce", "domestic-violence"])),
+      reasonSummary: "배우자의 폭언·폭행을 이유로 이혼을 원하는 상담으로 확인되었습니다.",
     };
   }
   const custodyIntent = effectiveClassification.category === "divorce"
@@ -333,6 +351,8 @@ export function buildAiGuideResult(
     ...relatedContent.faqs,
   ].map((item) => item.id);
   const sectionComments = buildSectionComments(effectiveClassification.category, confirmedFacts, missingInformation);
+  const violenceDivorce = effectiveClassification.category === "divorce"
+    && /폭언|욕설|모욕|가정폭력|폭행|상해|위협|물건을\s*집어던/.test(consultationContext);
 
   return {
     sessionId,
@@ -342,6 +362,9 @@ export function buildAiGuideResult(
     confirmedFacts: confirmedFacts.length > 0 ? confirmedFacts : ["아직 구체적으로 확인된 답변이 많지 않습니다."],
     missingInformation: Array.from(new Set(missingInformation)).slice(0, 8),
     recommendedDocuments,
+    consultationOpinion: violenceDivorce
+      ? "반복적인 폭언·폭행으로 혼인관계가 회복하기 어려울 정도로 파탄되었다면 재판상 이혼과 위자료 청구를 검토할 수 있습니다. 폭력의 정도와 반복성을 보여주는 자료를 토대로 변호사 상담을 받아보세요."
+      : undefined,
     sectionComments,
     generalProcess: aiProcessGuides[category],
     relatedContent,

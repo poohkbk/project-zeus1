@@ -342,6 +342,20 @@ test("unit: verbal abuse and unpaid living expenses never produce affair guidanc
   assert.equal(result.recommendedDocuments.some((item) => /상간|부정행위|숙박/.test(item)), false);
 });
 
+test("unit: violence-only divorce guidance excludes living-expense and property items", () => {
+  const input = "배우자의 폭언과 폭행 때문에 이혼 소송을 하고 싶습니다.";
+  const result = buildAiGuideResult("violence-only-divorce", input, classifyLegalQuestion(input), [
+    answer("ai-followup-1", "aiFollowup1", "10년 동안 반복됐고 최근 물건을 집어던졌습니다."),
+  ]);
+
+  assert.ok(result.missingInformation.some((item) => /폭행|경찰|목격|위험/.test(item)));
+  assert.ok(result.recommendedDocuments.some((item) => /녹음|진단서|112/.test(item)));
+  assert.equal(result.missingInformation.some((item) => /생활비|주거|생계|소득|재산/.test(item)), false);
+  assert.equal(result.recommendedDocuments.some((item) => /생활비|계좌|가계|소득|재산/.test(item)), false);
+  assert.match(result.consultationOpinion ?? "", /재판상 이혼과 위자료 청구를 검토할 수 있습니다/);
+  assert.match(result.consultationOpinion ?? "", /변호사 상담/);
+});
+
 test("unit: follow-up answers override broad civil classification for debt claims", () => {
   const classification = classifyLegalQuestion("민사 문제로 상담하고 싶습니다.", "civil");
   const questions = [
