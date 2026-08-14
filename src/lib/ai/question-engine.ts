@@ -20,9 +20,12 @@ function shouldShowQuestion(question: AiGuideQuestion, answers: AiGuideAnswer[])
 }
 
 const booleanQuestionEnding = /(?:있나요|없나요|인가요|하나요|했나요|받았나요|되었나요|중인가요|맞나요)\?$/;
+const openQuestionPattern = /무엇|어떤|언제|어디|누구|왜|얼마|어떻게|말씀해|알려주|설명해|구체적/;
 
 function isBooleanQuestion(question: string, type?: AiGuideQuestion["type"]) {
-  return type === "boolean" || (["short_text", "long_text"].includes(type ?? "") && booleanQuestionEnding.test(question.trim()));
+  const normalizedQuestion = question.trim();
+  if (openQuestionPattern.test(normalizedQuestion)) return false;
+  return type === "boolean" || (["short_text", "long_text"].includes(type ?? "") && booleanQuestionEnding.test(normalizedQuestion));
 }
 
 const yesNoOptions = [
@@ -69,7 +72,7 @@ export function sanitizeQuestionFlow(value: unknown, category: AiLegalCategory) 
       category,
       order: index + 1,
       field: candidate.field,
-      type: booleanQuestion ? "boolean" : candidate.type!,
+      type: booleanQuestion ? "boolean" : candidate.type === "boolean" ? "long_text" : candidate.type!,
       question: candidate.question.slice(0, 180),
       helpText: typeof candidate.helpText === "string" ? candidate.helpText.slice(0, 220) : undefined,
       required: candidate.required !== false,

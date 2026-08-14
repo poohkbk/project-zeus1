@@ -141,15 +141,18 @@ function validateQuestionDrafts(value: Record<string, unknown>): AiProviderQuest
           return label && optionValue ? [{ label, value: optionValue }] : [];
         })
       : undefined;
-    const booleanQuestion = type === "boolean" || (["short_text", "long_text"].includes(type ?? "") && /(?:있나요|없나요|인가요|하나요|했나요|받았나요|되었나요|중인가요|맞나요)\?$/.test(question));
+    const openQuestion = /무엇|어떤|언제|어디|누구|왜|얼마|어떻게|말씀해|알려주|설명해|구체적/.test(question);
+    const booleanQuestion = !openQuestion && (type === "boolean" || (["short_text", "long_text"].includes(type ?? "") && /(?:있나요|없나요|인가요|하나요|했나요|받았나요|되었나요|중인가요|맞나요)\?$/.test(question)));
     return [{
       question,
       helpText: safeString(draft.helpText, 220),
-      type: booleanQuestion ? "boolean" : type === "single_choice" && (!options || options.length < 2) ? "short_text" : type,
+      type: booleanQuestion ? "boolean" : type === "boolean" ? "long_text" : type === "single_choice" && (!options || options.length < 2) ? "short_text" : type,
       required: draft.required !== false,
       options: booleanQuestion
         ? [{ value: "yes", label: "예" }, { value: "no", label: "아니오" }]
-        : options,
+        : type === "boolean"
+          ? undefined
+          : options,
     }];
   });
 }
@@ -291,7 +294,7 @@ export class OpenAiLegalGuideProvider implements AiLegalGuideProvider {
       {
         role: "system",
         content:
-          "You create a short Korean legal consultation intake flow for LAW OFFICE ZEU. Return JSON only. Ask only facts needed for a lawyer to understand the matter. Never request resident registration numbers, account passwords, unnecessary identifying data, illegal acts, or predictions of case outcomes. Questions must be neutral, plain Korean, and one fact per question. For criminal matters, the first question must determine whether the user is a victim/complainant, suspect/accused/defendant, or witness, and all later questions must match that role. Every question answerable with yes or no must use type 'boolean' with options [{value:'yes',label:'예'},{value:'no',label:'아니오'}]; never use short_text or long_text for a yes/no question.",
+          "You create a short Korean legal consultation intake flow for LAW OFFICE ZEU. Return JSON only. Ask only facts needed for a lawyer to understand the matter. Never request resident registration numbers, account passwords, unnecessary identifying data, illegal acts, or predictions of case outcomes. Questions must be neutral, plain Korean, and one fact per question. For criminal matters, the first question must determine whether the user is a victim/complainant, suspect/accused/defendant, or witness, and all later questions must match that role. Every question genuinely answerable with yes or no must use type 'boolean' with options [{value:'yes',label:'예'},{value:'no',label:'아니오'}]. Questions containing what/which/when/where/who/why/how/how much or asking for a desired outcome, explanation, or specific details must use short_text or long_text, never boolean.",
       },
       {
         role: "user",
