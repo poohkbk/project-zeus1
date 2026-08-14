@@ -380,6 +380,19 @@ test("unit: de facto marriage guidance avoids divorce wording and uses status ev
   assert.equal(result.recommendedDocuments.some((item) => /소장|답변서|조정서류/.test(item)), false);
 });
 
+test("unit: visitation guidance excludes general custody and child-support materials", () => {
+  const input = "양육권 판결은 상대방에게 있지만 아이를 보여주지 않습니다. 면접교섭을 할 수 있을까요?";
+  const result = buildAiGuideResult("visitation-after-judgment", input, classifyLegalQuestion(input), [
+    answer("ai-followup-1", "aiFollowup1", "양육권 판결문이 있습니다."),
+    answer("ai-followup-2", "aiFollowup2", "아이를 보여달라고 했지만 거부했습니다."),
+  ]);
+  assert.ok(result.missingInformation.some((item) => /면접교섭 방법|거부|마지막으로 자녀/.test(item)));
+  assert.ok(result.recommendedDocuments.some((item) => /판결문|거절당한|면접교섭 일정/.test(item)));
+  assert.equal(result.missingInformation.some((item) => /주된 양육자|양육 환경|친권·양육권/.test(item)), false);
+  assert.equal(result.recommendedDocuments.some((item) => /학교|의료|생활비|양육비|근무시간/.test(item)), false);
+  assert.match(result.consultationOpinion ?? "", /면접교섭을 청구할 수 있습니다/);
+});
+
 test("unit: follow-up answers override broad civil classification for debt claims", () => {
   const classification = classifyLegalQuestion("민사 문제로 상담하고 싶습니다.", "civil");
   const questions = [

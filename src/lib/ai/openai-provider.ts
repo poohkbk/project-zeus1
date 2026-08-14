@@ -139,6 +139,7 @@ function validateQuestionDrafts(value: Record<string, unknown>): AiProviderQuest
     if (genericDateQuestion) return [];
     const vagueDocumentQuestion = /중요한\s*(?:서류|증거)|관련(?:된|한)\s*(?:서류|증거)|준비(?:한|할|하는)\s*(?:서류|증거)|(?:서류|증거)(?:가|를)\s*(?:있나요|가지고|보유)/.test(question)
       && !/계약서|차용증|소장|고소장|처분서|진단서|등기|가족관계|혼인관계|계좌|녹음|영상|문자|영수증|공소장|판결|조정/.test(question);
+    const documentReadinessQuestion = /(?:서류|자료|증거).{0,12}(?:준비|갖추|마련)(?:되|했|하셨|되어)|(?:준비|갖추|마련).{0,12}(?:서류|자료|증거)/.test(question);
     const options = Array.isArray(draft.options)
       ? draft.options.slice(0, 5).flatMap((option) => {
           if (!option || typeof option !== "object" || Array.isArray(option)) return [];
@@ -151,13 +152,13 @@ function validateQuestionDrafts(value: Record<string, unknown>): AiProviderQuest
     const openQuestion = /무엇|어떤|언제|어디|누구|왜|얼마|어떻게|말씀해|알려주|설명해|구체적/.test(question);
     const booleanQuestion = !openQuestion && (type === "boolean" || (["short_text", "long_text"].includes(type ?? "") && /(?:있나요|없나요|인가요|하나요|했나요|받았나요|되었나요|중인가요|맞나요)\?$/.test(question)));
     return [{
-      question: vagueDocumentQuestion ? "보유하고 있는 서류나 증거의 종류와 내용을 구체적으로 적어주세요." : question,
-      helpText: vagueDocumentQuestion
-        ? "예: 계약서, 계좌내역, 문자·카카오톡, 사진, 녹음, 신고·진료 기록. 자료가 없다면 ‘없음’이라고 적어주세요."
+      question: vagueDocumentQuestion || documentReadinessQuestion ? "현재 가지고 있는 서류나 증거의 종류와 내용을 구체적으로 적어주세요." : question,
+      helpText: vagueDocumentQuestion || documentReadinessQuestion
+        ? "예: 판결문·조정조서, 계약서, 계좌내역, 문자·카카오톡, 사진, 녹음. 자료가 없어도 상담할 수 있으므로 없다면 ‘없음’이라고 적어주세요."
         : safeString(draft.helpText, 220),
-      type: vagueDocumentQuestion ? "long_text" : booleanQuestion ? "boolean" : type === "boolean" ? "long_text" : type === "single_choice" && (!options || options.length < 2) ? "short_text" : type,
+      type: vagueDocumentQuestion || documentReadinessQuestion ? "long_text" : booleanQuestion ? "boolean" : type === "boolean" ? "long_text" : type === "single_choice" && (!options || options.length < 2) ? "short_text" : type,
       required: draft.required !== false,
-      options: vagueDocumentQuestion ? undefined : booleanQuestion
+      options: vagueDocumentQuestion || documentReadinessQuestion ? undefined : booleanQuestion
         ? [{ value: "yes", label: "예" }, { value: "no", label: "아니오" }]
         : type === "boolean"
           ? undefined
@@ -435,7 +436,12 @@ export function applyProviderResultDraft(
       ruleResult.consultationSummary.userQuestion,
       ...ruleResult.confirmedFacts,
     ].join(" "));
-  const consultationOpinion = violenceDivorce
+  const visitationMatter = ruleResult.classification.category === "divorce"
+    && /면접교섭|아이를\s*(?:보고|만나)|자녀를\s*(?:보고|만나)|아이를\s*보여주|자녀를\s*보여주/.test([
+      ruleResult.consultationSummary.userQuestion,
+      ...ruleResult.confirmedFacts,
+    ].join(" "));
+  const consultationOpinion = violenceDivorce || visitationMatter
     ? ruleResult.consultationOpinion
     : draft.consultationOpinion?.trim() || ruleResult.consultationOpinion;
   const allowedRelatedIds = new Set(draft.relatedContentIds ?? []);

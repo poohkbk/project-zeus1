@@ -184,6 +184,10 @@ function buildStrictGuidance(
   }
 
   if (classification.category === "divorce") {
+    if (/면접교섭|아이를\s*(?:보고|만나)|자녀를\s*(?:보고|만나)|아이를\s*보여주|자녀를\s*보여주/.test(initialQuestion)) return {
+      missingInformation: ["기존 판결문·조정조서에 면접교섭 방법과 일정이 정해져 있는지 확인해주세요.", "상대방이 면접교섭을 거부하거나 방해한 날짜와 이유를 확인해주세요.", "마지막으로 자녀를 만난 시기와 그동안 연락한 내용을 확인해주세요.", "원하는 면접교섭 횟수·시간·장소·인도 방법을 확인해주세요.", "상대방이 면접교섭을 제한해야 한다고 주장하는 사유가 있는지 확인해주세요."],
+      recommendedDocuments: ["기존 양육권·친권 판결문 또는 조정조서", "면접교섭을 요청하고 거절당한 문자·카카오톡", "면접교섭 요청 날짜와 상대방 답변 정리", "기존 면접교섭 일정과 실제 실시 내역", "자녀와 연락하거나 교류한 자료", "상대방이 주장하는 제한 사유 관련 자료"],
+    };
     if (/사실혼|혼인신고\s*(?:없이|하지)|동거하며\s*부부|사실상\s*부부/.test(initialQuestion)) {
       const documents = ["주민등록초본·등본 등 공동 주소 자료", "임대차계약서·공과금·공동생활비 내역", "결혼식·가족행사 사진과 가족·지인의 확인 자료", "부부로 생활했음을 보여주는 문자·사진·우편물", "부동산·예금·보험·주식 등 분할 대상 재산 자료", "재산 취득과 유지에 기여한 소득·가사·돌봄 자료"];
       if (answerMap.get("currentStatus") === "lawsuit") documents.push("이미 받은 소장·답변서·조정서류");
@@ -363,6 +367,8 @@ export function buildAiGuideResult(
   const sectionComments = buildSectionComments(effectiveClassification.category, confirmedFacts, missingInformation);
   const violenceDivorce = effectiveClassification.category === "divorce"
     && /폭언|욕설|모욕|가정폭력|폭행|상해|위협|물건을\s*집어던/.test(consultationContext);
+  const visitationMatter = effectiveClassification.category === "divorce"
+    && /면접교섭|아이를\s*(?:보고|만나)|자녀를\s*(?:보고|만나)|아이를\s*보여주|자녀를\s*보여주/.test(consultationContext);
 
   return {
     sessionId,
@@ -372,7 +378,9 @@ export function buildAiGuideResult(
     confirmedFacts: confirmedFacts.length > 0 ? confirmedFacts : ["아직 구체적으로 확인된 답변이 많지 않습니다."],
     missingInformation: Array.from(new Set(missingInformation)).slice(0, 8),
     recommendedDocuments,
-    consultationOpinion: violenceDivorce
+    consultationOpinion: visitationMatter
+      ? "양육권 판결이 이미 있더라도 비양육 부모는 자녀와의 면접교섭을 청구할 수 있습니다. 기존 판결의 면접교섭 내용과 상대방의 거부 경위를 확인해 가정법원 신청 또는 이행확보 방법을 변호사와 상담해보세요."
+      : violenceDivorce
       ? "반복적인 폭언·폭행으로 혼인관계가 회복하기 어려울 정도로 파탄되었다면 재판상 이혼과 위자료 청구를 검토할 수 있습니다. 폭력의 정도와 반복성을 보여주는 자료를 토대로 변호사 상담을 받아보세요."
       : undefined,
     sectionComments,
