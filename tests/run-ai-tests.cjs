@@ -360,7 +360,7 @@ test("integration: creates AI session, stores answers, creates final result and 
   assert.equal(getLocalAiGuideSession(withAnswer.id)?.answers.length, 1);
 
   const result = buildAiGuideResult(withAnswer.id, withAnswer.initialQuestionRedacted, withAnswer.classification, withAnswer.answers);
-  const transferToken = createTransferToken();
+  const transferToken = createTransferToken(withAnswer.id, withAnswer.publicToken);
   const transferred = await updateAiGuideSession({
     ...withAnswer,
     status: "transferred",
@@ -369,7 +369,7 @@ test("integration: creates AI session, stores answers, creates final result and 
     transferToken,
   });
 
-  const transferSession = getAiGuideSessionByTransferToken(transferToken);
+  const transferSession = await getAiGuideSessionByTransferToken(transferToken);
   assert.equal(transferSession?.id, transferred.id);
   assert.ok(transferSession?.result?.consultationSummary);
 });
@@ -400,7 +400,7 @@ test("integration: consultation submission keeps AI summary for admin detail ren
 
 test("integration/security: blocks invalid, expired, and non-consented transfer access", async () => {
   assert.equal(getLocalAiGuideSession("missing-session-id"), undefined);
-  assert.equal(getAiGuideSessionByTransferToken("missing-transfer-token"), undefined);
+  assert.equal(await getAiGuideSessionByTransferToken("missing-transfer-token"), undefined);
 
   const expiredToken = createTransferToken();
   await saveAiGuideSession(
@@ -413,7 +413,7 @@ test("integration/security: blocks invalid, expired, and non-consented transfer 
       expiresAt: addDays(-1),
     }),
   );
-  assert.equal(getAiGuideSessionByTransferToken(expiredToken), undefined);
+  assert.equal(await getAiGuideSessionByTransferToken(expiredToken), undefined);
 
   const noConsentToken = createTransferToken();
   await saveAiGuideSession(
@@ -425,7 +425,7 @@ test("integration/security: blocks invalid, expired, and non-consented transfer 
       transferToken: noConsentToken,
     }),
   );
-  const noConsentSession = getAiGuideSessionByTransferToken(noConsentToken);
+  const noConsentSession = await getAiGuideSessionByTransferToken(noConsentToken);
   assert.equal(Boolean(noConsentSession?.consentToTransfer), false);
 });
 

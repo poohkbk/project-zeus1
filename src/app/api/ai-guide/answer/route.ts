@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { redactSensitiveData } from "@/lib/ai/redaction";
 import { getNextQuestion, getQuestionsForCategory, upsertAnswer } from "@/lib/ai/question-engine";
 import { isAiSessionOwner } from "@/lib/ai/session-auth";
-import { getLocalAiGuideSession, saveAiGuideEvent, updateAiGuideSession } from "@/lib/ai/session-store";
+import { getAiGuideSession, saveAiGuideEvent, updateAiGuideSession } from "@/lib/ai/session-store";
 import { rejectCrossOriginRequest } from "@/lib/security/request-guard";
 import type { AiGuideAnswer } from "@/types/ai-guide";
 
@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
   if (!body.sessionId || !body.answer) {
     return NextResponse.json({ message: "답변 정보가 부족합니다." }, { status: 400 });
   }
-  const session = getLocalAiGuideSession(body.sessionId);
+  const session = await getAiGuideSession(body.sessionId);
   if (!session) return NextResponse.json({ message: "세션을 찾을 수 없습니다." }, { status: 404 });
   if (!isAiSessionOwner(request, session)) {
     return NextResponse.json({ message: "세션에 접근할 수 없습니다." }, { status: 403 });

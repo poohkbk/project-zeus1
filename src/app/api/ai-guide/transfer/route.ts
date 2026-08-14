@@ -3,7 +3,7 @@ import { isAiSessionOwner } from "@/lib/ai/session-auth";
 import {
   createTransferToken,
   getAiGuideSessionByTransferToken,
-  getLocalAiGuideSession,
+  getAiGuideSession,
   saveAiGuideEvent,
   updateAiGuideSession,
 } from "@/lib/ai/session-store";
@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
   if (!body.sessionId || !body.consent) {
     return NextResponse.json({ message: "상담 전달 동의가 필요합니다." }, { status: 400 });
   }
-  const session = getLocalAiGuideSession(body.sessionId);
+  const session = await getAiGuideSession(body.sessionId);
   if (!session || !session.result) {
     return NextResponse.json({ message: "전달할 AI 요약이 없습니다." }, { status: 404 });
   }
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: "세션에 접근할 수 없습니다." }, { status: 403 });
   }
 
-  const transferToken = createTransferToken();
+  const transferToken = createTransferToken(session.id, session.publicToken);
   await updateAiGuideSession({
     ...session,
     status: "transferred",
@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   const token = request.nextUrl.searchParams.get("token") ?? "";
-  const session = token ? getAiGuideSessionByTransferToken(token) : undefined;
+  const session = token ? await getAiGuideSessionByTransferToken(token) : undefined;
   if (!session?.result || !session.consentToTransfer) {
     return NextResponse.json({ message: "AI 요약을 찾을 수 없습니다." }, { status: 404 });
   }

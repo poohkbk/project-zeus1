@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
   const receptionNumber = createReceptionNumber();
   const source = body.source ?? "direct";
   const transferSession = body.aiTransferToken
-    ? getAiGuideSessionByTransferToken(body.aiTransferToken)
+    ? await getAiGuideSessionByTransferToken(body.aiTransferToken)
     : undefined;
   const aiSummary = transferSession?.result?.consultationSummary ?? body.aiSummary;
 

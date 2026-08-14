@@ -1,7 +1,9 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import path from "path";
+import { aiSubcategoryLabels } from "@/data/ai/categories";
+import { classifyLegalQuestion } from "@/lib/ai/classifier";
 import { hasSupabaseConfig, supabaseRequest } from "@/lib/supabase-rest";
-import type { AiGuideResult, AiGuideSessionRecord } from "@/types/ai-guide";
+import type { AiGuideAnswer, AiGuideResult, AiGuideSessionRecord, AiLegalCategory, AiSubcategory } from "@/types/ai-guide";
 
 const DATA_DIR = path.join(process.cwd(), "data");
 const STORE_FILE = path.join(DATA_DIR, "ai-guide-sessions.json");
@@ -160,7 +162,106 @@ export function getLocalAiGuideSession(id: string) {
   return record;
 }
 
-export function getAiGuideSessionByTransferToken(token: string) {
+type StoredSessionRow = {
+  id: string;
+  public_token_hash: string;
+  status: AiGuideSessionRecord["status"];
+  initial_question_redacted: string;
+  category: AiLegalCategory;
+  subcategory?: AiSubcategory | null;
+  classification_confidence?: number | null;
+  consent_to_transfer: boolean;
+  created_at: string;
+  updated_at: string;
+  expires_at: string;
+};
+
+type StoredAnswerRow = {
+  question_id: string;
+  field_name: string;
+  answer_redacted: AiGuideAnswer["value"];
+  created_at: string;
+};
+
+type StoredResultRow = { result_data: AiGuideResult };
+
+export async function getAiGuideSession(id: string) {
+  const local = getLocalAiGuideSession(id);
+  if (local || !hasSupabaseConfig()) return local;
+
+  const sessionRows = await supabaseRequest(
+    `ai_guide_sessions?id=eq.${encodeURIComponent(id)}&select=*&limit=1`,
+    { method: "GET" },
+  ) as StoredSessionRow[] | undefined;
+  const row = sessionRows?.[0];
+  if (!row || new Date(row.expires_at).getTime() <= Date.now()) return undefined;
+
+  const [answerRows, resultRows] = await Promise.all([
+    supabaseRequest(
+      `ai_guide_answers?session_id=eq.${encodeURIComponent(id)}&select=question_id,field_name,answer_redacted,created_at&order=created_at.asc`,
+      { method: "GET" },
+    ) as Promise<StoredAnswerRow[] | undefined>,
+    supabaseRequest(
+      `ai_guide_results?session_id=eq.${encodeURIComponent(id)}&select=result_data&limit=1`,
+      { method: "GET" },
+    ) as Promise<StoredResultRow[] | undefined>,
+  ]);
+
+  const answerMap = new Map<string, AiGuideAnswer>();
+  for (const answer of answerRows ?? []) {
+    answerMap.set(answer.question_id, {
+      questionId: answer.question_id,
+      field: answer.field_name,
+      value: answer.answer_redacted,
+      answeredAt: answer.created_at,
+    });
+  }
+
+  const baseClassification = classifyLegalQuestion(row.initial_question_redacted, row.category);
+  const classification = {
+    ...baseClassification,
+    subcategory: row.subcategory ?? baseClassification.subcategory,
+    subcategoryLabel: row.subcategory
+      ? aiSubcategoryLabels[row.subcategory]
+      : baseClassification.subcategoryLabel,
+    confidence: Number(row.classification_confidence ?? baseClassification.confidence),
+  };
+  const record: AiGuideSessionRecord = {
+    id: row.id,
+    publicToken: row.public_token_hash,
+    status: row.status,
+    initialQuestionRedacted: row.initial_question_redacted,
+    classification,
+    answers: Array.from(answerMap.values()),
+    result: resultRows?.[0]?.result_data,
+    consentToTransfer: row.consent_to_transfer,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    expiresAt: row.expires_at,
+  };
+  persistLocal(record);
+  return record;
+}
+
+function decodeTransferToken(token: string) {
+  if (!token.startsWith("v1.")) return undefined;
+  try {
+    return JSON.parse(Buffer.from(token.slice(3), "base64url").toString("utf8")) as {
+      sessionId?: string;
+      publicToken?: string;
+    };
+  } catch {
+    return undefined;
+  }
+}
+
+export async function getAiGuideSessionByTransferToken(token: string) {
+  const decoded = decodeTransferToken(token);
+  if (decoded?.sessionId && decoded.publicToken) {
+    const record = await getAiGuideSession(decoded.sessionId);
+    return record?.publicToken === decoded.publicToken ? record : undefined;
+  }
+
   loadLocalSessions();
   return Array.from(sessionStore.values()).find(
     (record) => record.transferToken === token && new Date(record.expiresAt).getTime() > Date.now(),
@@ -171,7 +272,10 @@ export function createAiSessionId() {
   return crypto.randomUUID();
 }
 
-export function createTransferToken() {
+export function createTransferToken(sessionId?: string, publicToken?: string) {
+  if (sessionId && publicToken) {
+    return `v1.${Buffer.from(JSON.stringify({ sessionId, publicToken })).toString("base64url")}`;
+  }
   return `transfer-${Date.now()}-${Math.random().toString(36).slice(2, 14)}`;
 }
 
