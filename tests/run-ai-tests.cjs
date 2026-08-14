@@ -424,6 +424,27 @@ test("unit: follow-up answers override broad civil classification for debt claim
   assert.equal(result.recommendedDocuments.some((item) => /등기사항증명서|건축물대장|임대차|하자/.test(item)), false);
 });
 
+test("unit: debt guidance does not repeat confirmed facts or request documents confirmed absent", () => {
+  const input = "친구에게 3,000만 원을 빌려줬는데 차용증은 없고 계좌이체 내역과 카카오톡 대화만 있습니다. 돈을 돌려받을 수 있나요?";
+  const questions = [
+    { id: "ai-followup-1", field: "aiFollowup1", category: "civil", order: 1, type: "long_text", question: "돈을 빌려준 날짜는 언제인가요?", required: true },
+    { id: "ai-followup-2", field: "aiFollowup2", category: "civil", order: 2, type: "long_text", question: "상환을 요구한 날짜는 언제인가요?", required: true },
+    { id: "ai-followup-3", field: "aiFollowup3", category: "civil", order: 3, type: "single_choice", question: "현재 법적 절차가 진행 중인가요?", required: true, options: [{ value: "yes", label: "예" }, { value: "no", label: "아니오" }] },
+  ];
+  const result = buildAiGuideResult("debt-known-facts", input, classifyLegalQuestion(input), [
+    answer("ai-followup-1", "aiFollowup1", "2020-10-10"),
+    answer("ai-followup-2", "aiFollowup2", "2026-05-11"),
+    answer("ai-followup-3", "aiFollowup3", "no"),
+  ], questions);
+
+  assert.equal(result.missingInformation.some((item) => /차용증.{0,12}없다면.{0,30}(?:이체|대화)\s*기록/.test(item)), false);
+  assert.equal(result.missingInformation.some((item) => /빌려준\s*날짜와\s*금액/.test(item)), false);
+  assert.equal(result.recommendedDocuments.some((item) => /차용증|각서|공증서/.test(item)), false);
+  assert.equal(result.recommendedDocuments.some((item) => /지급명령|소송서류/.test(item)), false);
+  assert.ok(result.recommendedDocuments.some((item) => /계좌이체|입금/.test(item)));
+  assert.ok(result.recommendedDocuments.some((item) => /독촉|대화/.test(item)));
+});
+
 test("unit: calculates session expiry and rate limits", () => {
   const expiresAt = new Date(createExpiry(7));
   const diffDays = Math.round((expiresAt.getTime() - Date.now()) / 86_400_000);

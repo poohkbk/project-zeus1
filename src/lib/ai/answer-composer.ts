@@ -259,7 +259,11 @@ export function buildAiGuideResult(
   questions: AiGuideQuestion[] = [],
 ): AiGuideResult {
   const answerMap = getAnswerMap(answers);
-  const answerContext = answers.flatMap((answer) => Array.isArray(answer.value) ? answer.value : [String(answer.value ?? "")]);
+  const answerContext = answers.map((answer) => {
+    const value = Array.isArray(answer.value) ? answer.value.join(" ") : String(answer.value ?? "");
+    const selectedLabel = findQuestion(answer.field, questions)?.options?.find((option) => option.value === answer.value)?.label;
+    return `${findQuestion(answer.field, questions)?.question ?? answer.field} ${selectedLabel ?? value}`;
+  });
   const positiveQuestionContext = answers
     .filter((answer) => answer.value === "yes")
     .map((answer) => findQuestion(answer.field, questions)?.question ?? "");
@@ -358,7 +362,31 @@ export function buildAiGuideResult(
     missingInformation.push("무죄 여부는 증거와 수사기록 전체를 검토한 뒤 판단해야 합니다.");
   }
 
-  const recommendedDocuments = strictGuidance.recommendedDocuments;
+  const debtMatter = effectiveClassification.category === "civil" && effectiveClassification.subcategory === "debt";
+  const noWrittenLoanDocument = debtMatter && (
+    answerMap.get("writtenAgreementExists") === "no"
+    || /차용증(?:은|이|을)?\s*(?:없|작성하지|쓰지)|차용증\s*없음/.test(consultationContext)
+  );
+  const transferOrMessageEvidenceKnown = debtMatter
+    && /계좌이체|입금\s*내역|카카오톡|카톡|문자|대화\s*기록/.test(consultationContext);
+  const loanDateKnown = debtMatter
+    && /(?:빌려준|대여|송금).{0,12}(?:날짜|일자)?\s*[:：]?\s*\d{4}[-./년]\s*\d{1,2}|\d{4}-\d{2}-\d{2}/.test(consultationContext);
+  const loanAmountKnown = debtMatter && /\d[\d,]*(?:\.\d+)?\s*(?:억|만)?\s*원/.test(consultationContext);
+  const noCurrentProcedure = debtMatter
+    && /현재\s*(?:법적\s*)?(?:절차|소송|지급명령).{0,16}(?:없|아니오)|법적\s*절차.{0,16}(?:없|아니오)/.test(consultationContext);
+  const contextFilteredMissingInformation = missingInformation.filter((item) => {
+    if (!debtMatter) return true;
+    if (transferOrMessageEvidenceKnown && /차용증.{0,12}없다면.{0,30}(?:이체|대화)\s*기록/.test(item)) return false;
+    if (loanDateKnown && loanAmountKnown && /빌려준\s*날짜와\s*금액/.test(item)) return false;
+    if (loanDateKnown && /빌려준\s*날짜/.test(item) && !/금액/.test(item)) return false;
+    if (loanAmountKnown && /빌려준\s*금액/.test(item) && !/날짜/.test(item)) return false;
+    return true;
+  });
+  const recommendedDocuments = strictGuidance.recommendedDocuments.filter((item) => {
+    if (noWrittenLoanDocument && /차용증|각서|공증서/.test(item)) return false;
+    if (noCurrentProcedure && /지급명령|소송서류/.test(item)) return false;
+    return true;
+  });
   const situationSummary = `${effectiveClassification.categoryLabel} ${
     effectiveClassification.subcategoryLabel ?? ""
   } 관련 상담 전 확인 내용입니다. 현재 정보만으로는 일반 안내만 가능하며, 자료 검토에 따라 방향이 달라질 수 있습니다.`;
@@ -383,7 +411,7 @@ export function buildAiGuideResult(
     urgency,
     situationSummary,
     confirmedFacts: confirmedFacts.length > 0 ? confirmedFacts : ["아직 구체적으로 확인된 답변이 많지 않습니다."],
-    missingInformation: Array.from(new Set(missingInformation)).slice(0, 8),
+    missingInformation: Array.from(new Set(contextFilteredMissingInformation)).slice(0, 8),
     recommendedDocuments,
     consultationOpinion: unpaidChildSupportMatter
       ? "판결·조정 등으로 정해진 양육비가 지급되다가 중단되었다면 미지급액에 대해 이행명령, 직접지급명령 또는 강제집행을 검토할 수 있습니다. 미납 기간과 상대방의 직장·재산을 확인해 변호사와 구체적인 회수 방법을 상담해보세요."
@@ -404,7 +432,7 @@ export function buildAiGuideResult(
       situationSummary,
       confirmedFacts: confirmedFacts.slice(0, 8),
       availableEvidence,
-      missingInformation: Array.from(new Set(missingInformation)).slice(0, 8),
+      missingInformation: Array.from(new Set(contextFilteredMissingInformation)).slice(0, 8),
       keyIssues: [effectiveClassification.subcategoryLabel ?? aiCategoryLabels[effectiveClassification.category]].filter(Boolean),
       urgencyLevel: urgency.level,
       urgencyReasons: urgency.reasons,
