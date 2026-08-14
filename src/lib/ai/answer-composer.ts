@@ -3,6 +3,7 @@ import { aiProcessGuides } from "@/data/ai/process-guides";
 import { aiQuestionFlows } from "@/data/ai/question-flows";
 import type { AiClassificationResult, AiGuideAnswer, AiGuideQuestion, AiGuideResult } from "@/types/ai-guide";
 import { getAiRelatedContent } from "./content-retrieval";
+import { classifyLegalQuestion } from "./classifier";
 import { getAnswerMap } from "./question-engine";
 import { evaluateSafetyGuidance } from "./safety";
 import { evaluateUrgency } from "./urgency";
@@ -237,14 +238,29 @@ export function buildAiGuideResult(
     .filter((answer) => answer.value === "yes")
     .map((answer) => findQuestion(answer.field, questions)?.question ?? "");
   const consultationContext = [initialQuestionRedacted, ...answerContext, ...positiveQuestionContext].join(" ");
-  const affairIntent = classification.category === "divorce" && /상간|외도|불륜|부정행위|바람/.test(consultationContext);
-  const effectiveClassification: AiClassificationResult = affairIntent ? {
-    ...classification,
-    subcategory: "affair",
-    subcategoryLabel: aiSubcategoryLabels.affair,
-    matchedTags: Array.from(new Set([...classification.matchedTags, "affair", "damages"])),
-    reasonSummary: "후속 답변에서 상간자 손해배상 의사가 확인되었습니다.",
-  } : classification;
+  const contextualClassification = classifyLegalQuestion(consultationContext);
+  const contextualMatch = contextualClassification.category === classification.category && contextualClassification.subcategory !== "general";
+  let effectiveClassification: AiClassificationResult = contextualMatch ? contextualClassification : classification;
+  const debtIntent = effectiveClassification.category === "civil" && /대여금|차용증|돈을\s*(?:빌려|빌린)|빌려준|빌려줬|갚(?:아|지|으)|상환|변제/.test(consultationContext);
+  if (debtIntent) {
+    effectiveClassification = {
+      ...effectiveClassification,
+      subcategory: "debt",
+      subcategoryLabel: aiSubcategoryLabels.debt,
+      matchedTags: Array.from(new Set([...effectiveClassification.matchedTags, "debt", "loan", "collection"])),
+      reasonSummary: "후속 답변에서 빌려준 돈의 반환 문제와 상환 요청 내용이 확인되었습니다.",
+    };
+  }
+  const affairIntent = effectiveClassification.category === "divorce" && /상간|외도|불륜|부정행위|바람/.test(consultationContext);
+  if (affairIntent) {
+    effectiveClassification = {
+      ...effectiveClassification,
+      subcategory: "affair",
+      subcategoryLabel: aiSubcategoryLabels.affair,
+      matchedTags: Array.from(new Set([...effectiveClassification.matchedTags, "affair", "damages"])),
+      reasonSummary: "후속 답변에서 상간자 손해배상 의사가 확인되었습니다.",
+    };
+  }
   const category = effectiveClassification.category === "unclear" ? "civil" : effectiveClassification.category;
   const urgency = evaluateUrgency(effectiveClassification.category, answers, initialQuestionRedacted);
   const safetyGuidance = evaluateSafetyGuidance(initialQuestionRedacted, answers);

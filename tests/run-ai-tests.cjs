@@ -310,6 +310,23 @@ test("unit: follow-up answers override broad divorce classification for affair c
   assert.equal(result.recommendedDocuments.some((item) => /부동산|예금|퇴직금|재산 형성/.test(item)), false);
 });
 
+test("unit: follow-up answers override broad civil classification for debt claims", () => {
+  const classification = classifyLegalQuestion("민사 문제로 상담하고 싶습니다.", "civil");
+  const questions = [
+    { id: "ai-followup-1", field: "aiFollowup1", category: "civil", order: 1, type: "boolean", question: "돈을 빌려준 상대방과 계약서가 있나요?", required: true, options: [{ value: "yes", label: "예" }, { value: "no", label: "아니오" }] },
+    { id: "ai-followup-2", field: "aiFollowup2", category: "civil", order: 2, type: "long_text", question: "상환 요청 후 상대방 반응은 어땠나요?", required: true },
+  ];
+  const result = buildAiGuideResult("debt-followup", "민사 문제로 상담하고 싶습니다.", classification, [
+    answer("ai-followup-1", "aiFollowup1", "yes"),
+    answer("ai-followup-2", "aiFollowup2", "상환을 요청했지만 묵묵부답입니다."),
+  ], questions);
+
+  assert.equal(result.classification.subcategory, "debt");
+  assert.ok(result.missingInformation.some((item) => item.includes("빌려준 날짜와 금액")));
+  assert.ok(result.recommendedDocuments.some((item) => item.includes("차용증")));
+  assert.equal(result.recommendedDocuments.some((item) => /등기사항증명서|건축물대장|임대차|하자/.test(item)), false);
+});
+
 test("unit: calculates session expiry and rate limits", () => {
   const expiresAt = new Date(createExpiry(7));
   const diffDays = Math.round((expiresAt.getTime() - Date.now()) / 86_400_000);
