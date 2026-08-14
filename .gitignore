@@ -30,3 +30,6 @@ data/ai-guide-sessions.json
 # system
 .DS_Store
 Thumbs.db
+
+.vercel
+.env*
