@@ -500,16 +500,38 @@ function softenResultItem(title: string, item: string) {
 
 function buildConsultationCtaComment(result: AiGuideResult) {
   const issueLabel = result.classification.subcategoryLabel || result.classification.categoryLabel;
+  const reviewTarget = getLegalReviewTarget(result);
   const confirmed = result.confirmedFacts
     .filter((item) => !item.includes("아직 구체적으로 확인된"))
     .slice(0, 2)
     .map((item) => item.length > 75 ? `${item.slice(0, 72)}…` : item);
 
   if (confirmed.length === 0) {
-    return `${issueLabel} 관련 사실관계를 조금 더 확인하면 적절한 대응 방향을 정할 수 있습니다.`;
+    return `${issueLabel} 관련하여 ${reviewTarget} 가능성을 검토하는 것은 가능합니다. 구체적인 판단을 위해 사실관계와 자료를 더 확인해야 합니다.`;
   }
 
-  return `${issueLabel} 관련하여 ${confirmed.join(" · ")} 내용이 확인되었습니다. 구체적인 대응은 변호사 상담에서 검토해보세요.`;
+  return `${issueLabel} 관련하여 ${confirmed.join(" · ")} 내용이 확인되었습니다. 현재 내용으로 ${reviewTarget} 가능성을 검토하는 것은 가능합니다. 구체적인 판단은 변호사 상담에서 확인해보세요.`;
+}
+
+function getLegalReviewTarget(result: AiGuideResult) {
+  const subcategory = result.classification.subcategory;
+  if (subcategory === "debt") return "대여금 반환 청구";
+  if (subcategory === "contract") return "계약 이행·해제 또는 손해배상 청구";
+  if (subcategory === "damages") return "손해배상 청구";
+  if (subcategory === "affair") return "상간자 손해배상 청구";
+  if (subcategory === "property-division") return "이혼과 재산분할 청구";
+  if (subcategory === "custody") return "친권·양육권·양육비 청구";
+  if (subcategory === "renunciation") return "상속포기 신청";
+  if (subcategory === "limited-acceptance") return "한정승인 신청";
+  if (subcategory === "reserved-share") return "유류분 반환 청구";
+  if (["business-suspension", "license-cancellation", "discipline", "administrative-appeal", "administrative-lawsuit"].includes(subcategory ?? "")) {
+    return "행정처분 불복";
+  }
+  if (result.classification.category === "criminal") return "형사 고소 또는 방어 대응";
+  if (result.classification.category === "divorce") return "이혼·가사 청구";
+  if (result.classification.category === "inheritance") return "상속 관련 청구·신청";
+  if (result.classification.category === "administrative") return "행정처분 불복";
+  return "법적 대응";
 }
 
 function RelatedSection({ title, items }: { title: string; items: AiGuideResult["relatedContent"]["cases"] }) {
