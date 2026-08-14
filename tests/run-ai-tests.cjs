@@ -504,7 +504,6 @@ test("unit/provider: OpenAI provider creates safe tailored follow-up questions",
             message: {
               content: JSON.stringify({
                 questions: [
-                  { question: "배우자와의 이혼을 결심한 날짜는 언제인가요?", type: "date", required: true },
                   { question: "임대차계약이 종료된 날짜는 언제인가요?", type: "date", required: true },
                   {
                     question: "임대인에게 반환을 요청한 자료가 있나요?",
@@ -518,6 +517,8 @@ test("unit/provider: OpenAI provider creates safe tailored follow-up questions",
                   { question: "현재 보유한 계약 관련 자료를 알려주세요.", type: "long_text", required: false },
                   { question: "사고와 관련된 경찰 보고서가 있나요?", type: "short_text", required: true },
                   { question: "이혼 후 원하는 결과는 무엇인가요?", type: "boolean", required: true },
+                  { question: "상대방이 주장하는 하자의 구체적인 내용을 알고 있습니까?", helpText: "하자에 대한 설명이나 증거를 포함해 주세요.", type: "long_text", required: true },
+                  { question: "배우자와의 이혼을 결심한 날짜는 언제인가요?", type: "date", required: true },
                 ],
               }),
             },
@@ -533,7 +534,7 @@ test("unit/provider: OpenAI provider creates safe tailored follow-up questions",
     answers: [],
     promptVersion: "test",
   });
-  assert.equal(response.data.length, 5);
+  assert.equal(response.data.length, 6);
   assert.equal(response.data.some((item) => /이혼.*결심/.test(item.question)), false);
   assert.equal(response.data[0].type, "date");
   assert.equal(response.data[3].type, "boolean");
@@ -543,6 +544,8 @@ test("unit/provider: OpenAI provider creates safe tailored follow-up questions",
   ]);
   assert.equal(response.data[4].type, "long_text");
   assert.equal(response.data[4].options, undefined);
+  assert.match(response.data[5].helpText ?? "", /파일 대신.*글로/);
+  assert.doesNotMatch(response.data[5].helpText ?? "", /증거를 포함/);
 
   const flow = sanitizeQuestionFlow(
     response.data.map((question, index) => ({
@@ -554,12 +557,23 @@ test("unit/provider: OpenAI provider creates safe tailored follow-up questions",
     })),
     "civil",
   );
-  assert.equal(flow?.length, 5);
+  assert.equal(flow?.length, 6);
   assert.equal(flow?.[1].options?.length, 2);
   assert.equal(flow?.[3].type, "boolean");
   assert.deepEqual(flow?.[3].options?.map((option) => option.value), ["yes", "no"]);
   assert.equal(flow?.[4].type, "long_text");
   assert.equal(flow?.[4].options, undefined);
+});
+
+test("unit: construction payment guidance excludes lease and sale materials", () => {
+  const input = "공사를 완료했는데 상대방이 천장 누수 하자를 주장하며 공사대금 지급을 거절하고 있습니다.";
+  const result = buildAiGuideResult("construction-payment", input, classifyLegalQuestion(input), []);
+  assert.ok(result.missingInformation.some((item) => /총 공사대금|받지 못한 금액/.test(item)));
+  assert.ok(result.missingInformation.some((item) => /하자의 원인|시공 범위/.test(item)));
+  assert.ok(result.recommendedDocuments.some((item) => /공사도급계약서|견적서|공사내역서/.test(item)));
+  assert.ok(result.recommendedDocuments.some((item) => /기성내역서|미지급액 계산표/.test(item)));
+  assert.equal(result.missingInformation.some((item) => /부동산·임대차|점유·사용·대금 지급 경위/.test(item)), false);
+  assert.equal(result.recommendedDocuments.some((item) => /등기사항증명서|건축물대장|임대차·매매|보증금/.test(item)), false);
 });
 
 test("screen-contract: AI date questions name the event without redundant explanation questions", () => {

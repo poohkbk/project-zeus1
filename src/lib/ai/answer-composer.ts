@@ -107,6 +107,7 @@ function buildSectionComments(
 }
 
 const trafficAccidentPattern = /교통사고|자동차\s*사고|차량\s*사고|보행자\s*사고|접촉사고|추돌|블랙박스/;
+const constructionPaymentPattern = /공사대금|공사비|도급대금|기성금|미지급\s*공사|공사\s*잔금|추가\s*공사대금/;
 
 function isTrafficAccident(question: string, classification: AiClassificationResult) {
   return classification.subcategory === "damages" && trafficAccidentPattern.test(question);
@@ -137,6 +138,24 @@ function buildStrictGuidance(
   initialQuestion: string,
 ) {
   if (isTrafficAccident(initialQuestion, classification)) return trafficAccidentGuidance();
+
+  if (classification.category === "civil" && constructionPaymentPattern.test(initialQuestion)) return {
+    missingInformation: [
+      "계약한 총 공사대금과 현재 받지 못한 금액을 확인해주세요.",
+      "당초 공사 범위와 추가·변경 공사 및 그 대금 합의가 있었는지 확인해주세요.",
+      "공사가 완성·인도되었고 상대방이 목적물을 사용하고 있는지 확인해주세요.",
+      "상대방이 주장하는 하자의 원인과 시공 범위의 관련성, 보수 가능 여부를 확인해주세요.",
+      "하자 통지와 보수 요청을 받은 시점 및 이에 답변하거나 보수를 제안한 내용이 있는지 확인해주세요.",
+    ],
+    recommendedDocuments: [
+      "공사도급계약서·견적서·공사내역서",
+      "설계도면·시방서·추가 및 변경 공사 합의 내용",
+      "세금계산서·기성내역서·입금내역·미지급액 계산표",
+      "공사 진행·완료 사진과 검수·인도 자료",
+      "하자 통지·보수 요청 및 답변 대화",
+      "누수 등 하자 원인에 관한 점검·감정 자료가 있다면 그 자료",
+    ],
+  };
 
   if (classification.category === "civil") {
     const disputeType = String(answerMap.get("disputeType") ?? classification.subcategory ?? "general");

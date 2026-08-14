@@ -125,7 +125,7 @@ function validateResultDraft(value: Record<string, unknown>): AiProviderResultDr
 function validateQuestionDrafts(value: Record<string, unknown>): AiProviderQuestionDraft[] {
   if (!Array.isArray(value.questions)) return [];
   const allowedTypes = new Set(["single_choice", "date", "short_text", "long_text", "boolean"]);
-  return value.questions.slice(0, 6).flatMap((item) => {
+  return value.questions.flatMap<AiProviderQuestionDraft>((item) => {
     if (!item || typeof item !== "object" || Array.isArray(item)) return [];
     const draft = item as Record<string, unknown>;
     const question = safeString(draft.question, 180)?.trim();
@@ -142,6 +142,8 @@ function validateQuestionDrafts(value: Record<string, unknown>): AiProviderQuest
     const vagueDocumentQuestion = /중요한\s*(?:서류|증거)|관련(?:된|한)\s*(?:서류|증거)|준비(?:한|할|하는)\s*(?:서류|증거)|(?:서류|증거)(?:가|를)\s*(?:있나요|가지고|보유)/.test(question)
       && !/계약서|차용증|소장|고소장|처분서|진단서|등기|가족관계|혼인관계|계좌|녹음|영상|문자|영수증|공소장|판결|조정/.test(question);
     const documentReadinessQuestion = /(?:서류|자료|증거).{0,12}(?:준비|갖추|마련)(?:되|했|하셨|되어)|(?:준비|갖추|마련).{0,12}(?:서류|자료|증거)/.test(question);
+    const rawHelpText = safeString(draft.helpText, 220);
+    const impliesFileUpload = /(?:증거|자료|파일).{0,12}(?:포함|첨부|업로드|올려)|(?:포함|첨부|업로드).{0,12}(?:증거|자료|파일)/.test(`${question} ${rawHelpText ?? ""}`);
     const options = Array.isArray(draft.options)
       ? draft.options.slice(0, 5).flatMap((option) => {
           if (!option || typeof option !== "object" || Array.isArray(option)) return [];
@@ -157,7 +159,9 @@ function validateQuestionDrafts(value: Record<string, unknown>): AiProviderQuest
       question: vagueDocumentQuestion || documentReadinessQuestion ? "현재 가지고 있는 서류나 증거의 종류와 내용을 구체적으로 적어주세요." : question,
       helpText: vagueDocumentQuestion || documentReadinessQuestion
         ? "예: 판결문·조정조서, 계약서, 계좌내역, 문자·카카오톡, 사진, 녹음. 자료가 없어도 상담할 수 있으므로 없다면 ‘없음’이라고 적어주세요."
-        : safeString(draft.helpText, 220),
+        : impliesFileUpload
+          ? "관련 사진·대화·점검자료가 있다면 파일 대신 자료의 종류와 핵심 내용을 글로 적어주세요. 없다면 ‘없음’이라고 적어주세요."
+          : rawHelpText,
       type: vagueDocumentQuestion || documentReadinessQuestion ? "long_text" : booleanQuestion ? "boolean" : type === "boolean" ? "long_text" : type === "single_choice" && (!options || options.length < 2) ? "short_text" : type,
       required: draft.required !== false,
       options: vagueDocumentQuestion || documentReadinessQuestion ? undefined : booleanQuestion
@@ -166,7 +170,7 @@ function validateQuestionDrafts(value: Record<string, unknown>): AiProviderQuest
           ? undefined
           : options,
     }];
-  });
+  }).slice(0, 6);
 }
 
 function usageFromResponse(value: Record<string, unknown>): AiProviderUsage {
@@ -307,7 +311,7 @@ export class OpenAiLegalGuideProvider implements AiLegalGuideProvider {
       {
         role: "system",
         content:
-          "You create a short Korean legal consultation intake flow for LAW OFFICE ZEU. Return JSON only. Ask only facts needed for a lawyer to understand the matter. Never request resident registration numbers, account passwords, unnecessary identifying data, illegal acts, or predictions of case outcomes. Questions must be neutral, plain Korean, and one fact per question. For criminal matters, the first question must determine whether the user is a victim/complainant, suspect/accused/defendant, or witness, and all later questions must match that role. Every question genuinely answerable with yes or no must use type 'boolean' with options [{value:'yes',label:'예'},{value:'no',label:'아니오'}]. Questions containing what/which/when/where/who/why/how/how much or asking for a desired outcome, explanation, or specific details must use short_text or long_text, never boolean. Evidence and document questions must never be yes/no. Ask the user to list the exact case-specific evidence they have, give relevant examples in helpText, and explicitly instruct them to enter '없음' when they have none. For a de facto marriage, examples should include proof of cohabitation, shared address or household expenses, wedding/family recognition, messages, photos, joint assets, and contributions. For an affair or third-party affair damages claim, never assume that the user wants a divorce and never ask whether or when the user decided to divorce. Divorce is not a prerequisite for that claim. Ask only claim-specific facts not already stated: when the user first learned of the affair, when the third party's identity became known, the affair period or last act, whether the third party knew of the marriage, whether the marriage had already irretrievably broken down before the affair, and the available affair evidence. If the request already states that the affair was discovered two years ago, do not ask the same fact again unless an exact discovery date is genuinely needed for a limitation-period review. Never ask vague questions such as whether the user has 'important documents' or 'documents related to preparing for divorce'. Name the exact evidence or document and explain its relevance in the question. Never ask for an unspecified 'important date'. Every date question must name the exact event, such as marriage date, separation date, repayment due date, discovery date, or document service date. When the event is already named in the date question, do not ask a follow-up about what happened on that date or why it matters; that would be redundant. Do not ask the user to describe what happened on a marriage date, contract date, death date, filing date, service date, or any other self-explanatory date.",
+          "You create a short Korean legal consultation intake flow for LAW OFFICE ZEU. Return JSON only. Ask only facts needed for a lawyer to understand the matter. Never request resident registration numbers, account passwords, unnecessary identifying data, illegal acts, or predictions of case outcomes. Questions must be neutral, plain Korean, and one fact per question. For criminal matters, the first question must determine whether the user is a victim/complainant, suspect/accused/defendant, or witness, and all later questions must match that role. Every question genuinely answerable with yes or no must use type 'boolean' with options [{value:'yes',label:'예'},{value:'no',label:'아니오'}]. Questions containing what/which/when/where/who/why/how/how much or asking for a desired outcome, explanation, or specific details must use short_text or long_text, never boolean. Evidence and document questions must never be yes/no. This interface does not support file uploads, so never ask the user to include, attach, or upload evidence or files. Ask only for the type and key contents of any evidence in text, and say that no file attachment is needed. Ask the user to list the exact case-specific evidence they have, give relevant examples in helpText, and explicitly instruct them to enter '없음' when they have none. For a de facto marriage, examples should include proof of cohabitation, shared address or household expenses, wedding/family recognition, messages, photos, joint assets, and contributions. For an affair or third-party affair damages claim, never assume that the user wants a divorce and never ask whether or when the user decided to divorce. Divorce is not a prerequisite for that claim. Ask only claim-specific facts not already stated: when the user first learned of the affair, when the third party's identity became known, the affair period or last act, whether the third party knew of the marriage, whether the marriage had already irretrievably broken down before the affair, and the available affair evidence. If the request already states that the affair was discovered two years ago, do not ask the same fact again unless an exact discovery date is genuinely needed for a limitation-period review. Never ask vague questions such as whether the user has 'important documents' or 'documents related to preparing for divorce'. Name the exact evidence or document and explain its relevance in the question. Never ask for an unspecified 'important date'. Every date question must name the exact event, such as marriage date, separation date, repayment due date, discovery date, or document service date. When the event is already named in the date question, do not ask a follow-up about what happened on that date or why it matters; that would be redundant. Do not ask the user to describe what happened on a marriage date, contract date, death date, filing date, service date, or any other self-explanatory date.",
       },
       {
         role: "user",
