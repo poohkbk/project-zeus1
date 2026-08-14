@@ -81,6 +81,31 @@ function isPositiveEvidence(answer: AiGuideAnswer) {
   return evidenceFields.has(answer.field) && answer.value === "yes";
 }
 
+function buildSectionComments(
+  category: AiClassificationResult["category"],
+  confirmedFacts: string[],
+  missingInformation: string[],
+) {
+  const categoryComments: Record<AiClassificationResult["category"], string> = {
+    civil: "계약 내용과 금전 흐름을 함께 살피면 대응 방향을 더 분명히 정할 수 있습니다.",
+    criminal: "수사 단계와 증거 내용을 함께 살펴 신중하게 대응 방향을 정할 필요가 있습니다.",
+    divorce: "재산과 자녀 등 현재 상황을 함께 살펴 구체적인 해결 방향을 정할 수 있습니다.",
+    inheritance: "상속재산과 채무, 관련 기한을 함께 검토해 대응 방향을 정할 필요가 있습니다.",
+    administrative: "처분 사유와 불복기한을 함께 검토해 가능한 대응 절차를 확인해야 합니다.",
+    unclear: "확인된 사실을 토대로 사건의 성격과 우선 대응할 쟁점을 정리할 수 있습니다.",
+  };
+
+  return {
+    confirmedFacts: confirmedFacts.length > 0
+      ? categoryComments[category]
+      : "아직 확인된 사실이 적어 사건 경위부터 차근차근 정리하는 것이 좋겠습니다.",
+    missingInformation: missingInformation.length > 0
+      ? "남은 사실에 따라 대응이 달라질 수 있으므로 변호사 상담으로 확인해보세요."
+      : "중요한 사실은 대체로 확인됐으며, 변호사 상담에서 대응 방법을 검토해보세요.",
+    recommendedDocuments: "관련 원본 자료를 준비하면 변호사가 사실관계와 대응 방향을 더 정확히 검토할 수 있습니다.",
+  };
+}
+
 export function buildAiGuideResult(
   sessionId: string,
   initialQuestionRedacted: string,
@@ -135,6 +160,7 @@ export function buildAiGuideResult(
     ...relatedContent.guides,
     ...relatedContent.faqs,
   ].map((item) => item.id);
+  const sectionComments = buildSectionComments(classification.category, confirmedFacts, missingInformation);
 
   return {
     sessionId,
@@ -144,11 +170,7 @@ export function buildAiGuideResult(
     confirmedFacts: confirmedFacts.length > 0 ? confirmedFacts : ["아직 구체적으로 확인된 답변이 많지 않습니다."],
     missingInformation: Array.from(new Set(missingInformation)).slice(0, 8),
     recommendedDocuments,
-    sectionComments: {
-      confirmedFacts: "확인된 사실을 바탕으로 사건의 핵심 쟁점을 정리할 수 있습니다.",
-      missingInformation: "남은 쟁점은 변호사 상담을 통해 구체적으로 확인해보세요.",
-      recommendedDocuments: "관련 자료를 지참하면 보다 정확한 상담에 도움이 됩니다.",
-    },
+    sectionComments,
     generalProcess: aiProcessGuides[category],
     relatedContent,
     consultationSummary: {

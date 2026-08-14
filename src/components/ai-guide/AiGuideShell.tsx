@@ -387,10 +387,10 @@ export function AiGuideShell() {
               />
             </div>
             <div className="ai-result-consultation-cta">
-              <p>구체적인 대응 방향은 변호사와 함께 확인해보세요.</p>
-              <Link className="btn btn-primary" href={siteConfig.links.consultation}>
-                변호사 상담 예약하기
-              </Link>
+              <p>확인된 내용과 준비 자료를 바탕으로 변호사 상담을 이어가세요.</p>
+              <button type="button" className="btn btn-primary" onClick={transferToConsultation}>
+                바로 상담 신청하기
+              </button>
             </div>
 
             <section className="ai-result-section">
