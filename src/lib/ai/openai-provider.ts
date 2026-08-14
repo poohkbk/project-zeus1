@@ -279,7 +279,7 @@ export class OpenAiLegalGuideProvider implements AiLegalGuideProvider {
               missingInformation: "about 50 Korean characters, naturally recommend lawyer consultation for unresolved issues",
               recommendedDocuments: "about 50 Korean characters, explain how the documents help consultation",
             },
-            relatedContentIds: ["IDs from publicRelatedContent that are directly relevant; empty array when none"],
+            relatedContentIds: ["Select only content directly similar to the consultation question AND follow-up answers. Choose at most 2 case IDs, 2 guide IDs, and 2 FAQ IDs. Never select merely because it shares a broad legal category. Return an empty array when no item is genuinely relevant."],
             safetyNotice: "Korean disclaimer, no outcome guarantee",
           },
         }),
@@ -427,11 +427,16 @@ export function applyProviderResultDraft(
   const relatedContent = draft.relatedContentIds
     ? {
         practices: ruleResult.relatedContent.practices.filter((item) => allowedRelatedIds.has(item.id)),
-        cases: ruleResult.relatedContent.cases.filter((item) => allowedRelatedIds.has(item.id)),
-        guides: ruleResult.relatedContent.guides.filter((item) => allowedRelatedIds.has(item.id)),
-        faqs: ruleResult.relatedContent.faqs.filter((item) => allowedRelatedIds.has(item.id)),
+        cases: ruleResult.relatedContent.cases.filter((item) => allowedRelatedIds.has(item.id)).slice(0, 2),
+        guides: ruleResult.relatedContent.guides.filter((item) => allowedRelatedIds.has(item.id)).slice(0, 2),
+        faqs: ruleResult.relatedContent.faqs.filter((item) => allowedRelatedIds.has(item.id)).slice(0, 2),
       }
-    : ruleResult.relatedContent;
+    : {
+        practices: [],
+        cases: ruleResult.relatedContent.cases.slice(0, 2),
+        guides: ruleResult.relatedContent.guides.slice(0, 2),
+        faqs: ruleResult.relatedContent.faqs.slice(0, 2),
+      };
 
   return {
     ...ruleResult,

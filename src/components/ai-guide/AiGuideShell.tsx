@@ -411,10 +411,9 @@ export function AiGuideShell() {
               </div>
             </section>
 
-            <RelatedSection title="관련 업무분야" items={result.relatedContent.practices} />
-            <RelatedSection title="관련 승소사례" items={result.relatedContent.cases} />
+            <RelatedSection title="유사사건 사례" items={result.relatedContent.cases} />
             <RelatedSection title="관련 법률가이드" items={result.relatedContent.guides} />
-            <RelatedSection title="FAQ" items={result.relatedContent.faqs} />
+            <RelatedSection title="관련 FAQ" items={result.relatedContent.faqs} />
 
             <p className="ai-safety-note">{result.safetyNotice}</p>
             {errorMessage ? <p className="ai-guide-error-text">{errorMessage}</p> : null}

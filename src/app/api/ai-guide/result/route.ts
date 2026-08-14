@@ -6,6 +6,7 @@ import { enhanceResultWithProvider } from "@/lib/ai/provider-runtime";
 import { rejectCrossOriginRequest } from "@/lib/security/request-guard";
 import { sanitizeQuestionFlow } from "@/lib/ai/question-engine";
 import type { AiGuideQuestion } from "@/types/ai-guide";
+import { getPublishedAiContentCandidates } from "@/lib/ai/published-content-candidates";
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +30,7 @@ export async function POST(request: NextRequest) {
     session.answers,
     questions,
   );
+  ruleResult.relatedContent = await getPublishedAiContentCandidates(ruleResult.classification, session.answers);
   const result = await enhanceResultWithProvider(ruleResult, session.initialQuestionRedacted, session.answers, questions);
   const updated = await updateAiGuideSession({
     ...session,
