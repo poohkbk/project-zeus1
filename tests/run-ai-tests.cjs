@@ -562,6 +562,8 @@ test("screen-contract: AI guide includes fallback, transfer, and responsive CSS 
   assert.match(shell, /바로 상담 신청하기/);
   assert.match(shell, /onClick=\{transferToConsultation\}/);
   assert.match(shell, /sectionComments/);
+  assert.match(shell, /fallbackComment/);
+  assert.match(shell, /<strong>AI 의견<\/strong>/);
   assert.match(shell, /classified\.questions\.length === 0/);
   assert.match(shell, /setUiState\("start"\)/);
   assert.match(shell, /autoAdvanceChoice/);

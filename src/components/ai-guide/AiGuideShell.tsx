@@ -374,16 +374,19 @@ export function AiGuideShell() {
                 title="현재 확인된 내용"
                 items={result.confirmedFacts}
                 comment={result.sectionComments?.confirmedFacts}
+                fallbackComment="확인된 사실을 바탕으로 사건의 핵심 쟁점과 대응 방향을 구체적으로 살펴볼 수 있습니다."
               />
               <ResultList
                 title="추가 확인이 필요한 사항"
                 items={result.missingInformation}
                 comment={result.sectionComments?.missingInformation}
+                fallbackComment="남은 사실에 따라 대응이 달라질 수 있으므로 변호사 상담으로 확인해보세요."
               />
               <ResultList
                 title="준비하면 좋은 자료"
                 items={result.recommendedDocuments}
                 comment={result.sectionComments?.recommendedDocuments}
+                fallbackComment="관련 자료를 준비하면 변호사가 사실관계와 대응 방향을 더 정확히 검토할 수 있습니다."
               />
             </div>
             <div className="ai-result-consultation-cta">
@@ -449,14 +452,27 @@ export function AiGuideShell() {
   );
 }
 
-function ResultList({ title, items, comment }: { title: string; items: string[]; comment?: string }) {
+function ResultList({
+  title,
+  items,
+  comment,
+  fallbackComment,
+}: {
+  title: string;
+  items: string[];
+  comment?: string;
+  fallbackComment: string;
+}) {
   return (
     <section className="ai-result-card">
       <h3>{title}</h3>
       <ul>
         {items.length > 0 ? items.map((item) => <li key={item}>{item}</li>) : <li>현재 입력 내용에서 확인할 항목이 없습니다.</li>}
       </ul>
-      {comment ? <p className="ai-result-card-comment">{comment}</p> : null}
+      <p className="ai-result-card-comment">
+        <strong>AI 의견</strong>
+        {comment?.trim() || fallbackComment}
+      </p>
     </section>
   );
 }

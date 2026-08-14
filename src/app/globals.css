@@ -381,6 +381,8 @@
 }
 
 .ai-result-card-comment {
+  display: grid;
+  gap: 5px;
   margin: 18px 0 0;
   border-top: 1px solid rgba(12, 51, 83, 0.1);
   padding-top: 14px;
@@ -388,6 +390,12 @@
   font-size: 0.9rem;
   font-weight: 750;
   line-height: 1.65;
+}
+
+.ai-result-card-comment strong {
+  color: #9a6d22;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
 }
 
 .ai-result-consultation-cta {
