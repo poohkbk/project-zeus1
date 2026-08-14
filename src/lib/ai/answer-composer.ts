@@ -106,6 +106,31 @@ function buildSectionComments(
   };
 }
 
+const trafficAccidentPattern = /교통사고|자동차\s*사고|차량\s*사고|보행자\s*사고|접촉사고|추돌|블랙박스/;
+
+function isTrafficAccident(question: string, classification: AiClassificationResult) {
+  return classification.subcategory === "damages" && trafficAccidentPattern.test(question);
+}
+
+function trafficAccidentGuidance() {
+  return {
+    missingInformation: [
+      "사고 일시와 장소, 충돌 경위를 확인해주세요.",
+      "경찰 신고와 보험사 사고 접수가 되었는지 확인해주세요.",
+      "현재 치료 내용과 향후 치료 예정이 있는지 확인해주세요.",
+      "상대방과 과실비율에 다툼이 있는지 확인해주세요.",
+    ],
+    recommendedDocuments: [
+      "사고 현장 사진·영상과 블랙박스 원본",
+      "교통사고사실확인원 또는 경찰 신고 자료",
+      "진단서·진료기록·치료비 자료",
+      "보험사 접수·보상 안내와 과실비율 자료",
+      "차량 수리 견적서와 영업손실 자료",
+      "상대방 차량번호·연락처 등 확인 자료",
+    ],
+  };
+}
+
 export function buildAiGuideResult(
   sessionId: string,
   initialQuestionRedacted: string,
@@ -117,6 +142,7 @@ export function buildAiGuideResult(
   const answerMap = getAnswerMap(answers);
   const urgency = evaluateUrgency(classification.category, answers, initialQuestionRedacted);
   const safetyGuidance = evaluateSafetyGuidance(initialQuestionRedacted, answers);
+  const trafficAccident = isTrafficAccident(initialQuestionRedacted, classification);
   const relatedContent = getAiRelatedContent(classification, answers);
   const confirmedFacts = answers
     .filter((answer) => answer.value !== null && answer.value !== "" && answer.value !== "unknown")
@@ -137,8 +163,11 @@ export function buildAiGuideResult(
   if (classification.category === "inheritance") {
     missingInformation.push("사망일과 상속 사실을 알게 된 날짜가 언제인지 확인해주세요.");
   }
-  if (classification.category === "civil" && answerMap.get("writtenAgreementExists") !== "yes") {
+  if (classification.category === "civil" && classification.subcategory !== "damages" && answerMap.get("writtenAgreementExists") !== "yes") {
     missingInformation.push("차용증·계약서가 없다면 이체내역이나 대화 기록이 있는지 확인해주세요.");
+  }
+  if (trafficAccident) {
+    missingInformation.push(...trafficAccidentGuidance().missingInformation);
   }
   if (safetyGuidance.flags.includes("evidence-preservation")) {
     missingInformation.push("증거는 삭제하거나 숨기지 말고 원본 상태로 보존해야 합니다.");
@@ -150,7 +179,11 @@ export function buildAiGuideResult(
     missingInformation.push("무죄 여부는 증거와 수사기록 전체를 검토한 뒤 판단해야 합니다.");
   }
 
-  const recommendedDocuments = aiDocumentChecklists[category];
+  const recommendedDocuments = trafficAccident
+    ? trafficAccidentGuidance().recommendedDocuments
+    : classification.subcategory === "damages"
+      ? ["손해 발생 경위 자료", "사진·영상·녹취", "진단서·수리비 등 손해액 자료", "상대방과 주고받은 연락", "보험 또는 보상 관련 자료", "상대방 확인 자료"]
+      : aiDocumentChecklists[category];
   const situationSummary = `${classification.categoryLabel} ${
     classification.subcategoryLabel ?? ""
   } 관련 상담 전 확인 내용입니다. 현재 정보만으로는 일반 안내만 가능하며, 자료 검토에 따라 방향이 달라질 수 있습니다.`;

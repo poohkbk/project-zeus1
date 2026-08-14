@@ -244,6 +244,23 @@ test("unit: creates Korean consultation summary and keeps private identifiers ou
   assert.equal(tags.some((tag) => tag.includes("2026고단012345")), false);
 });
 
+test("unit: traffic accident result excludes debt documents and recommends accident evidence", () => {
+  const classification = classifyLegalQuestion("교통사고로 다쳐 치료 중이고 과실비율이 억울합니다.");
+  const result = buildAiGuideResult(
+    "traffic-accident-test",
+    "교통사고로 다쳐 치료 중이고 과실비율이 억울합니다.",
+    classification,
+    [],
+  );
+
+  assert.equal(classification.subcategory, "damages");
+  assert.equal(result.recommendedDocuments.some((item) => /차용증|계약서|계좌이체/.test(item)), false);
+  assert.ok(result.recommendedDocuments.some((item) => item.includes("블랙박스")));
+  assert.ok(result.recommendedDocuments.some((item) => item.includes("진단서")));
+  assert.ok(result.missingInformation.some((item) => item.includes("보험사")));
+  assert.ok(result.missingInformation.some((item) => item.includes("과실비율")));
+});
+
 test("unit: calculates session expiry and rate limits", () => {
   const expiresAt = new Date(createExpiry(7));
   const diffDays = Math.round((expiresAt.getTime() - Date.now()) / 86_400_000);

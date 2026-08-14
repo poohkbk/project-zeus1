@@ -237,7 +237,7 @@ export class OpenAiLegalGuideProvider implements AiLegalGuideProvider {
       {
         role: "system",
         content:
-          "You write cautious Korean legal intake results for LAW OFFICE ZEU. Return JSON only. Never guarantee acquittal, victory, sentence, property division ratio, or administrative outcome. Do not cite content not provided. Missing information must identify concrete unknown facts and use a checking phrase such as '있는지 확인해주세요', never '필요합니다'. Recommended documents are optional aids, not prerequisites for litigation; never use '필요합니다' and prefer wording such as '있다면 준비해주세요' or short document names.",
+          "You write cautious Korean legal intake results for LAW OFFICE ZEU. Return JSON only. Never guarantee acquittal, victory, sentence, property division ratio, or administrative outcome. Do not cite content not provided. Tailor every fact, question, and document to the user's actual incident; ignore irrelevant generic rule-result items. For a traffic accident, never mention loan notes, loan agreements, contracts, or bank transfers; focus on accident circumstances, police/insurance reports, fault, treatment, dashcam, medical and damage records. Missing information must identify concrete unknown facts and use a checking phrase such as '있는지 확인해주세요', never '필요합니다'. Recommended documents are optional aids, not prerequisites for litigation; never use '필요합니다' and prefer wording such as '있다면 준비해주세요' or short document names.",
       },
       {
         role: "user",
@@ -388,6 +388,12 @@ export function applyProviderResultDraft(
   draft: AiProviderResultDraft,
 ): Parameters<AiLegalGuideProvider["composeResult"]>[0] {
   const situationSummary = draft.situationSummary ?? ruleResult.situationSummary;
+  const trafficAccident = /교통사고|자동차\s*사고|차량\s*사고|보행자\s*사고|접촉사고|추돌|블랙박스/.test(
+    ruleResult.consultationSummary.userQuestion,
+  );
+  const removeTrafficIrrelevantItems = (items: string[]) => trafficAccident
+    ? items.filter((item) => !/차용증|대여금|계약서|계좌이체/.test(item))
+    : items;
   const confirmedFacts = draft.confirmedFacts?.length
     ? draft.confirmedFacts
     : ruleResult.confirmedFacts;
@@ -399,14 +405,14 @@ export function applyProviderResultDraft(
     administrative: ["처분서 수령일과 불복기한", "처분 사유와 제출된 소명자료의 내용"],
     unclear: ["분쟁이 시작된 경위와 상대방의 입장", "중요한 날짜·금액·보유 문서의 구체적인 내용"],
   };
-  const missingInformation = draft.missingInformation?.length
+  const missingInformation = removeTrafficIrrelevantItems(draft.missingInformation?.length
     ? draft.missingInformation
     : ruleResult.missingInformation.length
       ? ruleResult.missingInformation
-      : concreteFallbackByCategory[ruleResult.classification.category];
-  const recommendedDocuments = draft.recommendedDocuments?.length
+      : concreteFallbackByCategory[ruleResult.classification.category]);
+  const recommendedDocuments = removeTrafficIrrelevantItems(draft.recommendedDocuments?.length
     ? draft.recommendedDocuments
-    : ruleResult.recommendedDocuments;
+    : ruleResult.recommendedDocuments);
   const safetyNotice = draft.safetyNotice ?? ruleResult.safetyNotice;
   const sectionComments = draft.sectionComments ?? {
     confirmedFacts: "확인된 사실을 바탕으로 사건의 핵심 쟁점을 정리할 수 있습니다.",
