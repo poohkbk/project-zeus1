@@ -563,6 +563,7 @@ test("screen-contract: AI guide includes fallback, transfer, and responsive CSS 
   assert.match(shell, /setUiState\("start"\)/);
   assert.match(shell, /autoAdvanceChoice/);
   assert.doesNotMatch(shell, /사건 분야 직접 선택/);
+  assert.match(shell, /<strong>입력 예시<\/strong>/);
   assert.match(shell, /<span key=\{starter\}>/);
   assert.match(css, /@media \(max-width: 760px\)/);
   assert.match(css, /\.ai-guide-question/);

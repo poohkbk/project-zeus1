@@ -275,10 +275,13 @@ export function AiGuideShell() {
               placeholder="예: 돈을 빌려줬는데 못 받고 있습니다."
               maxLength={1000}
             />
-            <div className="ai-starter-row" aria-label="상담 내용 입력 예시">
-              {starterQuestions.map((starter) => (
-                <span key={starter}>{starter}</span>
-              ))}
+            <div className="ai-starter-examples">
+              <p><strong>입력 예시</strong> 아래 문장을 참고해 상황을 자유롭게 작성해주세요.</p>
+              <div className="ai-starter-row" aria-label="상담 내용 입력 예시">
+                {starterQuestions.map((starter) => (
+                  <span key={starter}>{starter}</span>
+                ))}
+              </div>
             </div>
             <button
               type="button"
