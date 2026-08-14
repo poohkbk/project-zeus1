@@ -784,3 +784,10 @@ test("screen-contract: AI guide includes fallback, transfer, and responsive CSS 
   assert.match(css, /@media \(max-width: 760px\)/);
   assert.match(css, /\.ai-guide-question/);
 });
+
+test("screen-contract: every choice question advances immediately and requests time out safely", () => {
+  const shell = fs.readFileSync(path.join(projectRoot, "src/components/ai-guide/AiGuideShell.tsx"), "utf8");
+  assert.match(shell, /const autoAdvanceChoice = Boolean\(currentQuestion\?\.options\?\.length\)/);
+  assert.match(shell, /controller\.abort\(\)/);
+  assert.match(shell, /응답이 지연되고 있습니다/);
+});

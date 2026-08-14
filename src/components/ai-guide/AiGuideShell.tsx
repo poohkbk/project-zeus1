@@ -44,14 +44,26 @@ type AnswerResponse = {
 };
 
 async function postJson<T>(url: string, body: unknown): Promise<T> {
-  const response = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  const payload = (await response.json().catch(() => ({}))) as { message?: string };
-  if (!response.ok) throw new Error(payload.message || "요청을 처리하지 못했습니다.");
-  return payload as T;
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), 20_000);
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+    const payload = (await response.json().catch(() => ({}))) as { message?: string };
+    if (!response.ok) throw new Error(payload.message || "요청을 처리하지 못했습니다.");
+    return payload as T;
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new Error("응답이 지연되고 있습니다. 잠시 후 다시 선택해주세요.");
+    }
+    throw error;
+  } finally {
+    window.clearTimeout(timeout);
+  }
 }
 
 function QuestionInput({
@@ -172,12 +184,7 @@ export function AiGuideShell() {
     return Math.round((answers.length / questions.length) * 100);
   }, [answers.length, questions.length]);
 
-  const autoAdvanceChoice = Boolean(
-    currentQuestion?.options?.length &&
-    currentQuestion.options.some((option) => option.value === "yes") &&
-    currentQuestion.options.some((option) => option.value === "no") &&
-    currentQuestion.options.every((option) => ["yes", "no", "unknown"].includes(option.value)),
-  );
+  const autoAdvanceChoice = Boolean(currentQuestion?.options?.length);
 
   async function startGuide() {
     setErrorMessage("");
