@@ -441,9 +441,20 @@ export function applyProviderResultDraft(
       ruleResult.consultationSummary.userQuestion,
       ...ruleResult.confirmedFacts,
     ].join(" "));
-  const consultationOpinion = violenceDivorce || visitationMatter
+  const unpaidChildSupportMatter = ruleResult.classification.category === "divorce"
+    && /양육비/.test([ruleResult.consultationSummary.userQuestion, ...ruleResult.confirmedFacts].join(" "))
+    && /미지급|미납|지급되지|지급하지|받지\s*못|강제|이행명령|직접지급/.test([
+      ruleResult.consultationSummary.userQuestion,
+      ...ruleResult.confirmedFacts,
+    ].join(" "));
+  const rawConsultationOpinion = violenceDivorce || visitationMatter || unpaidChildSupportMatter
     ? ruleResult.consultationOpinion
     : draft.consultationOpinion?.trim() || ruleResult.consultationOpinion;
+  const consultationOpinion = rawConsultationOpinion
+    ? /변호사.{0,12}상담|상담.{0,12}변호사/.test(rawConsultationOpinion)
+      ? rawConsultationOpinion
+      : `${rawConsultationOpinion} 구체적인 대응 방법은 변호사와 상담해보세요.`
+    : "현재 확인된 사실을 바탕으로 가능한 법적 절차를 검토할 수 있습니다. 구체적인 대응 방법은 변호사와 상담해보세요.";
   const allowedRelatedIds = new Set(draft.relatedContentIds ?? []);
   const relatedContent = draft.relatedContentIds
     ? {

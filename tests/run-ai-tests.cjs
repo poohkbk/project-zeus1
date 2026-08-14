@@ -393,6 +393,20 @@ test("unit: visitation guidance excludes general custody and child-support mater
   assert.match(result.consultationOpinion ?? "", /면접교섭을 청구할 수 있습니다/);
 });
 
+test("unit: unpaid child-support enforcement excludes custody-environment guidance", () => {
+  const input = "양육비 판결 후 지급이 시작됐지만 6개월 전부터 지급되지 않아 강제로 받고 싶습니다.";
+  const result = buildAiGuideResult("unpaid-child-support", input, classifyLegalQuestion(input), [
+    answer("ai-followup-1", "aiFollowup1", "법원 판결이 있습니다."),
+    answer("ai-followup-2", "aiFollowup2", "지급 요청 문자와 계좌 내역이 있습니다."),
+  ]);
+  assert.ok(result.missingInformation.some((item) => /미납 개월|미지급.*총액|직장·소득/.test(item)));
+  assert.ok(result.recommendedDocuments.some((item) => /판결문|계좌 내역|미지급액 계산표/.test(item)));
+  assert.equal(result.missingInformation.some((item) => /양육 환경|돌봄 시간|친권|면접교섭|학교/.test(item)), false);
+  assert.equal(result.recommendedDocuments.some((item) => /학교|어린이집|의료|주거|돌봄 일정|면접교섭/.test(item)), false);
+  assert.match(result.consultationOpinion ?? "", /이행명령|직접지급명령|강제집행/);
+  assert.match(result.consultationOpinion ?? "", /변호사.*상담/);
+});
+
 test("unit: follow-up answers override broad civil classification for debt claims", () => {
   const classification = classifyLegalQuestion("민사 문제로 상담하고 싶습니다.", "civil");
   const questions = [

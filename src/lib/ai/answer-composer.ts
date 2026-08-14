@@ -184,6 +184,10 @@ function buildStrictGuidance(
   }
 
   if (classification.category === "divorce") {
+    if (/양육비/.test(initialQuestion) && /미지급|미납|지급되지|지급하지|받지\s*못|강제|이행명령|직접지급/.test(initialQuestion)) return {
+      missingInformation: ["판결문·조정조서에 정해진 월 양육비와 지급일을 확인해주세요.", "양육비가 지급되지 않은 시작일과 미납 개월 수를 확인해주세요.", "현재까지 받지 못한 양육비 총액과 일부 지급된 금액이 있는지 확인해주세요.", "상대방의 현재 직장·소득·예금·재산을 알고 있는지 확인해주세요.", "지급을 요청한 내용과 상대방의 답변을 확인해주세요.", "이행명령·직접지급명령·압류 등 이미 진행한 절차가 있는지 확인해주세요."],
+      recommendedDocuments: ["양육비가 정해진 판결문·조정조서·양육비부담조서", "양육비 입금이 중단된 사실을 보여주는 계좌 내역", "월별 지급액·미지급액 계산표", "양육비 지급을 요청한 문자·카카오톡·내용증명", "상대방의 직장·소득·예금·부동산 등 확인 자료", "기존 이행명령·직접지급명령·압류 관련 서류"],
+    };
     if (/면접교섭|아이를\s*(?:보고|만나)|자녀를\s*(?:보고|만나)|아이를\s*보여주|자녀를\s*보여주/.test(initialQuestion)) return {
       missingInformation: ["기존 판결문·조정조서에 면접교섭 방법과 일정이 정해져 있는지 확인해주세요.", "상대방이 면접교섭을 거부하거나 방해한 날짜와 이유를 확인해주세요.", "마지막으로 자녀를 만난 시기와 그동안 연락한 내용을 확인해주세요.", "원하는 면접교섭 횟수·시간·장소·인도 방법을 확인해주세요.", "상대방이 면접교섭을 제한해야 한다고 주장하는 사유가 있는지 확인해주세요."],
       recommendedDocuments: ["기존 양육권·친권 판결문 또는 조정조서", "면접교섭을 요청하고 거절당한 문자·카카오톡", "면접교섭 요청 날짜와 상대방 답변 정리", "기존 면접교섭 일정과 실제 실시 내역", "자녀와 연락하거나 교류한 자료", "상대방이 주장하는 제한 사유 관련 자료"],
@@ -369,6 +373,9 @@ export function buildAiGuideResult(
     && /폭언|욕설|모욕|가정폭력|폭행|상해|위협|물건을\s*집어던/.test(consultationContext);
   const visitationMatter = effectiveClassification.category === "divorce"
     && /면접교섭|아이를\s*(?:보고|만나)|자녀를\s*(?:보고|만나)|아이를\s*보여주|자녀를\s*보여주/.test(consultationContext);
+  const unpaidChildSupportMatter = effectiveClassification.category === "divorce"
+    && /양육비/.test(consultationContext)
+    && /미지급|미납|지급되지|지급하지|받지\s*못|강제|이행명령|직접지급/.test(consultationContext);
 
   return {
     sessionId,
@@ -378,7 +385,9 @@ export function buildAiGuideResult(
     confirmedFacts: confirmedFacts.length > 0 ? confirmedFacts : ["아직 구체적으로 확인된 답변이 많지 않습니다."],
     missingInformation: Array.from(new Set(missingInformation)).slice(0, 8),
     recommendedDocuments,
-    consultationOpinion: visitationMatter
+    consultationOpinion: unpaidChildSupportMatter
+      ? "판결·조정 등으로 정해진 양육비가 지급되다가 중단되었다면 미지급액에 대해 이행명령, 직접지급명령 또는 강제집행을 검토할 수 있습니다. 미납 기간과 상대방의 직장·재산을 확인해 변호사와 구체적인 회수 방법을 상담해보세요."
+      : visitationMatter
       ? "양육권 판결이 이미 있더라도 비양육 부모는 자녀와의 면접교섭을 청구할 수 있습니다. 기존 판결의 면접교섭 내용과 상대방의 거부 경위를 확인해 가정법원 신청 또는 이행확보 방법을 변호사와 상담해보세요."
       : violenceDivorce
       ? "반복적인 폭언·폭행으로 혼인관계가 회복하기 어려울 정도로 파탄되었다면 재판상 이혼과 위자료 청구를 검토할 수 있습니다. 폭력의 정도와 반복성을 보여주는 자료를 토대로 변호사 상담을 받아보세요."
