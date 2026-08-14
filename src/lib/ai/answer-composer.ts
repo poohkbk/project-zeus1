@@ -192,6 +192,10 @@ function buildStrictGuidance(
       missingInformation: ["부정행위가 시작된 시기와 알게 된 날짜를 확인해주세요.", "상간 상대방이 혼인 사실을 알고 있었는지 확인해주세요.", "부정행위 전 혼인관계가 이미 파탄된 상태였는지 확인해주세요.", "상간 상대방의 이름·연락처 등 특정 정보가 있는지 확인해주세요.", "부정행위를 안 날부터 현재까지의 기간을 확인해주세요."],
       recommendedDocuments: ["부정행위 관련 대화·사진·숙박·결제 자료", "상간 상대방이 혼인 사실을 알았음을 보여주는 자료", "혼인관계증명서·가족관계증명서", "부정행위를 알게 된 경위와 날짜 정리", "상간 상대방 확인 자료", "상간자와 주고받은 연락·내용증명·소송서류"],
     };
+    if (/폭언|욕설|모욕|가정폭력|물건을\s*집어던|생활비\s*미지급|생활비를?\s*(?:주지|안\s*주)|부양료|경제적\s*(?:방임|통제)/.test(initialQuestion)) return {
+      missingInformation: ["폭언·위협·물건 투척 등이 언제부터 얼마나 반복되었는지 확인해주세요.", "신체적 위협이나 폭행이 있었는지 확인해주세요.", "생활비를 지급하지 않은 기간과 그 전의 지급 방식을 확인해주세요.", "현재 별거 여부와 주거·생계 상황을 확인해주세요.", "상대방의 소득·재산을 알고 있는지 확인해주세요."],
+      recommendedDocuments: ["폭언·위협 당시의 문자·녹음·영상", "파손된 물건이나 현장 사진", "경찰 신고·상담·진료 기록", "생활비 지급·미지급을 확인할 계좌 내역", "가계 지출과 자녀 생활비 내역", "상대방에게 생활비를 요청한 대화", "상대방 소득·재산 관련 자료"],
+    };
     return {
       missingInformation: ["이혼 의사와 현재 협의·별거·소송 상태를 확인해주세요.", "혼인 중 형성한 재산과 채무의 명의·가액을 확인해주세요.", "각 재산의 취득 경위와 기여 내용을 확인해주세요."],
       recommendedDocuments: ["혼인관계증명서·가족관계증명서", "부동산·예금·보험·주식 자료", "대출·채무 자료", "소득·연금·퇴직금 자료", "재산 형성 기여 자료", "소장·답변서·조정서류"],
@@ -253,7 +257,8 @@ export function buildAiGuideResult(
   }
   const custodyIntent = effectiveClassification.category === "divorce"
     && /양육권|친권|양육비|양육s*계획|자녀s*양육|주된s*양육자/.test(consultationContext);
-  const affairIntent = effectiveClassification.category === "divorce" && /상간|외도|불륜|부정행위|바람/.test(consultationContext);
+  const affairIntent = effectiveClassification.category === "divorce"
+    && (answerMap.get("affairIssue") === "yes" || /상간|외도|불륜|부정행위|바람/.test(consultationContext));
   if (custodyIntent) {
     effectiveClassification = {
       ...effectiveClassification,
@@ -269,6 +274,14 @@ export function buildAiGuideResult(
       subcategoryLabel: aiSubcategoryLabels.affair,
       matchedTags: Array.from(new Set([...effectiveClassification.matchedTags, "affair", "damages"])),
       reasonSummary: "후속 답변에서 상간자 손해배상 의사가 확인되었습니다.",
+    };
+  } else if (effectiveClassification.category === "divorce" && effectiveClassification.subcategory === "affair") {
+    effectiveClassification = {
+      ...effectiveClassification,
+      subcategory: "general",
+      subcategoryLabel: aiSubcategoryLabels.general,
+      matchedTags: effectiveClassification.matchedTags.filter((tag) => !["affair", "damages"].includes(tag)),
+      reasonSummary: "외도·상간에 관한 명시적 진술이 없어 일반 이혼 문제로 분류했습니다.",
     };
   }
   const category = effectiveClassification.category === "unclear" ? "civil" : effectiveClassification.category;

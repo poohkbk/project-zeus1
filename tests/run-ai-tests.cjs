@@ -327,6 +327,21 @@ test("unit: custody goal takes priority over adultery as a secondary divorce fac
   assert.equal(result.recommendedDocuments.some((item) => /숙박|상간 상대방|부정행위/.test(item)), false);
 });
 
+test("unit: verbal abuse and unpaid living expenses never produce affair guidance", () => {
+  const input = "배우자의 반복적인 폭언과 생활비 미지급 때문에 이혼을 원합니다.";
+  const classification = classifyLegalQuestion(input);
+  const result = buildAiGuideResult("abuse-support-divorce", input, classification, [
+    answer("ai-followup-1", "aiFollowup1", "폭언 중 물건을 집어던졌습니다."),
+    answer("ai-followup-2", "aiFollowup2", "2025년부터 생활비를 주지 않았습니다."),
+  ]);
+
+  assert.notEqual(result.classification.subcategory, "affair");
+  assert.ok(result.missingInformation.some((item) => /폭언|위협|생활비/.test(item)));
+  assert.ok(result.recommendedDocuments.some((item) => /녹음|계좌 내역|생활비/.test(item)));
+  assert.equal(result.missingInformation.some((item) => /상간|부정행위|혼인 사실/.test(item)), false);
+  assert.equal(result.recommendedDocuments.some((item) => /상간|부정행위|숙박/.test(item)), false);
+});
+
 test("unit: follow-up answers override broad civil classification for debt claims", () => {
   const classification = classifyLegalQuestion("민사 문제로 상담하고 싶습니다.", "civil");
   const questions = [
