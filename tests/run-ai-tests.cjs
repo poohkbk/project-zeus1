@@ -356,6 +356,19 @@ test("unit: violence-only divorce guidance excludes living-expense and property 
   assert.match(result.consultationOpinion ?? "", /변호사 상담/);
 });
 
+test("unit: pre-litigation divorce guidance excludes pleadings not yet received", () => {
+  const input = "배우자가 재산을 처분하고 있어 이혼과 재산분할 상담을 원합니다.";
+  const classification = classifyLegalQuestion(input);
+  const preSuit = buildAiGuideResult("divorce-before-suit", input, classification, [
+    answer("divorce-status", "currentStatus", "considering"),
+  ]);
+  const pendingSuit = buildAiGuideResult("divorce-pending-suit", input, classification, [
+    answer("divorce-status", "currentStatus", "lawsuit"),
+  ]);
+  assert.equal(preSuit.recommendedDocuments.some((item) => /소장|답변서|조정서류/.test(item)), false);
+  assert.ok(pendingSuit.recommendedDocuments.some((item) => /소장|답변서|조정서류/.test(item)));
+});
+
 test("unit: follow-up answers override broad civil classification for debt claims", () => {
   const classification = classifyLegalQuestion("민사 문제로 상담하고 싶습니다.", "civil");
   const questions = [

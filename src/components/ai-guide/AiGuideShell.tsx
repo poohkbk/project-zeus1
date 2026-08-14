@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { siteConfig } from "@/config/site";
 import { SimpleIcon } from "@/components/icons/SimpleIcon";
@@ -85,14 +85,7 @@ function QuestionInput({
   }
 
   if (question.type === "date") {
-    return (
-      <input
-        className="ai-guide-input"
-        type="date"
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-      />
-    );
+    return <DateQuestionInput question={question} value={value} onChange={onChange} />;
   }
 
   return (
@@ -102,6 +95,60 @@ function QuestionInput({
       onChange={(event) => onChange(event.target.value)}
       maxLength={2000}
     />
+  );
+}
+
+function DateQuestionInput({
+  question,
+  value,
+  onChange,
+}: {
+  question: AiGuideQuestion;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const initial = /^\d{4}-\d{2}-\d{2}$/.test(value) ? value.split("-") : ["", "", ""];
+  const [year, setYear] = useState(initial[0]);
+  const [month, setMonth] = useState(initial[1]);
+  const [day, setDay] = useState(initial[2]);
+  const currentYear = new Date().getFullYear();
+  const allowsFuture = /예정|기일|출석|변제기|효력\s*발생|재판일/.test(`${question.question} ${question.helpText ?? ""}`);
+  const years = Array.from({ length: 101 + (allowsFuture ? 3 : 0) }, (_, index) => currentYear + (allowsFuture ? 3 : 0) - index);
+  const daysInMonth = year && month ? new Date(Number(year), Number(month), 0).getDate() : 31;
+
+  useEffect(() => {
+    const next = /^\d{4}-\d{2}-\d{2}$/.test(value) ? value.split("-") : ["", "", ""];
+    setYear(next[0]);
+    setMonth(next[1]);
+    setDay(next[2]);
+  }, [question.id, value]);
+
+  const update = (nextYear: string, nextMonth: string, nextDay: string) => {
+    setYear(nextYear);
+    setMonth(nextMonth);
+    setDay(nextDay);
+    onChange(nextYear && nextMonth && nextDay ? `${nextYear}-${nextMonth}-${nextDay}` : "");
+  };
+
+  return (
+    <div className="ai-date-selects" aria-label="날짜 선택">
+      <select value={year} onChange={(event) => update(event.target.value, month, day)} aria-label="연도">
+        <option value="">연도</option>
+        {years.map((item) => <option key={item} value={item}>{item}년</option>)}
+      </select>
+      <select value={month} onChange={(event) => update(year, event.target.value, day)} aria-label="월">
+        <option value="">월</option>
+        {Array.from({ length: 12 }, (_, index) => String(index + 1).padStart(2, "0")).map((item) => (
+          <option key={item} value={item}>{Number(item)}월</option>
+        ))}
+      </select>
+      <select value={day} onChange={(event) => update(year, month, event.target.value)} aria-label="일">
+        <option value="">일</option>
+        {Array.from({ length: daysInMonth }, (_, index) => String(index + 1).padStart(2, "0")).map((item) => (
+          <option key={item} value={item}>{Number(item)}일</option>
+        ))}
+      </select>
+    </div>
   );
 }
 

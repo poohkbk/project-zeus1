@@ -200,9 +200,11 @@ function buildStrictGuidance(
       missingInformation: ["생활비를 지급하지 않은 기간과 그 전의 지급 방식을 확인해주세요.", "생활비를 요청했을 때 상대방이 어떻게 답했는지 확인해주세요.", "상대방의 소득과 가계 지출 분담 방식을 확인해주세요."],
       recommendedDocuments: ["생활비 지급·미지급을 확인할 계좌 내역", "가계 지출과 자녀 생활비 내역", "상대방에게 생활비를 요청한 대화", "상대방 소득 관련 자료"],
     };
+    const divorceDocuments = ["혼인관계증명서·가족관계증명서", "부동산·예금·보험·주식 자료", "대출·채무 자료", "소득·연금·퇴직금 자료", "재산 형성 기여 자료"];
+    if (answerMap.get("currentStatus") === "lawsuit") divorceDocuments.push("이미 받은 소장·답변서·조정서류");
     return {
       missingInformation: ["이혼 의사와 현재 협의·별거·소송 상태를 확인해주세요.", "혼인 중 형성한 재산과 채무의 명의·가액을 확인해주세요.", "각 재산의 취득 경위와 기여 내용을 확인해주세요."],
-      recommendedDocuments: ["혼인관계증명서·가족관계증명서", "부동산·예금·보험·주식 자료", "대출·채무 자료", "소득·연금·퇴직금 자료", "재산 형성 기여 자료", "소장·답변서·조정서류"],
+      recommendedDocuments: divorceDocuments,
     };
   }
 

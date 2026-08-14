@@ -195,6 +195,22 @@
   font: inherit;
 }
 
+.ai-date-selects {
+  display: grid;
+  grid-template-columns: 1.25fr 1fr 1fr;
+  gap: 10px;
+  width: min(100%, 440px);
+}
+
+.ai-date-selects select {
+  border: 1px solid rgba(12, 51, 83, 0.18);
+  border-radius: 8px;
+  padding: 14px 12px;
+  font: inherit;
+  color: var(--main-text);
+  background: #fff;
+}
+
 .ai-category-grid {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
