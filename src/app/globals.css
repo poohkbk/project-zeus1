@@ -604,6 +604,12 @@
   opacity: 0.7;
 }
 
+/* Keep the public footer above the sticky admin sidebar at the page boundary. */
+.admin-app + .site-footer {
+  position: relative;
+  z-index: 2;
+}
+
 .admin-main {
   min-width: 0;
   padding: 32px;
