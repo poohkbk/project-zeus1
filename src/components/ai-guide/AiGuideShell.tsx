@@ -370,9 +370,27 @@ export function AiGuideShell() {
             ) : null}
 
             <div className="ai-result-grid">
-              <ResultList title="현재 확인된 내용" items={result.confirmedFacts} />
-              <ResultList title="추가 확인이 필요한 사항" items={result.missingInformation} />
-              <ResultList title="준비하면 좋은 자료" items={result.recommendedDocuments} />
+              <ResultList
+                title="현재 확인된 내용"
+                items={result.confirmedFacts}
+                comment={result.sectionComments?.confirmedFacts}
+              />
+              <ResultList
+                title="추가 확인이 필요한 사항"
+                items={result.missingInformation}
+                comment={result.sectionComments?.missingInformation}
+              />
+              <ResultList
+                title="준비하면 좋은 자료"
+                items={result.recommendedDocuments}
+                comment={result.sectionComments?.recommendedDocuments}
+              />
+            </div>
+            <div className="ai-result-consultation-cta">
+              <p>구체적인 대응 방향은 변호사와 함께 확인해보세요.</p>
+              <Link className="btn btn-primary" href={siteConfig.links.consultation}>
+                변호사 상담 예약하기
+              </Link>
             </div>
 
             <section className="ai-result-section">
@@ -431,13 +449,14 @@ export function AiGuideShell() {
   );
 }
 
-function ResultList({ title, items }: { title: string; items: string[] }) {
+function ResultList({ title, items, comment }: { title: string; items: string[]; comment?: string }) {
   return (
     <section className="ai-result-card">
       <h3>{title}</h3>
       <ul>
-        {items.length > 0 ? items.map((item) => <li key={item}>{item}</li>) : <li>추가 확인이 필요합니다.</li>}
+        {items.length > 0 ? items.map((item) => <li key={item}>{item}</li>) : <li>현재 입력 내용에서 확인할 항목이 없습니다.</li>}
       </ul>
+      {comment ? <p className="ai-result-card-comment">{comment}</p> : null}
     </section>
   );
 }

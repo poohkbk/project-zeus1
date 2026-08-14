@@ -380,6 +380,34 @@
   margin: 22px 0;
 }
 
+.ai-result-card-comment {
+  margin: 18px 0 0;
+  border-top: 1px solid rgba(12, 51, 83, 0.1);
+  padding-top: 14px;
+  color: #0b5962;
+  font-size: 0.9rem;
+  font-weight: 750;
+  line-height: 1.65;
+}
+
+.ai-result-consultation-cta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-top: 20px;
+  border: 1px solid rgba(11, 103, 112, 0.18);
+  border-radius: 10px;
+  background: #eefafa;
+  padding: 18px 20px;
+}
+
+.ai-result-consultation-cta p {
+  margin: 0;
+  color: #163d4f;
+  font-weight: 800;
+}
+
 .ai-result-card {
   border: 1px solid rgba(12, 51, 83, 0.1);
   border-radius: 8px;
@@ -518,6 +546,11 @@
   .ai-choice-card {
     min-height: 64px;
     padding: 12px;
+  }
+
+  .ai-result-consultation-cta {
+    align-items: stretch;
+    flex-direction: column;
   }
 }
 

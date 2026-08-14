@@ -144,6 +144,11 @@ export function buildAiGuideResult(
     confirmedFacts: confirmedFacts.length > 0 ? confirmedFacts : ["아직 구체적으로 확인된 답변이 많지 않습니다."],
     missingInformation: Array.from(new Set(missingInformation)).slice(0, 8),
     recommendedDocuments,
+    sectionComments: {
+      confirmedFacts: "확인된 사실을 바탕으로 사건의 핵심 쟁점을 정리할 수 있습니다.",
+      missingInformation: "남은 쟁점은 변호사 상담을 통해 구체적으로 확인해보세요.",
+      recommendedDocuments: "관련 자료를 지참하면 보다 정확한 상담에 도움이 됩니다.",
+    },
     generalProcess: aiProcessGuides[category],
     relatedContent,
     consultationSummary: {

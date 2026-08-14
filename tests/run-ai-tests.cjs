@@ -559,6 +559,8 @@ test("screen-contract: AI guide includes fallback, transfer, and responsive CSS 
 
   assert.match(shell, /uiState === "failed"/);
   assert.match(shell, /AI 요약 포함 상담신청/);
+  assert.match(shell, /변호사 상담 예약하기/);
+  assert.match(shell, /sectionComments/);
   assert.match(shell, /classified\.questions\.length === 0/);
   assert.match(shell, /setUiState\("start"\)/);
   assert.match(shell, /autoAdvanceChoice/);

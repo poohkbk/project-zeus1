@@ -1,5 +1,5 @@
 import { aiCategoryLabels, aiSubcategoryLabels } from "@/data/ai/categories";
-import type { AiClassificationResult, AiLegalCategory, AiSubcategory } from "@/types/ai-guide";
+import type { AiClassificationResult, AiGuideResult, AiLegalCategory, AiSubcategory } from "@/types/ai-guide";
 import type {
   AiLegalGuideProvider,
   AiProviderClassification,
@@ -90,11 +90,19 @@ function validateClassification(value: Record<string, unknown>): AiProviderClass
 }
 
 function validateResultDraft(value: Record<string, unknown>): AiProviderResultDraft {
+  const comments = value.sectionComments as Record<string, unknown> | undefined;
   return {
     situationSummary: safeString(value.situationSummary, 520),
     confirmedFacts: stringArray(value.confirmedFacts, 8),
-    missingInformation: stringArray(value.missingInformation, 8),
+    missingInformation: stringArray(value.missingInformation, 8)?.filter(
+      (item) => !["추가 확인이 필요합니다.", "추가 확인이 필요합니다", "확인이 필요합니다."].includes(item.trim()),
+    ),
     recommendedDocuments: stringArray(value.recommendedDocuments, 8),
+    sectionComments: comments && typeof comments === "object" ? {
+      confirmedFacts: safeString(comments.confirmedFacts, 80) ?? "확인된 사실을 바탕으로 핵심 쟁점을 더 살펴볼 수 있습니다.",
+      missingInformation: safeString(comments.missingInformation, 80) ?? "남은 사실관계는 변호사 상담에서 구체적으로 확인해보세요.",
+      recommendedDocuments: safeString(comments.recommendedDocuments, 80) ?? "관련 자료를 준비하면 상담을 더 정확하게 진행할 수 있습니다.",
+    } : undefined,
     relatedContentIds: stringArray(value.relatedContentIds, 12),
     safetyNotice: safeString(value.safetyNotice, 520),
   };
@@ -213,7 +221,7 @@ export class OpenAiLegalGuideProvider implements AiLegalGuideProvider {
       {
         role: "system",
         content:
-          "You write cautious Korean legal guide copy for LAW OFFICE ZEU. Return JSON only. Never guarantee acquittal, victory, sentence, property division ratio, or administrative outcome. Do not cite content not provided.",
+          "You write cautious Korean legal intake results for LAW OFFICE ZEU. Return JSON only. Never guarantee acquittal, victory, sentence, property division ratio, or administrative outcome. Do not cite content not provided. Missing information must identify concrete unknown facts; never output a generic phrase such as '추가 확인이 필요합니다'.",
       },
       {
         role: "user",
@@ -243,8 +251,13 @@ export class OpenAiLegalGuideProvider implements AiLegalGuideProvider {
           outputSchema: {
             situationSummary: "Korean, cautious, under 520 chars",
             confirmedFacts: ["facts confirmed by the user's actual answers, Korean, max 8"],
-            missingInformation: ["Korean items, no private data, max 8"],
+            missingInformation: ["specific unanswered fact such as exact date, other party's position, document terms, amount, procedural status, or original document availability; Korean, max 8; never generic"],
             recommendedDocuments: ["documents specifically useful for these facts and answers, Korean, max 8"],
+            sectionComments: {
+              confirmedFacts: "about 50 Korean characters, brief interpretation of confirmed facts",
+              missingInformation: "about 50 Korean characters, naturally recommend lawyer consultation for unresolved issues",
+              recommendedDocuments: "about 50 Korean characters, explain how the documents help consultation",
+            },
             relatedContentIds: ["IDs from publicRelatedContent that are directly relevant; empty array when none"],
             safetyNotice: "Korean disclaimer, no outcome guarantee",
           },
@@ -362,13 +375,28 @@ export function applyProviderResultDraft(
   const confirmedFacts = draft.confirmedFacts?.length
     ? draft.confirmedFacts
     : ruleResult.confirmedFacts;
-  const missingInformation = draft.missingInformation
+  const concreteFallbackByCategory: Record<AiGuideResult["classification"]["category"], string[]> = {
+    civil: ["상대방의 최근 답변과 요구 내용", "계약·지급·반환과 관련된 정확한 날짜와 금액"],
+    criminal: ["현재 수사·재판 단계와 다음 예정일", "혐의 사실과 관련 증거의 구체적인 내용"],
+    divorce: ["상대방의 이혼 의사와 현재 협의 내용", "재산·자녀·별거에 관한 정확한 현황"],
+    inheritance: ["사망일과 상속 사실을 안 날짜", "상속재산·채무와 다른 상속인의 입장"],
+    administrative: ["처분서 수령일과 불복기한", "처분 사유와 제출된 소명자료의 내용"],
+    unclear: ["분쟁이 시작된 경위와 상대방의 입장", "중요한 날짜·금액·보유 문서의 구체적인 내용"],
+  };
+  const missingInformation = draft.missingInformation?.length
     ? draft.missingInformation
-    : ruleResult.missingInformation;
+    : ruleResult.missingInformation.length
+      ? ruleResult.missingInformation
+      : concreteFallbackByCategory[ruleResult.classification.category];
   const recommendedDocuments = draft.recommendedDocuments?.length
     ? draft.recommendedDocuments
     : ruleResult.recommendedDocuments;
   const safetyNotice = draft.safetyNotice ?? ruleResult.safetyNotice;
+  const sectionComments = draft.sectionComments ?? {
+    confirmedFacts: "확인된 사실을 바탕으로 사건의 핵심 쟁점을 정리할 수 있습니다.",
+    missingInformation: "남은 쟁점은 변호사 상담을 통해 구체적으로 확인해보세요.",
+    recommendedDocuments: "관련 자료를 지참하면 보다 정확한 상담에 도움이 됩니다.",
+  };
   const allowedRelatedIds = new Set(draft.relatedContentIds ?? []);
   const relatedContent = draft.relatedContentIds
     ? {
@@ -385,6 +413,7 @@ export function applyProviderResultDraft(
     confirmedFacts,
     missingInformation,
     recommendedDocuments,
+    sectionComments,
     relatedContent,
     safetyNotice,
     generatedBy: "hybrid",
