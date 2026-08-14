@@ -92,7 +92,10 @@ function validateClassification(value: Record<string, unknown>): AiProviderClass
 function validateResultDraft(value: Record<string, unknown>): AiProviderResultDraft {
   return {
     situationSummary: safeString(value.situationSummary, 520),
+    confirmedFacts: stringArray(value.confirmedFacts, 8),
     missingInformation: stringArray(value.missingInformation, 8),
+    recommendedDocuments: stringArray(value.recommendedDocuments, 8),
+    relatedContentIds: stringArray(value.relatedContentIds, 12),
     safetyNotice: safeString(value.safetyNotice, 520),
   };
 }
@@ -218,10 +221,14 @@ export class OpenAiLegalGuideProvider implements AiLegalGuideProvider {
           task: "final_explanation",
           promptVersion: context.promptVersion,
           redactedQuestion: context.initialQuestionRedacted.slice(0, this.maxInputChars),
-          answers: context.answers.map((answer) => ({
-            field: answer.field,
-            value: answer.value,
-          })),
+          answers: context.answers.map((answer) => {
+            const question = context.questions?.find((item) => item.id === answer.questionId);
+            return {
+              question: question?.question ?? answer.field,
+              value: answer.value,
+              selectedLabel: question?.options?.find((option) => option.value === answer.value)?.label,
+            };
+          }),
           ruleResult: {
             category: ruleResult.classification.category,
             subcategory: ruleResult.classification.subcategory,
@@ -235,7 +242,10 @@ export class OpenAiLegalGuideProvider implements AiLegalGuideProvider {
           publicRelatedContent,
           outputSchema: {
             situationSummary: "Korean, cautious, under 520 chars",
+            confirmedFacts: ["facts confirmed by the user's actual answers, Korean, max 8"],
             missingInformation: ["Korean items, no private data, max 8"],
+            recommendedDocuments: ["documents specifically useful for these facts and answers, Korean, max 8"],
+            relatedContentIds: ["IDs from publicRelatedContent that are directly relevant; empty array when none"],
             safetyNotice: "Korean disclaimer, no outcome guarantee",
           },
         }),
@@ -349,21 +359,46 @@ export function applyProviderResultDraft(
   draft: AiProviderResultDraft,
 ): Parameters<AiLegalGuideProvider["composeResult"]>[0] {
   const situationSummary = draft.situationSummary ?? ruleResult.situationSummary;
-  const missingInformation = draft.missingInformation?.length
-    ? Array.from(new Set([...draft.missingInformation, ...ruleResult.missingInformation])).slice(0, 8)
+  const confirmedFacts = draft.confirmedFacts?.length
+    ? draft.confirmedFacts
+    : ruleResult.confirmedFacts;
+  const missingInformation = draft.missingInformation
+    ? draft.missingInformation
     : ruleResult.missingInformation;
+  const recommendedDocuments = draft.recommendedDocuments?.length
+    ? draft.recommendedDocuments
+    : ruleResult.recommendedDocuments;
   const safetyNotice = draft.safetyNotice ?? ruleResult.safetyNotice;
+  const allowedRelatedIds = new Set(draft.relatedContentIds ?? []);
+  const relatedContent = draft.relatedContentIds
+    ? {
+        practices: ruleResult.relatedContent.practices.filter((item) => allowedRelatedIds.has(item.id)),
+        cases: ruleResult.relatedContent.cases.filter((item) => allowedRelatedIds.has(item.id)),
+        guides: ruleResult.relatedContent.guides.filter((item) => allowedRelatedIds.has(item.id)),
+        faqs: ruleResult.relatedContent.faqs.filter((item) => allowedRelatedIds.has(item.id)),
+      }
+    : ruleResult.relatedContent;
 
   return {
     ...ruleResult,
     situationSummary,
+    confirmedFacts,
     missingInformation,
+    recommendedDocuments,
+    relatedContent,
     safetyNotice,
     generatedBy: "hybrid",
     consultationSummary: {
       ...ruleResult.consultationSummary,
       situationSummary,
+      confirmedFacts,
       missingInformation,
+      relatedContentIds: [
+        ...relatedContent.practices,
+        ...relatedContent.cases,
+        ...relatedContent.guides,
+        ...relatedContent.faqs,
+      ].map((item) => item.id),
     },
   };
 }

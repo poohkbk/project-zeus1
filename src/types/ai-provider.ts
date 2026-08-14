@@ -4,6 +4,7 @@ export interface AiProviderContext {
   sessionId: string;
   initialQuestionRedacted: string;
   answers: AiGuideAnswer[];
+  questions?: AiGuideQuestion[];
   promptVersion: string;
 }
 
@@ -17,7 +18,10 @@ export interface AiProviderClassification {
 
 export interface AiProviderResultDraft {
   situationSummary?: string;
+  confirmedFacts?: string[];
   missingInformation?: string[];
+  recommendedDocuments?: string[];
+  relatedContentIds?: string[];
   safetyNotice?: string;
 }
 

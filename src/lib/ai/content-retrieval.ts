@@ -3,6 +3,7 @@ import { legalGuideContents } from "@/data/legal-guides";
 import { getPracticeAreas } from "@/data/practice";
 import { getPublishedCases } from "@/lib/case-selectors";
 import { getTagMatchScore, normalizeTag } from "@/lib/content-relations";
+import { classifyLegalQuestion } from "./classifier";
 import type { AiClassificationResult, AiGuideAnswer, AiRelatedContent } from "@/types/ai-guide";
 
 function uniqueTags(tags: string[]) {
@@ -39,6 +40,12 @@ function scoreContent(contentTags: string[], title: string, queryTags: string[])
 
 export function getAiRelatedContent(classification: AiClassificationResult, answers: AiGuideAnswer[]) {
   const queryTags = tagsFromAiContext(classification, answers);
+  const categoryTags = classification.category !== "unclear"
+    ? new Set(aiCategoryBaseTags[classification.category].map(normalizeTag))
+    : new Set<string>();
+  categoryTags.add("general");
+  const hasSpecificMatch = (item: AiRelatedContent) =>
+    item.matchedTags.some((tag) => !categoryTags.has(normalizeTag(tag)));
   const practiceSlug =
     classification.category !== "unclear" ? aiCategoryToPracticeSlug[classification.category] : undefined;
 
@@ -60,7 +67,7 @@ export function getAiRelatedContent(classification: AiClassificationResult, answ
         matchedTags: matchedTags(tags, queryTags),
       };
     })
-    .filter((item) => item.matchScore > 0)
+    .filter((item) => item.matchScore > 0 && hasSpecificMatch(item))
     .sort((a, b) => b.matchScore - a.matchScore)
     .slice(0, 2);
 
@@ -77,7 +84,7 @@ export function getAiRelatedContent(classification: AiClassificationResult, answ
       matchScore: scoreContent(caseItem.tags, caseItem.title, queryTags) + (caseItem.visibility.isFeatured ? 2 : 0),
       matchedTags: matchedTags(caseItem.tags, queryTags),
     }))
-    .filter((item) => item.matchScore > 0)
+    .filter((item) => item.matchScore > 0 && hasSpecificMatch(item))
     .sort((a, b) => b.matchScore - a.matchScore)
     .slice(0, 3);
 
@@ -94,14 +101,19 @@ export function getAiRelatedContent(classification: AiClassificationResult, answ
       matchScore: scoreContent(guide.tags, guide.title, queryTags) + (guide.featured ? 2 : 0),
       matchedTags: matchedTags(guide.tags, queryTags),
     }))
-    .filter((item) => item.matchScore > 0)
+    .filter((item) => item.matchScore > 0 && hasSpecificMatch(item))
     .sort((a, b) => b.matchScore - a.matchScore)
     .slice(0, 3);
 
   const faqs: AiRelatedContent[] = getPracticeAreas()
     .flatMap((practice) =>
       practice.faq.map((faq, index) => {
-        const tags = uniqueTags([practice.slug, ...practice.relatedTags]);
+        const faqClassification = classifyLegalQuestion(`${faq.question} ${faq.answer}`);
+        const tags = uniqueTags([
+          practice.slug,
+          ...(faqClassification.matchedTags ?? []),
+          ...(faqClassification.subcategory ? [faqClassification.subcategory] : []),
+        ]);
         return {
           id: `faq-${practice.slug}-${index}`,
           type: "faq" as const,
@@ -116,7 +128,7 @@ export function getAiRelatedContent(classification: AiClassificationResult, answ
         };
       }),
     )
-    .filter((item) => item.matchScore > 0)
+    .filter((item) => item.matchScore > 0 && hasSpecificMatch(item))
     .sort((a, b) => b.matchScore - a.matchScore)
     .slice(0, 5);
 

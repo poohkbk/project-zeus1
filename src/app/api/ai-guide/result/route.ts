@@ -4,6 +4,8 @@ import { isAiSessionOwner } from "@/lib/ai/session-auth";
 import { getAiGuideSession, updateAiGuideSession } from "@/lib/ai/session-store";
 import { enhanceResultWithProvider } from "@/lib/ai/provider-runtime";
 import { rejectCrossOriginRequest } from "@/lib/security/request-guard";
+import { sanitizeQuestionFlow } from "@/lib/ai/question-engine";
+import type { AiGuideQuestion } from "@/types/ai-guide";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +13,7 @@ export async function POST(request: NextRequest) {
   const originRejection = rejectCrossOriginRequest(request);
   if (originRejection) return originRejection;
 
-  const body = (await request.json().catch(() => ({}))) as { sessionId?: string };
+  const body = (await request.json().catch(() => ({}))) as { sessionId?: string; questions?: AiGuideQuestion[] };
   if (!body.sessionId) return NextResponse.json({ message: "세션이 없습니다." }, { status: 400 });
   const session = await getAiGuideSession(body.sessionId);
   if (!session) return NextResponse.json({ message: "세션을 찾을 수 없습니다." }, { status: 404 });
@@ -19,13 +21,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: "세션에 접근할 수 없습니다." }, { status: 403 });
   }
 
+  const questions = sanitizeQuestionFlow(body.questions, session.classification.category) ?? [];
   const ruleResult = buildAiGuideResult(
     session.id,
     session.initialQuestionRedacted,
     session.classification,
     session.answers,
+    questions,
   );
-  const result = await enhanceResultWithProvider(ruleResult, session.initialQuestionRedacted, session.answers);
+  const result = await enhanceResultWithProvider(ruleResult, session.initialQuestionRedacted, session.answers, questions);
   const updated = await updateAiGuideSession({
     ...session,
     status: "completed",

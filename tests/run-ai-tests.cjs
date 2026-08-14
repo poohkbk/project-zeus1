@@ -215,6 +215,14 @@ test("unit: recommends tagged public content and excludes private or unpublished
   assert.equal(isPublishedCase(unpublishedCase), false);
 });
 
+test("unit: hides related content when there is no specific issue match", () => {
+  const classification = classifyLegalQuestion("민사 문제인데 구체적인 내용은 아직 잘 모르겠습니다.", "civil");
+  const related = getAiRelatedContent(classification, []);
+  assert.equal(related.cases.length, 0);
+  assert.equal(related.guides.length, 0);
+  assert.equal(related.faqs.length, 0);
+});
+
 test("unit: creates Korean consultation summary and keeps private identifiers out of tags", () => {
   const redacted = redactSensitiveData("대여금 010-1234-5678 차용증 계좌이체 증거가 있습니다.");
   const classification = classifyLegalQuestion(redacted.redacted);

@@ -61,6 +61,7 @@ export async function enhanceResultWithProvider(
   ruleResult: AiGuideResult,
   initialQuestionRedacted: string,
   answers: AiGuideAnswer[],
+  questions: AiGuideQuestion[] = [],
 ) {
   if (!isProviderReady()) return ruleResult;
   const budget = canUseGenerativeAi();
@@ -79,6 +80,7 @@ export async function enhanceResultWithProvider(
       sessionId: ruleResult.sessionId,
       initialQuestionRedacted,
       answers,
+      questions,
       promptVersion: getPromptVersion(),
     });
     recordGenerativeUsage(response.usage);

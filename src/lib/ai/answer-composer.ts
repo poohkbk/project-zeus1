@@ -2,7 +2,7 @@ import { aiCategoryLabels, aiSubcategoryLabels } from "@/data/ai/categories";
 import { aiDocumentChecklists } from "@/data/ai/document-checklists";
 import { aiProcessGuides } from "@/data/ai/process-guides";
 import { aiQuestionFlows } from "@/data/ai/question-flows";
-import type { AiClassificationResult, AiGuideAnswer, AiGuideResult } from "@/types/ai-guide";
+import type { AiClassificationResult, AiGuideAnswer, AiGuideQuestion, AiGuideResult } from "@/types/ai-guide";
 import { getAiRelatedContent } from "./content-retrieval";
 import { getAnswerMap } from "./question-engine";
 import { evaluateSafetyGuidance } from "./safety";
@@ -52,14 +52,16 @@ function answerLabel(value: unknown) {
   return String(value ?? "");
 }
 
-function findQuestion(field: string) {
+function findQuestion(field: string, questions: AiGuideQuestion[] = []) {
+  const tailoredQuestion = questions.find((question) => question.field === field);
+  if (tailoredQuestion) return tailoredQuestion;
   return Object.values(aiQuestionFlows)
     .flat()
     .find((question) => question.field === field);
 }
 
-function answerDisplayLabel(answer: AiGuideAnswer) {
-  const question = findQuestion(answer.field);
+function answerDisplayLabel(answer: AiGuideAnswer, questions: AiGuideQuestion[] = []) {
+  const question = findQuestion(answer.field, questions);
 
   if (Array.isArray(answer.value)) {
     return answer.value
@@ -70,8 +72,9 @@ function answerDisplayLabel(answer: AiGuideAnswer) {
   return question?.options?.find((option) => option.value === answer.value)?.label ?? answerLabel(answer.value);
 }
 
-function formatAnswer(answer: AiGuideAnswer) {
-  return `${answerFieldLabels[answer.field] ?? answer.field}: ${answerDisplayLabel(answer)}`;
+function formatAnswer(answer: AiGuideAnswer, questions: AiGuideQuestion[] = []) {
+  const question = findQuestion(answer.field, questions);
+  return `${answerFieldLabels[answer.field] ?? question?.question ?? answer.field}: ${answerDisplayLabel(answer, questions)}`;
 }
 
 function isPositiveEvidence(answer: AiGuideAnswer) {
@@ -83,6 +86,7 @@ export function buildAiGuideResult(
   initialQuestionRedacted: string,
   classification: AiClassificationResult,
   answers: AiGuideAnswer[],
+  questions: AiGuideQuestion[] = [],
 ): AiGuideResult {
   const category = classification.category === "unclear" ? "civil" : classification.category;
   const answerMap = getAnswerMap(answers);
@@ -91,13 +95,13 @@ export function buildAiGuideResult(
   const relatedContent = getAiRelatedContent(classification, answers);
   const confirmedFacts = answers
     .filter((answer) => answer.value !== null && answer.value !== "" && answer.value !== "unknown")
-    .map(formatAnswer)
+    .map((answer) => formatAnswer(answer, questions))
     .slice(0, 8);
   const missingInformation = answers
     .filter((answer) => answer.value === "unknown" || answer.value === "" || answer.value === null)
-    .map((answer) => `${answerFieldLabels[answer.field] ?? answer.field} 확인 필요`)
+    .map((answer) => `${answerFieldLabels[answer.field] ?? findQuestion(answer.field, questions)?.question ?? answer.field} 확인 필요`)
     .slice(0, 6);
-  const availableEvidence = answers.filter(isPositiveEvidence).map(formatAnswer).slice(0, 6);
+  const availableEvidence = answers.filter(isPositiveEvidence).map((answer) => formatAnswer(answer, questions)).slice(0, 6);
 
   if (classification.category === "unclear") {
     missingInformation.push("사건 분야를 더 확인해야 합니다.");

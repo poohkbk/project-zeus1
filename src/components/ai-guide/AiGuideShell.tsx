@@ -209,7 +209,10 @@ export function AiGuideShell() {
     if (!targetSessionId) return;
     setUiState("analyzing");
     try {
-      const response = await postJson<{ result: AiGuideResult }>("/api/ai-guide/result", { sessionId: targetSessionId });
+      const response = await postJson<{ result: AiGuideResult }>("/api/ai-guide/result", {
+        sessionId: targetSessionId,
+        questions,
+      });
       setResult(response.result);
       setUiState(response.result.urgency.callFirst ? "urgent" : "completed");
     } catch (error) {
