@@ -40,6 +40,23 @@ export function classifyLegalQuestion(input: string, forcedCategory?: AiLegalCat
       requiresConfirmation: true,
     };
   }
+  const registeredInheritedCoownership = /상속/.test(text)
+    && /토지|땅|부동산/.test(text)
+    && /형제|자매|상속인/.test(text)
+    && /공동(?:으로)?\s*(?:소유|명의)|공유\s*지분|공유지분/.test(text);
+  if (registeredInheritedCoownership) {
+    return {
+      category: "civil",
+      categoryLabel: aiCategoryLabels.civil,
+      subcategory: "co-owned-property-division",
+      subcategoryLabel: aiSubcategoryLabels["co-owned-property-division"],
+      confidence: 0.94,
+      alternativeCategories: [{ category: "inheritance", confidence: 0.35 }],
+      matchedTags: ["civil", "real-estate", "co-ownership", "partition-action"],
+      reasonSummary: "상속재산분할과 공유등기가 이미 끝난 토지의 공유관계를 해소하려는 공유물분할 상담입니다.",
+      requiresConfirmation: true,
+    };
+  }
   const scored = aiKeywordRules
     .map((rule) => {
       const matchedKeywords = rule.keywords.filter((keyword) => text.includes(normalize(keyword)));

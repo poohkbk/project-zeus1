@@ -137,6 +137,13 @@ const constructionPaymentPattern = /공사대금|공사비|도급대금|기성�
 const leaseDepositReturnPattern = /임대차.{0,16}보증금|보증금.{0,16}(?:반환|돌려|못\s*받|미반환)|전세금.{0,12}(?:반환|돌려|못\s*받)/;
 const investmentReturnPattern = /투자금|투자원금|투자\s*계약|수익금.{0,8}(?:정산|배분)|원금\s*반환\s*약정/;
 
+function isRegisteredInheritedCoownership(text: string) {
+  return /상속/.test(text)
+    && /토지|땅|부동산/.test(text)
+    && /형제|자매|상속인/.test(text)
+    && /공동(?:으로)?\s*(?:소유|명의)|공유\s*지분|공유지분/.test(text);
+}
+
 function isTrafficAccident(question: string, classification: AiClassificationResult) {
   return classification.subcategory === "damages" && trafficAccidentPattern.test(question);
 }
@@ -165,6 +172,24 @@ function buildStrictGuidance(
   answerMap: Map<string, AiGuideAnswer["value"]>,
   initialQuestion: string,
 ) {
+  if (classification.subcategory === "co-owned-property-division" || isRegisteredInheritedCoownership(initialQuestion)) return {
+    missingInformation: [
+      "등기부상 각 공유자의 지분 비율을 확인해주세요.",
+      "현재 토지를 누가 점유·사용하고 있으며 임대수익이나 사용이익을 얻고 있는지 확인해주세요.",
+      "토지의 위치·면적·형상·도로 접면 등을 고려해 현물로 나눌 수 있는지 확인해주세요.",
+      "현물분할, 한쪽의 지분 매수, 전체 매각 중 원하는 해결 방향과 다른 공유자의 입장을 확인해주세요.",
+      "근저당권·압류·가처분 또는 제3자의 임대차·점유 관계가 있는지 확인해주세요.",
+    ],
+    recommendedDocuments: [
+      "현재 등기사항증명서",
+      "토지대장·지적도·토지이용계획확인서",
+      "감정가·공시지가·인근 거래가 등 토지 가액 자료",
+      "점유·사용·임대 및 임대수익 관련 자료",
+      "재산세·관리비·대출이자 등 공동부담 비용 내역",
+      "분할 방법을 협의한 문자·카카오톡·내용증명",
+    ],
+  };
+
   if (isTrafficAccident(initialQuestion, classification)) return trafficAccidentGuidance();
 
   if (classification.category === "civil" && constructionPaymentPattern.test(initialQuestion)) return {
@@ -455,6 +480,18 @@ export function buildAiGuideResult(
   const contextualClassification = classifyLegalQuestion(consultationContext);
   const contextualMatch = contextualClassification.category === classification.category && contextualClassification.subcategory !== "general";
   let effectiveClassification: AiClassificationResult = contextualMatch ? contextualClassification : classification;
+  const registeredInheritedCoownershipIntent = isRegisteredInheritedCoownership(userAssertedContext);
+  if (registeredInheritedCoownershipIntent) {
+    effectiveClassification = {
+      ...effectiveClassification,
+      category: "civil",
+      categoryLabel: aiCategoryLabels.civil,
+      subcategory: "co-owned-property-division",
+      subcategoryLabel: aiSubcategoryLabels["co-owned-property-division"],
+      matchedTags: ["civil", "real-estate", "co-ownership", "partition-action"],
+      reasonSummary: "상속재산분할과 공유등기가 끝난 토지의 공유관계를 해소하려는 상담으로 확인되었습니다.",
+    };
+  }
   const debtIntent = effectiveClassification.category === "civil" && /대여금|차용증|돈을\s*(?:빌려|빌린)|빌려준|빌려줬|갚(?:아|지|으)|상환|변제/.test(userAssertedContext);
   const investmentReturnIntent = effectiveClassification.category === "civil" && investmentReturnPattern.test(userAssertedContext);
   if (investmentReturnIntent) {
@@ -667,6 +704,8 @@ export function buildAiGuideResult(
     && effectiveClassification.subcategory === "criminal-trial";
   const inheritanceDebtChoiceMatter = effectiveClassification.category === "inheritance"
     && effectiveClassification.subcategory === "inheritance-debt-choice";
+  const coOwnedPropertyDivisionMatter = effectiveClassification.category === "civil"
+    && effectiveClassification.subcategory === "co-owned-property-division";
 
   return {
     sessionId,
@@ -678,6 +717,8 @@ export function buildAiGuideResult(
     recommendedDocuments,
     consultationOpinion: inheritanceDebtChoiceMatter
       ? "상속포기는 재산과 채무를 모두 승계하지 않는 방법이고, 한정승인은 상속받은 재산 범위에서 채무를 정리하는 방법이므로 남길 재산의 유무와 채무 확정 가능성이 선택에 중요합니다. 후순위 상속인에게 영향이 이어지는지와 사망 후 재산 처분 여부도 함께 확인해야 하므로, 재산·채무 조회자료를 토대로 변호사와 신청 방향을 상담해보세요."
+      : coOwnedPropertyDivisionMatter
+      ? "형제들과 공유지분 등기까지 마친 토지는 상속재산분할이 아니라 공유관계를 해소하는 공유물분할청구소송을 검토할 수 있습니다. 협의가 되지 않으면 법원이 현물분할 가능성을 먼저 살피고, 어렵다면 한 공유자의 지분 인수나 경매를 통한 대금분할을 정할 수 있으므로 등기 지분과 토지 현황을 토대로 변호사와 상담해보세요."
       : criminalTrialMatter
       ? "형사 1심 재판에서는 공소사실에 대한 인정·부인 입장을 먼저 정하고, 검사가 제출한 증거와 수사기록을 검토해 방어 방향을 구체화해야 합니다. 혐의를 다툰다면 반박 증거와 증인을, 인정한다면 피해회복과 양형자료를 준비해야 하므로 공소장과 기록을 토대로 변호사와 재판 대응을 상담해보세요."
       : criminalAppealMatter

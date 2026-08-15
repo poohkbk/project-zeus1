@@ -11,6 +11,7 @@ export type AiSubcategory =
   | "investment-return"
   | "contract"
   | "damages"
+  | "co-owned-property-division"
   | "criminal-trial"
   | "criminal-appeal"
   | "police-investigation"

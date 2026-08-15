@@ -104,6 +104,9 @@ test("unit: classifies legal categories and expanded keywords", () => {
   assert.equal(classifyLegalQuestion("형사 1심에서 징역형을 선고받아 항소심을 준비하려고 합니다.").subcategory, "criminal-appeal");
   assert.equal(classifyLegalQuestion("공소장을 받았고 형사 1심 재판을 앞두고 있습니다.").subcategory, "criminal-trial");
   assert.equal(classifyLegalQuestion("빚이 재산보다 많아 상속포기와 한정승인 중 고민입니다.").subcategory, "inheritance-debt-choice");
+  const coownership = classifyLegalQuestion("상속재산인 토지를 형제들과 공동으로 소유하고 있습니다. 합의가 되지 않으면 법원을 통해 분할할 수 있나요?");
+  assert.equal(coownership.category, "civil");
+  assert.equal(coownership.subcategory, "co-owned-property-division");
   assert.equal(classifyLegalQuestion("상간녀 상간소송과 위자료 문제로 상담받고 싶습니다.").category, "divorce");
   assert.equal(classifyLegalQuestion("양육권 친권 양육비와 면접교섭이 문제입니다.").subcategory, "custody");
   assert.equal(classifyLegalQuestion("유류분반환 유류분청구와 자필유언 문제가 있습니다.").category, "inheritance");
@@ -995,6 +998,20 @@ test("unit/provider: registered inherited coownership skips estate-division docu
   assert.ok(response.data.some((item) => /등기부상.*지분/.test(item.question)));
   assert.ok(response.data.some((item) => /누가 사용/.test(item.question)));
   assert.ok(response.data.some((item) => /현물.*매각/.test(item.question)));
+});
+
+test("unit: registered inherited land uses a co-owned-property partition result", () => {
+  const input = "상속재산인 토지를 형제들과 공동으로 소유하고 있습니다. 합의가 되지 않으면 법원을 통해 분할할 수 있나요?";
+  const result = buildAiGuideResult("co-owned-land-partition", input, classifyLegalQuestion(input), []);
+
+  assert.equal(result.classification.category, "civil");
+  assert.equal(result.classification.subcategory, "co-owned-property-division");
+  assert.match(result.consultationOpinion ?? "", /공유물분할청구소송/);
+  assert.ok(result.missingInformation.some((item) => /등기부상.*지분/.test(item)));
+  assert.ok(result.missingInformation.some((item) => /현물분할.*지분 매수.*매각/.test(item)));
+  assert.ok(result.recommendedDocuments.some((item) => /등기사항증명서/.test(item)));
+  assert.equal(result.missingInformation.some((item) => /상속인|상속재산.*목록|기여분|특별수익/.test(item)), false);
+  assert.equal(result.recommendedDocuments.some((item) => /유언장|상속재산.*목록|가족관계/.test(item)), false);
 });
 
 test("unit/provider: reserved-share questions use objective dates instead of a decision date", async () => {

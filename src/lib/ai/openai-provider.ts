@@ -22,6 +22,7 @@ const subcategories = new Set<AiSubcategory>([
   "fraud",
   "dui",
   "property-division",
+  "co-owned-property-division",
   "custody",
   "affair",
   "inheritance-debt-choice",
@@ -158,6 +159,9 @@ function validateQuestionDrafts(
     const obsoleteEstateDocumentInventory = inheritedRegisteredCoownership
       && /상속재산\s*분할.{0,20}(?:문서|서류|자료|증거)|(?:문서|서류|자료|증거).{0,20}상속재산\s*분할/.test(question);
     if (obsoleteEstateDocumentInventory) return [];
+    const obsoleteInheritanceStageQuestion = inheritedRegisteredCoownership
+      && /(?:법정|공동)?상속인|피상속인|유언장|특별수익|기여분|상속재산\s*(?:목록|가액|채무)|상속재산분할\s*(?:협의|심판)/.test(question);
+    if (obsoleteInheritanceStageQuestion) return [];
     const irrelevantPretrialQuestion = ["criminal-trial", "criminal-appeal"].includes(classification?.subcategory ?? "")
       && /경찰|검찰|고소\s*내용|출석\s*(?:요구|예정)|압수수색|체포|피의자\s*신문/.test(question)
       && !/1심|공판|판결|항소|소송기록|양형|구속|보석/.test(question);
@@ -491,6 +495,7 @@ export function applyProviderClassification(
   ruleClassification: AiClassificationResult,
   providerClassification: AiProviderClassification,
 ): AiClassificationResult {
+  if (ruleClassification.subcategory === "co-owned-property-division") return ruleClassification;
   const category = providerClassification.category ?? ruleClassification.category;
   const subcategory = providerClassification.subcategory ?? ruleClassification.subcategory ?? "general";
   return {
@@ -509,7 +514,10 @@ export function applyProviderResultDraft(
   ruleResult: Parameters<AiLegalGuideProvider["composeResult"]>[0],
   draft: AiProviderResultDraft,
 ): Parameters<AiLegalGuideProvider["composeResult"]>[0] {
-  const situationSummary = draft.situationSummary ?? ruleResult.situationSummary;
+  const coOwnedPropertyDivision = ruleResult.classification.subcategory === "co-owned-property-division";
+  const situationSummary = coOwnedPropertyDivision
+    ? ruleResult.situationSummary
+    : draft.situationSummary ?? ruleResult.situationSummary;
   const trafficAccident = /교통사고|자동차\s*사고|차량\s*사고|보행자\s*사고|접촉사고|추돌|블랙박스/.test(
     ruleResult.consultationSummary.userQuestion,
   );
@@ -555,7 +563,7 @@ export function applyProviderResultDraft(
       ruleResult.consultationSummary.userQuestion,
       ...ruleResult.confirmedFacts,
     ].join(" "));
-  const rawConsultationOpinion = violenceDivorce || visitationMatter || unpaidChildSupportMatter
+  const rawConsultationOpinion = violenceDivorce || visitationMatter || unpaidChildSupportMatter || coOwnedPropertyDivision
     ? ruleResult.consultationOpinion
     : draft.consultationOpinion?.trim() || ruleResult.consultationOpinion;
   const consultationOpinion = rawConsultationOpinion
