@@ -219,7 +219,7 @@ function validateQuestionDrafts(
     }];
   });
   const seenIntents = new Set<string>();
-  return questions.filter((item) => {
+  const validatedQuestions = questions.filter((item) => {
     const text = `${item.question} ${item.helpText ?? ""}`.replace(/\s+/g, " ").trim();
     const broadDocumentInventory = /서류|문서|자료|증거/.test(text)
       && (/종류/.test(text) || /가지고\s*있는|보유(?:한|하고|중인)/.test(text));
@@ -229,7 +229,18 @@ function validateQuestionDrafts(
     if (seenIntents.has(intentKey)) return false;
     seenIntents.add(intentKey);
     return true;
-  }).slice(0, 6);
+  });
+  const estateDivisionContext = /상속재산\s*분할|상속재산분할|상속분|기여분/.test(initialQuestionRedacted);
+  const asksHeirComposition = validatedQuestions.some((item) => /배우자/.test(item.question ?? "") && /자녀/.test(item.question ?? ""));
+  if (estateDivisionContext && !asksHeirComposition) {
+    validatedQuestions.unshift({
+      question: "피상속인의 배우자가 생존해 있는지와 자녀가 몇 명인지 적어주세요.",
+      helpText: "예: 배우자 생존, 자녀 3명. 먼저 사망한 자녀가 있다면 그 자녀의 배우자와 자녀도 함께 적어주세요.",
+      type: "long_text",
+      required: true,
+    });
+  }
+  return validatedQuestions.slice(0, 6);
 }
 
 function usageFromResponse(value: Record<string, unknown>): AiProviderUsage {

@@ -347,6 +347,24 @@ function buildStrictGuidance(
 
   if (classification.category === "inheritance") {
     const caseType = String(answerMap.get("caseType") ?? classification.subcategory ?? "general");
+    if (caseType === "estate-division" || /상속재산\s*분할|상속재산분할|상속분|기여분/.test(initialQuestion)) return {
+      missingInformation: [
+        "피상속인의 배우자가 생존해 있는지와 자녀가 몇 명인지 확인해주세요.",
+        "먼저 사망한 자녀가 있다면 그 자녀의 배우자와 자녀가 있는지 확인해주세요.",
+        "공동상속인 전원의 관계와 상속재산분할 협의 참여 여부를 확인해주세요.",
+        "분할할 부동산·예금·주식·보험금 등 상속재산과 채무의 목록·가액을 확인해주세요.",
+        "특정 상속인이 생전 증여를 받았거나 피상속인을 특별히 부양·간호한 사정이 있는지 확인해주세요.",
+        "상속재산의 관리·사용·임대수익·예금 인출 현황과 이미 합의한 내용이 있는지 확인해주세요.",
+      ],
+      recommendedDocuments: [
+        "피상속인의 기본증명서·가족관계증명서·제적등본",
+        "배우자와 자녀 등 공동상속인의 가족관계 확인 자료",
+        "부동산 등기사항증명서·예금·주식·보험 등 상속재산 자료",
+        "대출·세금·보증채무 등 상속채무 자료",
+        "생전 증여·특별수익과 부양·간호·재산관리 기여 자료",
+        "상속인 사이의 분할 협의서·문자·카카오톡 등 협의 내용",
+      ],
+    };
     if (caseType === "inheritance-debt-choice") return {
       missingInformation: [
         "사망일과 상속 사실을 처음 알게 된 날짜를 확인해주세요.",

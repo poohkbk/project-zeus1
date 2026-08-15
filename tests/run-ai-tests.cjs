@@ -521,6 +521,18 @@ test("unit: inheritance guidance does not repeat a confirmed death date or dupli
   assert.equal(result.missingInformation.some((item) => /^사망일과 상속 사실/.test(item)), false);
 });
 
+test("unit: estate division guidance confirms spouse and number of children", () => {
+  const input = "형제들과 상속재산분할 협의가 되지 않아 상담을 받고 싶습니다.";
+  const result = buildAiGuideResult("estate-division-heirs", input, classifyLegalQuestion(input), [
+    answer("inheritance-case-type", "caseType", "estate-division"),
+  ]);
+
+  assert.ok(result.missingInformation.some((item) => /배우자.*자녀가 몇 명/.test(item)));
+  assert.ok(result.missingInformation.some((item) => /먼저 사망한 자녀.*배우자와 자녀/.test(item)));
+  assert.ok(result.missingInformation.some((item) => /공동상속인 전원/.test(item)));
+  assert.ok(result.recommendedDocuments.some((item) => /기본증명서.*가족관계증명서.*제적등본/.test(item)));
+});
+
 test("unit: debt guidance does not repeat confirmed facts or request documents confirmed absent", () => {
   const input = "친구에게 3,000만 원을 빌려줬는데 차용증은 없고 계좌이체 내역과 카카오톡 대화만 있습니다. 돈을 돌려받을 수 있나요?";
   const questions = [
@@ -861,6 +873,29 @@ test("unit/provider: condition questions require a written description", async (
 
   assert.equal(response.data[0]?.type, "long_text");
   assert.equal(response.data[0]?.options, undefined);
+});
+
+test("unit/provider: estate division always asks spouse and child count", async () => {
+  const provider = new OpenAiLegalGuideProvider({
+    apiKey: "test-key",
+    fetchImpl: async () => new Response(JSON.stringify({
+      choices: [{ message: { content: JSON.stringify({ questions: [
+        { question: "분할 대상 부동산은 무엇인가요?", type: "long_text", required: true },
+        { question: "상속인 사이에 협의한 내용이 있나요?", type: "long_text", required: true },
+      ] }) } }],
+    }), { status: 200, headers: { "content-type": "application/json" } }),
+  });
+  const input = "형제들과 상속재산분할 협의가 되지 않아 상담을 받고 싶습니다.";
+  const response = await provider.createQuestions(classifyLegalQuestion(input), {
+    sessionId: "estate-division-heir-composition",
+    initialQuestionRedacted: input,
+    answers: [],
+    promptVersion: "test",
+  });
+
+  const heirQuestion = response.data.find((item) => /배우자/.test(item.question) && /자녀가 몇 명/.test(item.question));
+  assert.equal(heirQuestion?.type, "long_text");
+  assert.match(heirQuestion?.helpText ?? "", /먼저 사망한 자녀/);
 });
 
 test("unit/provider: reserved-share questions use objective dates instead of a decision date", async () => {
