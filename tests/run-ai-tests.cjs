@@ -533,6 +533,17 @@ test("unit: estate division guidance confirms spouse and number of children", ()
   assert.ok(result.recommendedDocuments.some((item) => /기본증명서.*가족관계증명서.*제적등본/.test(item)));
 });
 
+test("unit: contribution-share guidance confirms support duration and details", () => {
+  const input = "형제가 부모님을 오랫동안 부양했다는 이유로 더 많은 상속재산을 요구합니다. 법적으로 더 받을 수 있는 제도가 있나요?";
+  const result = buildAiGuideResult("inheritance-contribution-share", input, classifyLegalQuestion(input), [
+    answer("inheritance-case-type", "caseType", "estate-division"),
+  ]);
+
+  assert.ok(result.missingInformation.some((item) => /부양한 시작일.*총 기간/.test(item)));
+  assert.ok(result.missingInformation.some((item) => /동거.*간병.*생활비.*치료비/.test(item)));
+  assert.ok(result.missingInformation.some((item) => /통상적인 부양.*특별한 기여/.test(item)));
+});
+
 test("unit: de facto spouse inheritance guidance focuses on legally relevant alternatives", () => {
   const input = "사실혼 배우자가 사망했습니다. 혼인신고는 하지 않았는데 상속을 받을 수 있나요?";
   const result = buildAiGuideResult("de-facto-spouse-inheritance", input, classifyLegalQuestion(input), [
@@ -936,6 +947,29 @@ test("unit/provider: estate division always asks spouse and child count", async 
   const heirQuestion = response.data.find((item) => /배우자/.test(item.question) && /자녀가 몇 명/.test(item.question));
   assert.equal(heirQuestion?.type, "long_text");
   assert.match(heirQuestion?.helpText ?? "", /먼저 사망한 자녀/);
+});
+
+test("unit/provider: contribution-share consultation always asks support duration", async () => {
+  const provider = new OpenAiLegalGuideProvider({
+    apiKey: "test-key",
+    fetchImpl: async () => new Response(JSON.stringify({
+      choices: [{ message: { content: JSON.stringify({ questions: [
+        { question: "형제가 부모님을 어떤 방식으로 도왔나요?", type: "long_text", required: true },
+        { question: "형제가 부담한 비용은 어느 정도인가요?", type: "long_text", required: true },
+      ] }) } }],
+    }), { status: 200, headers: { "content-type": "application/json" } }),
+  });
+  const input = "형제가 부모님을 오랫동안 부양했다는 이유로 더 많은 상속재산을 요구합니다. 법적으로 더 받을 수 있는 제도가 있나요?";
+  const response = await provider.createQuestions(classifyLegalQuestion(input), {
+    sessionId: "inheritance-support-duration",
+    initialQuestionRedacted: input,
+    answers: [],
+    promptVersion: "test",
+  });
+
+  const durationQuestion = response.data.find((item) => /부양한 기간/.test(item.question));
+  assert.equal(durationQuestion?.type, "long_text");
+  assert.match(durationQuestion?.helpText ?? "", /시작한 시기.*총 기간/);
 });
 
 test("unit/provider: reserved-share questions use objective dates instead of a decision date", async () => {

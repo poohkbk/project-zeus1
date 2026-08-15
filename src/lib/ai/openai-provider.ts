@@ -233,11 +233,21 @@ function validateQuestionDrafts(
     return true;
   });
   const estateDivisionContext = /상속재산\s*분할|상속재산분할|상속분|기여분/.test(initialQuestionRedacted);
+  const contributionShareContext = /기여분|(?:부모|아버지|어머니|부친|모친).{0,24}(?:부양|간병)|(?:부양|간병).{0,24}(?:상속재산|상속분|더\s*많|추가)/.test(initialQuestionRedacted);
   const asksHeirComposition = validatedQuestions.some((item) => /배우자/.test(item.question ?? "") && /자녀/.test(item.question ?? ""));
   if (estateDivisionContext && !asksHeirComposition) {
     validatedQuestions.unshift({
       question: "피상속인의 배우자가 생존해 있는지와 자녀가 몇 명인지 적어주세요.",
       helpText: "예: 배우자 생존, 자녀 3명. 먼저 사망한 자녀가 있다면 그 자녀의 배우자와 자녀도 함께 적어주세요.",
+      type: "long_text",
+      required: true,
+    });
+  }
+  const asksSupportDuration = validatedQuestions.some((item) => /부양|간병/.test(item.question ?? "") && /기간|얼마나\s*(?:오래|동안)|시작/.test(item.question ?? ""));
+  if (contributionShareContext && !asksSupportDuration) {
+    validatedQuestions.unshift({
+      question: "형제가 부모님을 부양한 기간은 얼마나 되나요?",
+      helpText: "부양을 시작한 시기와 끝난 시기 또는 총 기간을 적어주세요. 예: 2015년부터 사망 시까지 약 9년.",
       type: "long_text",
       required: true,
     });
