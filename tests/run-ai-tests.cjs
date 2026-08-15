@@ -437,6 +437,22 @@ test("unit: debt guidance does not recheck a promissory note confirmed in a free
   assert.ok(result.recommendedDocuments.some((item) => /차용증/.test(item)));
 });
 
+test("unit: AI-generated debt questions do not turn an unspecified enforcement matter into a loan claim", () => {
+  const input = "판결문을 가지고 있는데 상대방 재산에 강제집행을 할 수 있는지 상담하고 싶습니다.";
+  const questions = [
+    { id: "ai-followup-1", field: "aiFollowup1", category: "civil", order: 1, type: "boolean", question: "차용증이 있나요?", required: true, options: [{ value: "yes", label: "예" }, { value: "no", label: "아니오" }] },
+    { id: "ai-followup-2", field: "aiFollowup2", category: "civil", order: 2, type: "date", question: "돈을 빌려준 날짜는 언제인가요?", required: true },
+  ];
+  const result = buildAiGuideResult("generic-enforcement", input, classifyLegalQuestion(input), [
+    answer("ai-followup-1", "aiFollowup1", "no"),
+    answer("ai-followup-2", "aiFollowup2", "2020-01-01"),
+  ], questions);
+
+  assert.notEqual(result.classification.subcategory, "debt");
+  assert.equal(result.missingInformation.some((item) => /돈을 빌려준|변제기|차용증/.test(item)), false);
+  assert.equal(result.recommendedDocuments.some((item) => /차용증|변제 약속/.test(item)), false);
+});
+
 test("unit: debt guidance does not repeat confirmed facts or request documents confirmed absent", () => {
   const input = "친구에게 3,000만 원을 빌려줬는데 차용증은 없고 계좌이체 내역과 카카오톡 대화만 있습니다. 돈을 돌려받을 수 있나요?";
   const questions = [

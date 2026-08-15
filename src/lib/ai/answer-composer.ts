@@ -306,10 +306,17 @@ export function buildAiGuideResult(
     .filter((answer) => answer.value === "yes")
     .map((answer) => findQuestion(answer.field, questions)?.question ?? "");
   const consultationContext = [initialQuestionRedacted, ...answerContext, ...positiveQuestionContext].join(" ");
+  const userProvidedAnswerContext = answers
+    .flatMap((answer) => Array.isArray(answer.value) ? answer.value : [answer.value])
+    .filter((value) => value !== null && value !== undefined && !["yes", "no", "unknown"].includes(String(value)))
+    .map((value) => String(value));
+  // AI가 만든 질문 문구가 다시 사건 분류의 근거가 되면, 일반 민사 사건도
+  // 질문에 포함된 단어만으로 대여금 사건으로 확정되는 순환 오류가 생긴다.
+  const userAssertedContext = [initialQuestionRedacted, ...userProvidedAnswerContext].join(" ");
   const contextualClassification = classifyLegalQuestion(consultationContext);
   const contextualMatch = contextualClassification.category === classification.category && contextualClassification.subcategory !== "general";
   let effectiveClassification: AiClassificationResult = contextualMatch ? contextualClassification : classification;
-  const debtIntent = effectiveClassification.category === "civil" && /대여금|차용증|돈을\s*(?:빌려|빌린)|빌려준|빌려줬|갚(?:아|지|으)|상환|변제/.test(consultationContext);
+  const debtIntent = effectiveClassification.category === "civil" && /대여금|차용증|돈을\s*(?:빌려|빌린)|빌려준|빌려줬|갚(?:아|지|으)|상환|변제/.test(userAssertedContext);
   if (debtIntent) {
     effectiveClassification = {
       ...effectiveClassification,
@@ -317,6 +324,14 @@ export function buildAiGuideResult(
       subcategoryLabel: aiSubcategoryLabels.debt,
       matchedTags: Array.from(new Set([...effectiveClassification.matchedTags, "debt", "loan", "collection"])),
       reasonSummary: "후속 답변에서 빌려준 돈의 반환 문제와 상환 요청 내용이 확인되었습니다.",
+    };
+  } else if (effectiveClassification.category === "civil" && effectiveClassification.subcategory === "debt") {
+    effectiveClassification = {
+      ...effectiveClassification,
+      subcategory: "general",
+      subcategoryLabel: aiSubcategoryLabels.general,
+      matchedTags: effectiveClassification.matchedTags.filter((tag) => !["debt", "loan", "collection"].includes(tag)),
+      reasonSummary: "강제집행·압류 등 절차 표현만으로 채권의 원인을 대여금으로 단정하지 않았습니다.",
     };
   }
   const domesticViolenceDivorceIntent = /이혼|혼인관계\s*해소|재판상\s*이혼/.test(consultationContext)
