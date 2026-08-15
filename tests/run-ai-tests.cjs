@@ -826,5 +826,7 @@ test("screen-contract: every choice question advances immediately and requests t
   const shell = fs.readFileSync(path.join(projectRoot, "src/components/ai-guide/AiGuideShell.tsx"), "utf8");
   assert.match(shell, /const autoAdvanceChoice = Boolean\(currentQuestion\?\.options\?\.length\)/);
   assert.match(shell, /controller\.abort\(\)/);
+  assert.match(shell, /45_000/);
   assert.match(shell, /응답이 지연되고 있습니다/);
+  assert.match(shell, /다시 질문하기/);
 });

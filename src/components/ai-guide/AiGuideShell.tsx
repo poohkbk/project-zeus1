@@ -45,7 +45,9 @@ type AnswerResponse = {
 
 async function postJson<T>(url: string, body: unknown): Promise<T> {
   const controller = new AbortController();
-  const timeout = window.setTimeout(() => controller.abort(), 20_000);
+  // The server may spend up to about 30 seconds on an AI call and one retry.
+  // Keep the browser request alive long enough for the server-side rule fallback to respond.
+  const timeout = window.setTimeout(() => controller.abort(), 45_000);
   try {
     const response = await fetch(url, {
       method: "POST",
@@ -492,7 +494,7 @@ export function AiGuideShell() {
             <p>{errorMessage || "선택하신 분야의 기본 안내와 상담신청은 계속 이용할 수 있습니다."}</p>
             <div className="ai-guide-actions">
               <button type="button" className="btn btn-primary" onClick={() => setUiState("start")}>
-                기본 안내 계속하기
+                다시 질문하기
               </button>
               <a className="btn btn-secondary" href={siteConfig.phoneHref}>
                 전화상담
