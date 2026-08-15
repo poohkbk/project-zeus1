@@ -102,6 +102,7 @@ test("unit: classifies legal categories and expanded keywords", () => {
   assert.equal(classifyLegalQuestion("투자사기와 보이스피싱 고소를 하고 싶습니다.").subcategory, "fraud");
   assert.equal(classifyLegalQuestion("음주운전 혈중알코올농도 문제로 면허취소가 걱정됩니다.").subcategory, "dui");
   assert.equal(classifyLegalQuestion("형사 1심에서 징역형을 선고받아 항소심을 준비하려고 합니다.").subcategory, "criminal-appeal");
+  assert.equal(classifyLegalQuestion("공소장을 받았고 형사 1심 재판을 앞두고 있습니다.").subcategory, "criminal-trial");
   assert.equal(classifyLegalQuestion("상간녀 상간소송과 위자료 문제로 상담받고 싶습니다.").category, "divorce");
   assert.equal(classifyLegalQuestion("양육권 친권 양육비와 면접교섭이 문제입니다.").subcategory, "custody");
   assert.equal(classifyLegalQuestion("유류분반환 유류분청구와 자필유언 문제가 있습니다.").category, "inheritance");
@@ -477,6 +478,21 @@ test("unit: criminal appeal guidance excludes police-investigation intake", () =
   assert.ok(result.recommendedDocuments.some((item) => /1심 판결문|항소장|항소이유서/.test(item)));
   assert.equal(result.missingInformation.some((item) => /경찰·검찰 연락|출석 예정일|압수수색/.test(item)), false);
   assert.equal(result.recommendedDocuments.some((item) => /출석요구 문자|고소 내용/.test(item)), false);
+});
+
+test("unit: criminal first-trial guidance matches pending and ongoing trial stages", () => {
+  for (const input of [
+    "공소장을 받았고 형사 1심 재판을 앞두고 있습니다.",
+    "현재 형사재판 1심 공판이 진행 중입니다.",
+  ]) {
+    const result = buildAiGuideResult("criminal-first-trial", input, classifyLegalQuestion(input), []);
+    assert.equal(result.classification.subcategory, "criminal-trial");
+    assert.match(result.consultationOpinion ?? "", /공소사실|증거와 수사기록|방어 방향/);
+    assert.ok(result.missingInformation.some((item) => /공소장|공판기일|증거목록|수사기록/.test(item)));
+    assert.ok(result.recommendedDocuments.some((item) => /공소장|공판기일통지서|증거목록/.test(item)));
+    assert.equal(result.missingInformation.some((item) => /경찰·검찰 연락|출석 예정일|압수수색/.test(item)), false);
+    assert.equal(result.recommendedDocuments.some((item) => /출석요구 문자|고소 내용/.test(item)), false);
+  }
 });
 
 test("unit: debt guidance does not repeat confirmed facts or request documents confirmed absent", () => {

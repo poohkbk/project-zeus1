@@ -237,6 +237,25 @@ function buildStrictGuidance(
         "반성·치료·직업·부양 등 양형에 참고될 자료",
       ],
     };
+    const criminalTrial = classification.subcategory === "criminal-trial"
+      || /1심\s*재판|1심재판|첫\s*재판|공판.{0,8}(?:앞두|진행)|형사\s*재판.{0,8}(?:앞두|중|진행)|공판기일|공소장.{0,8}(?:받|송달)/.test(initialQuestion);
+    if (criminalTrial) return {
+      missingInformation: [
+        "공소장에 기재된 죄명과 공소사실 중 인정하거나 다투는 부분을 확인해주세요.",
+        "첫 공판기일 또는 다음 공판기일과 현재 재판 진행 단계를 확인해주세요.",
+        "검사가 제출한 증거목록과 수사기록을 열람·등사했는지 확인해주세요.",
+        "공소사실을 반박하거나 설명할 증거·증인·사실관계가 있는지 확인해주세요.",
+        "피해자와의 합의·피해회복·공탁 또는 양형에 반영할 사정이 있는지 확인해주세요.",
+      ],
+      recommendedDocuments: [
+        "공소장·공판기일통지서·사건번호",
+        "검사 증거목록과 열람·등사한 수사기록",
+        "경찰·검찰 진술조서와 이미 제출한 의견서",
+        "혐의를 반박하거나 경위를 설명할 대화·사진·거래·위치 자료",
+        "합의서·처벌불원서·피해회복·공탁 자료가 있다면 그 자료",
+        "반성·치료·직업·부양 등 양형에 참고될 자료",
+      ],
+    };
     if (role === "victim") return {
       missingInformation: ["피해 일시·장소와 구체적인 경위를 확인해주세요.", "가해자로 보는 상대방과 피해 내용을 확인해주세요.", "고소장 접수 여부와 담당 수사기관을 확인해주세요.", "처벌 의사와 합의 진행 여부를 확인해주세요."],
       recommendedDocuments: ["피해 경위와 시간순 정리", "문자·녹취·사진·영상 등 피해 증거", "진단서·피해금액 자료", "상대방 확인 자료", "고소장·사건접수증·수사기관 연락", "목격자 정보"],
@@ -393,6 +412,18 @@ export function buildAiGuideResult(
       reasonSummary: "형사 1심 판결 이후 항소와 형량 감경을 준비하는 상담으로 확인되었습니다.",
     };
   }
+  const criminalTrialIntent = effectiveClassification.category === "criminal"
+    && !criminalAppealIntent
+    && /1심\s*재판|1심재판|첫\s*재판|공판.{0,8}(?:앞두|진행)|형사\s*재판.{0,8}(?:앞두|중|진행)|공판기일|공소장.{0,8}(?:받|송달)/.test(userAssertedContext);
+  if (criminalTrialIntent) {
+    effectiveClassification = {
+      ...effectiveClassification,
+      subcategory: "criminal-trial",
+      subcategoryLabel: aiSubcategoryLabels["criminal-trial"],
+      matchedTags: Array.from(new Set([...effectiveClassification.matchedTags.filter((tag) => tag !== "police-investigation"), "criminal-trial", "trial", "defense"])),
+      reasonSummary: "형사 1심 공판을 앞두거나 현재 진행 중인 상담으로 확인되었습니다.",
+    };
+  }
   const domesticViolenceDivorceIntent = /이혼|혼인관계\s*해소|재판상\s*이혼/.test(consultationContext)
     && /배우자|남편|아내|부부/.test(consultationContext)
     && /폭언|욕설|모욕|가정폭력|폭행|상해|위협|물건을\s*집어던/.test(consultationContext);
@@ -526,6 +557,8 @@ export function buildAiGuideResult(
     && effectiveClassification.subcategory === "investment-return";
   const criminalAppealMatter = effectiveClassification.category === "criminal"
     && effectiveClassification.subcategory === "criminal-appeal";
+  const criminalTrialMatter = effectiveClassification.category === "criminal"
+    && effectiveClassification.subcategory === "criminal-trial";
 
   return {
     sessionId,
@@ -535,7 +568,9 @@ export function buildAiGuideResult(
     confirmedFacts: confirmedFacts.length > 0 ? confirmedFacts : ["아직 구체적으로 확인된 답변이 많지 않습니다."],
     missingInformation: Array.from(new Set(contextFilteredMissingInformation)).slice(0, 8),
     recommendedDocuments,
-    consultationOpinion: criminalAppealMatter
+    consultationOpinion: criminalTrialMatter
+      ? "형사 1심 재판에서는 공소사실에 대한 인정·부인 입장을 먼저 정하고, 검사가 제출한 증거와 수사기록을 검토해 방어 방향을 구체화해야 합니다. 혐의를 다툰다면 반박 증거와 증인을, 인정한다면 피해회복과 양형자료를 준비해야 하므로 공소장과 기록을 토대로 변호사와 재판 대응을 상담해보세요."
+      : criminalAppealMatter
       ? "형사 1심 판결이 선고된 경우 항소심에서는 1심의 사실인정·법리 판단 또는 양형의 부당성을 구체적으로 다투어야 합니다. 형량 감경을 원한다면 피해회복·합의·공탁과 새로운 양형사정을 정리하고, 판결문과 소송기록을 토대로 항소이유를 신속히 검토하도록 변호사와 상담해보세요."
       : investmentReturnMatter
       ? "투자금 반환은 단순 미지급금과 달리 원금 반환 약정, 투자 종료·해지 조건, 실제 손익과 정산 의무를 함께 검토해야 합니다. 원금 반환 또는 정산자료 공개를 청구할 가능성이 있으며, 투자 권유 내용과 자금 사용처가 달랐다면 기망 여부도 살펴볼 수 있으므로 관련 자료를 토대로 변호사와 상담해보세요."

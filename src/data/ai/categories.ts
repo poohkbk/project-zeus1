@@ -14,6 +14,7 @@ export const aiSubcategoryLabels: Record<AiSubcategory, string> = {
   "investment-return": "투자금 반환",
   contract: "계약분쟁",
   damages: "손해배상",
+  "criminal-trial": "형사 1심재판",
   "criminal-appeal": "형사항소",
   "police-investigation": "경찰조사",
   fraud: "사기",

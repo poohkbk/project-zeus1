@@ -151,6 +151,24 @@ export const aiKeywordRules: AiKeywordRule[] = [
   },
   {
     category: "criminal",
+    subcategory: "criminal-trial",
+    tags: ["criminal", "criminal-trial", "trial", "defense"],
+    keywords: uniqueKeywords([
+      "1심 재판",
+      "1심재판",
+      "첫 재판",
+      "공판을 앞두",
+      "공판 진행 중",
+      "형사재판 중",
+      "형사 재판 중",
+      "공판기일",
+      "공소장을 받",
+      "재판을 앞두",
+    ]),
+    reason: "형사 1심 공판을 앞두거나 현재 진행 중인 표현이 포함되어 있습니다.",
+  },
+  {
+    category: "criminal",
     subcategory: "criminal-appeal",
     tags: ["criminal", "criminal-appeal", "trial", "sentencing"],
     keywords: uniqueKeywords([
