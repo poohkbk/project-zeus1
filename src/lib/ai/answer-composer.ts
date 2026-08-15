@@ -321,6 +321,23 @@ function buildStrictGuidance(
 
   if (classification.category === "inheritance") {
     const caseType = String(answerMap.get("caseType") ?? classification.subcategory ?? "general");
+    if (caseType === "inheritance-debt-choice") return {
+      missingInformation: [
+        "사망일과 상속 사실을 처음 알게 된 날짜를 확인해주세요.",
+        "예금·부동산·보험금 등 상속재산과 대출·세금·보증채무 등 빚의 종류와 금액을 확인해주세요.",
+        "상속재산이나 채무 중 아직 금액을 알 수 없거나 추가로 발견될 가능성이 있는 항목을 확인해주세요.",
+        "사망 후 예금 인출·채무 변제·재산 처분 등 상속재산에 손을 댄 사실이 있는지 확인해주세요.",
+        "다른 상속인과 후순위 상속인이 누구인지 및 함께 신청할 의사가 있는지 확인해주세요.",
+      ],
+      recommendedDocuments: [
+        "기본증명서·가족관계증명서·사망진단서",
+        "안심상속 원스톱서비스 등 상속재산 조회 결과",
+        "예금·보험·부동산·자동차 등 상속재산 자료",
+        "대출·카드·세금·보증채무·독촉·소송 자료",
+        "다른 상속인과 후순위 상속인 확인 자료",
+        "사망 후 예금 인출·재산 처분·채무 변제 내역이 있다면 그 자료",
+      ],
+    };
     if (["renunciation", "limited-acceptance"].includes(caseType)) return {
       missingInformation: ["사망일과 상속 사실을 알게 된 날짜를 확인해주세요.", "상속재산과 채무의 대략적인 규모를 확인해주세요.", "재산을 처분하거나 채무를 변제한 사실이 있는지 확인해주세요."],
       recommendedDocuments: ["사망진단서·기본증명서", "가족관계증명서", "상속재산 조회 자료", "채무·독촉·소송 자료", "다른 상속인 확인 자료", "재산 처분·채무 변제 내역"],
@@ -422,6 +439,18 @@ export function buildAiGuideResult(
       subcategoryLabel: aiSubcategoryLabels["criminal-trial"],
       matchedTags: Array.from(new Set([...effectiveClassification.matchedTags.filter((tag) => tag !== "police-investigation"), "criminal-trial", "trial", "defense"])),
       reasonSummary: "형사 1심 공판을 앞두거나 현재 진행 중인 상담으로 확인되었습니다.",
+    };
+  }
+  const inheritanceDebtChoiceIntent = effectiveClassification.category === "inheritance"
+    && /상속\s*포기|상속포기/.test(userAssertedContext)
+    && /한정\s*승인|한정승인/.test(userAssertedContext);
+  if (inheritanceDebtChoiceIntent) {
+    effectiveClassification = {
+      ...effectiveClassification,
+      subcategory: "inheritance-debt-choice",
+      subcategoryLabel: aiSubcategoryLabels["inheritance-debt-choice"],
+      matchedTags: Array.from(new Set([...effectiveClassification.matchedTags, "inheritance-debt", "renunciation", "limited-acceptance"])),
+      reasonSummary: "상속채무 문제로 상속포기와 한정승인을 비교하려는 상담으로 확인되었습니다.",
     };
   }
   const domesticViolenceDivorceIntent = /이혼|혼인관계\s*해소|재판상\s*이혼/.test(consultationContext)
@@ -559,6 +588,8 @@ export function buildAiGuideResult(
     && effectiveClassification.subcategory === "criminal-appeal";
   const criminalTrialMatter = effectiveClassification.category === "criminal"
     && effectiveClassification.subcategory === "criminal-trial";
+  const inheritanceDebtChoiceMatter = effectiveClassification.category === "inheritance"
+    && effectiveClassification.subcategory === "inheritance-debt-choice";
 
   return {
     sessionId,
@@ -568,7 +599,9 @@ export function buildAiGuideResult(
     confirmedFacts: confirmedFacts.length > 0 ? confirmedFacts : ["아직 구체적으로 확인된 답변이 많지 않습니다."],
     missingInformation: Array.from(new Set(contextFilteredMissingInformation)).slice(0, 8),
     recommendedDocuments,
-    consultationOpinion: criminalTrialMatter
+    consultationOpinion: inheritanceDebtChoiceMatter
+      ? "상속포기는 재산과 채무를 모두 승계하지 않는 방법이고, 한정승인은 상속받은 재산 범위에서 채무를 정리하는 방법이므로 남길 재산의 유무와 채무 확정 가능성이 선택에 중요합니다. 후순위 상속인에게 영향이 이어지는지와 사망 후 재산 처분 여부도 함께 확인해야 하므로, 재산·채무 조회자료를 토대로 변호사와 신청 방향을 상담해보세요."
+      : criminalTrialMatter
       ? "형사 1심 재판에서는 공소사실에 대한 인정·부인 입장을 먼저 정하고, 검사가 제출한 증거와 수사기록을 검토해 방어 방향을 구체화해야 합니다. 혐의를 다툰다면 반박 증거와 증인을, 인정한다면 피해회복과 양형자료를 준비해야 하므로 공소장과 기록을 토대로 변호사와 재판 대응을 상담해보세요."
       : criminalAppealMatter
       ? "형사 1심 판결이 선고된 경우 항소심에서는 1심의 사실인정·법리 판단 또는 양형의 부당성을 구체적으로 다투어야 합니다. 형량 감경을 원한다면 피해회복·합의·공탁과 새로운 양형사정을 정리하고, 판결문과 소송기록을 토대로 항소이유를 신속히 검토하도록 변호사와 상담해보세요."

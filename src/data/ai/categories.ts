@@ -22,6 +22,7 @@ export const aiSubcategoryLabels: Record<AiSubcategory, string> = {
   "property-division": "재산분할",
   custody: "친권·양육권",
   affair: "상간자소송",
+  "inheritance-debt-choice": "상속포기·한정승인",
   renunciation: "상속포기",
   "limited-acceptance": "한정승인",
   "reserved-share": "유류분",

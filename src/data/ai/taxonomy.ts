@@ -390,6 +390,20 @@ export const aiKeywordRules: AiKeywordRule[] = [
   },
   {
     category: "inheritance",
+    subcategory: "inheritance-debt-choice",
+    tags: ["inheritance", "inheritance-debt", "renunciation", "limited-acceptance"],
+    keywords: uniqueKeywords([
+      "상속포기와 한정승인",
+      "상속 포기와 한정 승인",
+      "상속포기 한정승인 중",
+      "상속포기 또는 한정승인",
+      "빚이 재산보다 많",
+      "재산보다 빚이 많",
+    ]),
+    reason: "상속채무가 재산보다 많을 가능성이 있어 상속포기와 한정승인을 비교하려는 표현이 포함되어 있습니다.",
+  },
+  {
+    category: "inheritance",
     subcategory: "renunciation",
     tags: ["inheritance", "renunciation", "inheritance-debt"],
     keywords: uniqueKeywords([

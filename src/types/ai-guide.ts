@@ -19,6 +19,7 @@ export type AiSubcategory =
   | "property-division"
   | "custody"
   | "affair"
+  | "inheritance-debt-choice"
   | "renunciation"
   | "limited-acceptance"
   | "reserved-share"

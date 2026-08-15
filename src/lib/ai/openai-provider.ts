@@ -24,6 +24,7 @@ const subcategories = new Set<AiSubcategory>([
   "property-division",
   "custody",
   "affair",
+  "inheritance-debt-choice",
   "renunciation",
   "limited-acceptance",
   "reserved-share",
@@ -140,6 +141,11 @@ function validateQuestionDrafts(
       ? (draft.type as AiProviderQuestionDraft["type"])
       : "short_text";
     if (!question) return [];
+    const comparingInheritanceDebtOptions = /상속\s*포기|상속포기/.test(initialQuestionRedacted)
+      && /한정\s*승인|한정승인/.test(initialQuestionRedacted);
+    const oneSidedInheritanceChoiceQuestion = comparingInheritanceDebtOptions
+      && /(?:상속(?:을)?\s*포기|한정\s*승인).{0,18}(?:결정|선택|하기로|하려는|이유|계기|신청|준비)|(?:이유|계기|결정).{0,12}(?:상속(?:을)?\s*포기|한정\s*승인)/.test(question)
+      && !/(?:상속(?:을)?\s*포기).{0,20}(?:한정\s*승인)|(?:한정\s*승인).{0,20}(?:상속(?:을)?\s*포기)/.test(question);
     const sexualConsentContext = /성범죄|강간|준강간|강제추행|성관계/.test(initialQuestionRedacted)
       && /합의(?:해서|하여|하에|된)?\s*(?:이루어진\s*)?(?:관계|성관계)|동의(?:한|해서|하에|된)?\s*(?:관계|성관계)|서로\s*(?:합의|동의)/.test(initialQuestionRedacted);
     const mistakenCriminalSettlementQuestion = sexualConsentContext
@@ -179,19 +185,23 @@ function validateQuestionDrafts(
     const openQuestion = /무엇|어떤|언제|어디|누구|왜|얼마|어떻게|말씀해|알려주|설명해|구체적/.test(question);
     const booleanQuestion = !openQuestion && (type === "boolean" || (["short_text", "long_text"].includes(type ?? "") && /(?:있나요|없나요|인가요|하나요|했나요|받았나요|되었나요|중인가요|맞나요)\?$/.test(question)));
     return [{
-      question: duiDocumentQuestion
+      question: oneSidedInheritanceChoiceQuestion
+        ? "현재 파악한 상속재산과 빚의 종류 및 대략적인 금액을 적어주세요."
+        : duiDocumentQuestion
         ? "경찰에게 받은 음주측정 결과지나 출석요구서가 있다면 문서 이름과 핵심 내용을 적어주세요."
         : requiresDocumentText ? "현재 가지고 있는 서류나 증거의 종류와 내용을 구체적으로 적어주세요." : question,
-      helpText: duiDocumentQuestion
+      helpText: oneSidedInheritanceChoiceQuestion
+        ? "예: 예금 2,000만 원, 부동산 1억 원, 대출 1억 5,000만 원, 보증채무 금액 미상. 정확히 모르면 확인된 범위만 적어주세요."
+        : duiDocumentQuestion
         ? "예: 측정 일시와 혈중알코올농도, 채혈 여부, 출석 예정일. 받은 문서가 없다면 ‘없음’이라고 적어주세요."
         : requiresDocumentText
           ? "예: 판결문·조정조서, 계약서, 계좌내역, 문자·카카오톡, 사진, 녹음. 자료가 없어도 상담할 수 있으므로 없다면 ‘없음’이라고 적어주세요."
         : impliesFileUpload
           ? "관련 사진·대화·점검자료가 있다면 파일 대신 자료의 종류와 핵심 내용을 글로 적어주세요. 없다면 ‘없음’이라고 적어주세요."
           : rawHelpText,
-      type: requiresDocumentText ? "long_text" : booleanQuestion ? "boolean" : type === "boolean" ? "long_text" : type === "single_choice" && (!options || options.length < 2) ? "short_text" : type,
+      type: oneSidedInheritanceChoiceQuestion || requiresDocumentText ? "long_text" : booleanQuestion ? "boolean" : type === "boolean" ? "long_text" : type === "single_choice" && (!options || options.length < 2) ? "short_text" : type,
       required: draft.required !== false,
-      options: requiresDocumentText ? undefined : booleanQuestion
+      options: oneSidedInheritanceChoiceQuestion || requiresDocumentText ? undefined : booleanQuestion
         ? [{ value: "yes", label: "예" }, { value: "no", label: "아니오" }]
         : type === "boolean"
           ? undefined

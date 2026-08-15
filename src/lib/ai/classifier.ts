@@ -25,6 +25,21 @@ export function classifyLegalQuestion(input: string, forcedCategory?: AiLegalCat
   }
 
   const text = normalize(redacted);
+  const comparesInheritanceDebtOptions = /상속(?:을)?\s*포기|상속포기/.test(text)
+    && /한정\s*승인|한정승인/.test(text);
+  if (comparesInheritanceDebtOptions) {
+    return {
+      category: "inheritance",
+      categoryLabel: aiCategoryLabels.inheritance,
+      subcategory: "inheritance-debt-choice",
+      subcategoryLabel: aiSubcategoryLabels["inheritance-debt-choice"],
+      confidence: 0.92,
+      alternativeCategories: [],
+      matchedTags: ["inheritance", "inheritance-debt", "renunciation", "limited-acceptance"],
+      reasonSummary: "상속채무 문제로 상속포기와 한정승인을 함께 비교하는 질문입니다.",
+      requiresConfirmation: true,
+    };
+  }
   const scored = aiKeywordRules
     .map((rule) => {
       const matchedKeywords = rule.keywords.filter((keyword) => text.includes(normalize(keyword)));

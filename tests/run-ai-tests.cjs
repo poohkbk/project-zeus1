@@ -103,6 +103,7 @@ test("unit: classifies legal categories and expanded keywords", () => {
   assert.equal(classifyLegalQuestion("음주운전 혈중알코올농도 문제로 면허취소가 걱정됩니다.").subcategory, "dui");
   assert.equal(classifyLegalQuestion("형사 1심에서 징역형을 선고받아 항소심을 준비하려고 합니다.").subcategory, "criminal-appeal");
   assert.equal(classifyLegalQuestion("공소장을 받았고 형사 1심 재판을 앞두고 있습니다.").subcategory, "criminal-trial");
+  assert.equal(classifyLegalQuestion("빚이 재산보다 많아 상속포기와 한정승인 중 고민입니다.").subcategory, "inheritance-debt-choice");
   assert.equal(classifyLegalQuestion("상간녀 상간소송과 위자료 문제로 상담받고 싶습니다.").category, "divorce");
   assert.equal(classifyLegalQuestion("양육권 친권 양육비와 면접교섭이 문제입니다.").subcategory, "custody");
   assert.equal(classifyLegalQuestion("유류분반환 유류분청구와 자필유언 문제가 있습니다.").category, "inheritance");
@@ -495,6 +496,16 @@ test("unit: criminal first-trial guidance matches pending and ongoing trial stag
   }
 });
 
+test("unit: inheritance debt choice guidance balances renunciation and limited acceptance", () => {
+  const input = "아버지가 돌아가셨는데 빚이 재산보다 많은 것 같습니다. 상속포기와 한정승인 중 어떤 방법을 선택해야 하나요?";
+  const result = buildAiGuideResult("inheritance-debt-choice", input, classifyLegalQuestion(input), []);
+
+  assert.equal(result.classification.subcategory, "inheritance-debt-choice");
+  assert.match(result.consultationOpinion ?? "", /상속포기는.*한정승인은/);
+  assert.ok(result.missingInformation.some((item) => /상속재산.*빚|후순위 상속인|예금 인출/.test(item)));
+  assert.ok(result.recommendedDocuments.some((item) => /상속재산 조회|대출.*세금.*보증채무/.test(item)));
+});
+
 test("unit: debt guidance does not repeat confirmed facts or request documents confirmed absent", () => {
   const input = "친구에게 3,000만 원을 빌려줬는데 차용증은 없고 계좌이체 내역과 카카오톡 대화만 있습니다. 돈을 돌려받을 수 있나요?";
   const questions = [
@@ -699,6 +710,30 @@ test("unit/provider: sexual consent wording is not mistaken for a later criminal
 
   assert.equal(response.data.some((item) => /합의.{0,10}(?:날짜|언제)/.test(item.question)), false);
   assert.ok(response.data.some((item) => /카카오톡/.test(item.question)));
+});
+
+test("unit/provider: inheritance comparison questions do not assume renunciation", async () => {
+  const provider = new OpenAiLegalGuideProvider({
+    apiKey: "test-key",
+    fetchImpl: async () => new Response(JSON.stringify({
+      choices: [{ message: { content: JSON.stringify({ questions: [
+        { question: "상속을 포기하기로 결정한 이유는 무엇인가요?", helpText: "예: 빚이 많아서", type: "long_text", required: true },
+        { question: "상속포기 신청을 위해 준비한 서류가 있나요?", type: "boolean", required: true },
+        { question: "사망 후 아버지의 예금을 인출하거나 재산을 처분한 사실이 있나요?", type: "boolean", required: true },
+      ] }) } }],
+    }), { status: 200, headers: { "content-type": "application/json" } }),
+  });
+  const input = "아버지가 돌아가셨는데 빚이 재산보다 많은 것 같습니다. 상속포기와 한정승인 중 어떤 방법을 선택해야 하나요?";
+  const response = await provider.createQuestions(classifyLegalQuestion(input), {
+    sessionId: "inheritance-choice-questions",
+    initialQuestionRedacted: input,
+    answers: [],
+    promptVersion: "test",
+  });
+
+  assert.equal(response.data.some((item) => /포기하기로 결정|상속포기 신청/.test(item.question)), false);
+  assert.equal(response.data.filter((item) => /상속재산과 빚의 종류/.test(item.question)).length, 1);
+  assert.ok(response.data.some((item) => /예금을 인출|재산을 처분/.test(item.question)));
 });
 
 test("unit: construction payment guidance excludes lease and sale materials", () => {
