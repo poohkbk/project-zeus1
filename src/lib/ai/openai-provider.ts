@@ -163,6 +163,7 @@ function validateQuestionDrafts(
     if (lowValueMovingDate) return [];
     const userCalculatedLegalDeadline = /(?:소송|고소|고발|청구|신청|심판|불복|항소|상고|이의).{0,12}(?:제기|접수|제출)?\s*(?:마감일|기한|기일|종료일)|(?:소멸시효|제척기간|공소시효).{0,12}(?:완성일|만료일|종료일|기한|언제)/.test(question);
     if (userCalculatedLegalDeadline) return [];
+    const inheritanceDeadlineQuestion = /(?:상속\s*포기|한정\s*승인).{0,16}(?:기간|기한).{0,12}(?:언제|날짜|끝|종료|만료)|(?:언제|날짜).{0,12}(?:상속\s*포기|한정\s*승인).{0,12}(?:기간|기한)/.test(question);
     const genericDateQuestion = type === "date"
       && /중요한\s*날짜|관련(?:된|한)\s*날짜|특별한\s*날짜/.test(question)
       && !/결혼|혼인|별거|계약|변제|상환|사망|상속|인지|알게\s*된|접수|제출|송달|수령|처분|출석|재판|사고|폭언|폭행|미지급|퇴거|해지|해제/.test(question);
@@ -192,11 +193,15 @@ function validateQuestionDrafts(
     return [{
       question: oneSidedInheritanceChoiceQuestion
         ? "현재 파악한 상속재산과 빚의 종류 및 대략적인 금액을 적어주세요."
+        : inheritanceDeadlineQuestion
+        ? "피상속인이 돌아가신 날짜는 언제인가요?"
         : duiDocumentQuestion
         ? "경찰에게 받은 음주측정 결과지나 출석요구서가 있다면 문서 이름과 핵심 내용을 적어주세요."
         : requiresDocumentText ? "현재 가지고 있는 서류나 증거의 종류와 내용을 구체적으로 적어주세요." : question,
       helpText: oneSidedInheritanceChoiceQuestion
         ? "예: 예금 2,000만 원, 부동산 1억 원, 대출 1억 5,000만 원, 보증채무 금액 미상. 정확히 모르면 확인된 범위만 적어주세요."
+        : inheritanceDeadlineQuestion
+        ? "가족관계등록부나 사망진단서에 표시된 사망일을 입력해주세요."
         : duiDocumentQuestion
         ? "예: 측정 일시와 혈중알코올농도, 채혈 여부, 출석 예정일. 받은 문서가 없다면 ‘없음’이라고 적어주세요."
         : requiresDocumentText
@@ -204,9 +209,9 @@ function validateQuestionDrafts(
         : impliesFileUpload
           ? "관련 사진·대화·점검자료가 있다면 파일 대신 자료의 종류와 핵심 내용을 글로 적어주세요. 없다면 ‘없음’이라고 적어주세요."
           : rawHelpText,
-      type: oneSidedInheritanceChoiceQuestion || requiresDocumentText || forceOpenTextType ? "long_text" : booleanQuestion ? "boolean" : type === "boolean" ? "long_text" : type === "single_choice" && (!options || options.length < 2) ? "short_text" : type,
+      type: inheritanceDeadlineQuestion ? "date" : oneSidedInheritanceChoiceQuestion || requiresDocumentText || forceOpenTextType ? "long_text" : booleanQuestion ? "boolean" : type === "boolean" ? "long_text" : type === "single_choice" && (!options || options.length < 2) ? "short_text" : type,
       required: draft.required !== false,
-      options: oneSidedInheritanceChoiceQuestion || requiresDocumentText || forceOpenTextType ? undefined : booleanQuestion
+      options: inheritanceDeadlineQuestion || oneSidedInheritanceChoiceQuestion || requiresDocumentText || forceOpenTextType ? undefined : booleanQuestion
         ? [{ value: "yes", label: "예" }, { value: "no", label: "아니오" }]
         : type === "boolean"
           ? undefined

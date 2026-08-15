@@ -734,6 +734,7 @@ test("unit/provider: inheritance comparison questions do not assume renunciation
       choices: [{ message: { content: JSON.stringify({ questions: [
         { question: "상속을 포기하기로 결정한 이유는 무엇인가요?", helpText: "예: 빚이 많아서", type: "long_text", required: true },
         { question: "상속포기 신청을 위해 준비한 서류가 있나요?", type: "boolean", required: true },
+        { question: "상속포기 기간이 언제였는지 아시나요?", helpText: "예: 2022년 1월 1일", type: "date", required: true },
         { question: "사망 후 아버지의 예금을 인출하거나 재산을 처분한 사실이 있나요?", type: "boolean", required: true },
       ] }) } }],
     }), { status: 200, headers: { "content-type": "application/json" } }),
@@ -748,6 +749,8 @@ test("unit/provider: inheritance comparison questions do not assume renunciation
 
   assert.equal(response.data.some((item) => /포기하기로 결정|상속포기 신청/.test(item.question)), false);
   assert.equal(response.data.filter((item) => /상속재산과 빚의 종류/.test(item.question)).length, 1);
+  assert.equal(response.data.some((item) => /상속포기 기간/.test(item.question)), false);
+  assert.equal(response.data.filter((item) => /돌아가신 날짜/.test(item.question) && item.type === "date").length, 1);
   assert.ok(response.data.some((item) => /예금을 인출|재산을 처분/.test(item.question)));
 });
 
