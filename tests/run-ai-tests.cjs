@@ -506,6 +506,21 @@ test("unit: inheritance debt choice guidance balances renunciation and limited a
   assert.ok(result.recommendedDocuments.some((item) => /상속재산 조회|대출.*세금.*보증채무/.test(item)));
 });
 
+test("unit: inheritance guidance does not repeat a confirmed death date or duplicate awareness-date checks", () => {
+  const input = "아버지가 돌아가셨는데 빚이 재산보다 많은 것 같습니다. 상속포기와 한정승인 중 어떤 방법을 선택해야 하나요?";
+  const questions = [
+    { id: "ai-followup-death", field: "aiFollowupDeath", category: "inheritance", order: 1, type: "date", question: "아버지의 사망일은 언제인가요?", required: true },
+  ];
+  const result = buildAiGuideResult("inheritance-known-death-date", input, classifyLegalQuestion(input), [
+    answer("ai-followup-death", "aiFollowupDeath", "2026-06-11"),
+  ], questions);
+
+  const awarenessChecks = result.missingInformation.filter((item) => /상속\s*사실/.test(item) && /알게/.test(item));
+  assert.equal(awarenessChecks.length, 1);
+  assert.match(awarenessChecks[0], /사망일과 다르다면/);
+  assert.equal(result.missingInformation.some((item) => /^사망일과 상속 사실/.test(item)), false);
+});
+
 test("unit: debt guidance does not repeat confirmed facts or request documents confirmed absent", () => {
   const input = "친구에게 3,000만 원을 빌려줬는데 차용증은 없고 계좌이체 내역과 카카오톡 대화만 있습니다. 돈을 돌려받을 수 있나요?";
   const questions = [

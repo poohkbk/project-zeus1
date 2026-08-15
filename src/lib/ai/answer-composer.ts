@@ -81,6 +81,32 @@ function isPositiveEvidence(answer: AiGuideAnswer) {
   return evidenceFields.has(answer.field) && answer.value === "yes";
 }
 
+function hasAnsweredQuestion(
+  answers: AiGuideAnswer[],
+  questions: AiGuideQuestion[],
+  field: string,
+  questionPattern: RegExp,
+) {
+  return answers.some((answer) => {
+    if (answer.value === null || answer.value === "" || answer.value === "unknown") return false;
+    const question = findQuestion(answer.field, questions)?.question ?? "";
+    return answer.field === field || questionPattern.test(question);
+  });
+}
+
+function dedupeMissingInformation(items: string[]) {
+  const seen = new Set<string>();
+  return items.filter((item) => {
+    const normalized = item.replace(/[\s·,.'"“”‘’()]/g, "").replace(/(?:언제인지|날짜가|날짜를|처음|확인해주세요|확인해주십시오)/g, "");
+    const semanticKey = /사망일/.test(item) && /상속\s*사실/.test(item) && /알게/.test(item)
+      ? "inheritance-awareness-date"
+      : normalized;
+    if (seen.has(semanticKey)) return false;
+    seen.add(semanticKey);
+    return true;
+  });
+}
+
 function buildSectionComments(
   category: AiClassificationResult["category"],
   confirmedFacts: string[],
@@ -522,8 +548,12 @@ export function buildAiGuideResult(
   if (effectiveClassification.category === "administrative") {
     missingInformation.push("처분일, 통지 수령일, 효력 발생일이 각각 언제인지 확인해주세요.");
   }
-  if (effectiveClassification.category === "inheritance") {
-    missingInformation.push("사망일과 상속 사실을 알게 된 날짜가 언제인지 확인해주세요.");
+  const deceasedDateKnown = hasAnsweredQuestion(answers, questions, "deceasedDate", /사망일|돌아가신\s*날짜/);
+  const inheritanceAwarenessDateKnown = hasAnsweredQuestion(answers, questions, "inheritanceAwarenessDate", /상속\s*사실.{0,12}알게\s*된\s*날짜/);
+  if (effectiveClassification.category === "inheritance" && !inheritanceAwarenessDateKnown) {
+    missingInformation.push(deceasedDateKnown
+      ? "상속 사실을 처음 알게 된 날이 사망일과 다르다면 그 날짜를 확인해주세요."
+      : "사망일과 상속 사실을 처음 알게 된 날짜를 확인해주세요.");
   }
   if (effectiveClassification.category === "civil" && effectiveClassification.subcategory === "debt" && !writtenLoanDocumentKnown) {
     missingInformation.push("차용증·계약서가 없다면 이체내역이나 대화 기록이 있는지 확인해주세요.");
@@ -551,7 +581,13 @@ export function buildAiGuideResult(
   const loanAmountKnown = debtMatter && /\d[\d,]*(?:\.\d+)?\s*(?:억|만)?\s*원/.test(consultationContext);
   const noCurrentProcedure = debtMatter
     && /현재\s*(?:법적\s*)?(?:절차|소송|지급명령).{0,16}(?:없|아니오)|법적\s*절차.{0,16}(?:없|아니오)/.test(consultationContext);
-  const contextFilteredMissingInformation = missingInformation.filter((item) => {
+  const contextFilteredMissingInformation = dedupeMissingInformation(missingInformation.map((item) => {
+    if (effectiveClassification.category === "inheritance" && deceasedDateKnown && /사망일/.test(item) && /상속\s*사실/.test(item) && /알게/.test(item)) {
+      return "상속 사실을 처음 알게 된 날이 사망일과 다르다면 그 날짜를 확인해주세요.";
+    }
+    return item;
+  })).filter((item) => {
+    if (effectiveClassification.category === "inheritance" && inheritanceAwarenessDateKnown && /상속\s*사실/.test(item) && /알게/.test(item)) return false;
     if (!debtMatter) return true;
     if (writtenLoanDocumentKnown && /차용증|대여금\s*계약서|금전소비대차계약서/.test(item)) return false;
     if (transferOrMessageEvidenceKnown && /차용증.{0,12}없다면.{0,30}(?:이체|대화)\s*기록/.test(item)) return false;
