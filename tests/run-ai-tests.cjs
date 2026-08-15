@@ -650,6 +650,28 @@ test("unit/provider: DUI document prompts use only DUI-specific records", async 
   assert.doesNotMatch(response.data[0].helpText ?? "", /판결문|계약서|계좌내역/);
 });
 
+test("unit/provider: sexual consent wording is not mistaken for a later criminal settlement", async () => {
+  const provider = new OpenAiLegalGuideProvider({
+    apiKey: "test-key",
+    fetchImpl: async () => new Response(JSON.stringify({
+      choices: [{ message: { content: JSON.stringify({ questions: [
+        { question: "합의가 이루어진 날짜는 언제인가요?", helpText: "합의가 이루어진 구체적인 날짜를 입력해주세요.", type: "date", required: true },
+        { question: "성관계 전후 카카오톡 대화에는 어떤 내용이 있나요?", type: "long_text", required: true },
+      ] }) } }],
+    }), { status: 200, headers: { "content-type": "application/json" } }),
+  });
+  const input = "성범죄로 고소당했지만 상대방과 합의해서 이루어진 관계였습니다. 카카오톡 대화가 증거가 될 수 있나요?";
+  const response = await provider.createQuestions(classifyLegalQuestion(input), {
+    sessionId: "sexual-consent-not-settlement",
+    initialQuestionRedacted: input,
+    answers: [],
+    promptVersion: "test",
+  });
+
+  assert.equal(response.data.some((item) => /합의.{0,10}(?:날짜|언제)/.test(item.question)), false);
+  assert.ok(response.data.some((item) => /카카오톡/.test(item.question)));
+});
+
 test("unit: construction payment guidance excludes lease and sale materials", () => {
   const input = "공사를 완료했는데 상대방이 천장 누수 하자를 주장하며 공사대금 지급을 거절하고 있습니다.";
   const result = buildAiGuideResult("construction-payment", input, classifyLegalQuestion(input), []);
