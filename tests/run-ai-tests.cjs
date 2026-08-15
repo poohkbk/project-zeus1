@@ -751,6 +751,33 @@ test("unit/provider: inheritance comparison questions do not assume renunciation
   assert.ok(response.data.some((item) => /예금을 인출|재산을 처분/.test(item.question)));
 });
 
+test("unit/provider: explanatory help text converts yes-no questions to written answers", async () => {
+  const provider = new OpenAiLegalGuideProvider({
+    apiKey: "test-key",
+    fetchImpl: async () => new Response(JSON.stringify({
+      choices: [{ message: { content: JSON.stringify({ questions: [
+        {
+          question: "형이 재산을 관리하는 방식에 대해 알고 있는 내용이 있나요?",
+          helpText: "예: 형이 재산을 어떻게 관리하고 있는지 설명해 주세요.",
+          type: "boolean",
+          required: true,
+          options: [{ value: "yes", label: "예" }, { value: "no", label: "아니오" }],
+        },
+      ] }) } }],
+    }), { status: 200, headers: { "content-type": "application/json" } }),
+  });
+  const input = "형이 아버지의 상속재산을 관리하고 있는데 사용 내역을 알 수 없습니다.";
+  const response = await provider.createQuestions(classifyLegalQuestion(input), {
+    sessionId: "inheritance-descriptive-question",
+    initialQuestionRedacted: input,
+    answers: [],
+    promptVersion: "test",
+  });
+
+  assert.equal(response.data[0]?.type, "long_text");
+  assert.equal(response.data[0]?.options, undefined);
+});
+
 test("unit: construction payment guidance excludes lease and sale materials", () => {
   const input = "공사를 완료했는데 상대방이 천장 누수 하자를 주장하며 공사대금 지급을 거절하고 있습니다.";
   const result = buildAiGuideResult("construction-payment", input, classifyLegalQuestion(input), []);

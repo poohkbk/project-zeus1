@@ -183,7 +183,10 @@ function validateQuestionDrafts(
         })
       : undefined;
     const openQuestion = /무엇|어떤|언제|어디|누구|왜|얼마|어떻게|말씀해|알려주|설명해|구체적/.test(question);
-    const booleanQuestion = !openQuestion && (type === "boolean" || (["short_text", "long_text"].includes(type ?? "") && /(?:있나요|없나요|인가요|하나요|했나요|받았나요|되었나요|중인가요|맞나요)\?$/.test(question)));
+    const descriptiveHelp = /(?:내용|방식|경위|이유|종류).{0,16}(?:설명|기재|입력|적어|말씀|알려)|(?:설명|기재|입력|적어|말씀|알려).{0,16}(?:내용|방식|경위|이유|종류)|(?:어떻게|구체적으로).{0,24}(?:설명|기재|입력|적어)|(?:설명|기재|입력|적어)(?:해|하여)?\s*주세요/.test(rawHelpText ?? "");
+    const requiresOpenText = openQuestion || descriptiveHelp;
+    const forceOpenTextType = descriptiveHelp || (openQuestion && ["boolean", "single_choice"].includes(type ?? ""));
+    const booleanQuestion = !requiresOpenText && (type === "boolean" || (["short_text", "long_text"].includes(type ?? "") && /(?:있나요|없나요|인가요|하나요|했나요|받았나요|되었나요|중인가요|맞나요)\?$/.test(question)));
     return [{
       question: oneSidedInheritanceChoiceQuestion
         ? "현재 파악한 상속재산과 빚의 종류 및 대략적인 금액을 적어주세요."
@@ -199,9 +202,9 @@ function validateQuestionDrafts(
         : impliesFileUpload
           ? "관련 사진·대화·점검자료가 있다면 파일 대신 자료의 종류와 핵심 내용을 글로 적어주세요. 없다면 ‘없음’이라고 적어주세요."
           : rawHelpText,
-      type: oneSidedInheritanceChoiceQuestion || requiresDocumentText ? "long_text" : booleanQuestion ? "boolean" : type === "boolean" ? "long_text" : type === "single_choice" && (!options || options.length < 2) ? "short_text" : type,
+      type: oneSidedInheritanceChoiceQuestion || requiresDocumentText || forceOpenTextType ? "long_text" : booleanQuestion ? "boolean" : type === "boolean" ? "long_text" : type === "single_choice" && (!options || options.length < 2) ? "short_text" : type,
       required: draft.required !== false,
-      options: oneSidedInheritanceChoiceQuestion || requiresDocumentText ? undefined : booleanQuestion
+      options: oneSidedInheritanceChoiceQuestion || requiresDocumentText || forceOpenTextType ? undefined : booleanQuestion
         ? [{ value: "yes", label: "예" }, { value: "no", label: "아니오" }]
         : type === "boolean"
           ? undefined
