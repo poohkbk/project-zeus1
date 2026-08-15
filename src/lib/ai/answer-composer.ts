@@ -443,6 +443,33 @@ function buildStrictGuidance(
   }
 
   const dispositionType = String(answerMap.get("dispositionType") ?? classification.subcategory ?? "administrative-lawsuit");
+  if (dispositionType === "discipline" || classification.subcategory === "discipline" || /공무원.{0,16}징계|징계.{0,16}공무원|소청\s*심사/.test(initialQuestion)) {
+    const beforeDecision = /징계결정\s*전|before-discipline-decision/.test(initialQuestion);
+    const afterDecisionBeforeAppeal = /징계결정\s*후.{0,12}소청심사\s*청구\s*전|after-decision-before-appeal/.test(initialQuestion);
+    const appealPending = /소청심사\s*진행\s*중|appeal-pending/.test(initialQuestion);
+    const afterAppealBeforeLawsuit = /소청심사\s*결정\s*후.{0,12}행정소송\s*제기\s*전|after-appeal-before-lawsuit/.test(initialQuestion);
+    const lawsuitPending = /행정소송\s*진행\s*중|administrative-lawsuit-pending/.test(initialQuestion);
+    if (beforeDecision) return {
+      missingInformation: ["징계혐의의 구체적인 내용과 조사가 어디까지 진행됐는지 확인해주세요.", "징계위원회 개최일과 출석·진술 기회가 안내됐는지 확인해주세요.", "혐의를 다툴 사실과 정상참작 사유가 각각 무엇인지 확인해주세요."],
+      recommendedDocuments: ["징계혐의 통지서·출석통지서", "감사·조사 결과와 문답서", "사실관계 반박 자료와 소명서", "표창·근무평정 등 정상참작 자료"],
+    };
+    if (afterDecisionBeforeAppeal) return {
+      missingInformation: ["징계처분의 종류와 처분사유를 확인해주세요.", "징계처분서를 실제로 받은 날짜를 확인해주세요.", "징계위원회의 사실인정·양정 중 다투려는 부분을 확인해주세요."],
+      recommendedDocuments: ["징계처분서·징계의결서", "처분서 수령일 확인 자료", "감사·조사 기록과 제출한 소명서", "소청심사청구서 작성을 위한 반박·정상참작 자료"],
+    };
+    if (appealPending) return {
+      missingInformation: ["소청심사 청구일과 현재 심리 진행 상황을 확인해주세요.", "청구서에서 다툰 처분사유·절차·양정 쟁점을 확인해주세요.", "피청구인 답변서에 추가로 반박할 내용이 있는지 확인해주세요."],
+      recommendedDocuments: ["소청심사청구서·접수증", "피청구인 답변서·제출자료", "징계처분서·징계의결서", "추가 의견서와 반박 증거"],
+    };
+    if (afterAppealBeforeLawsuit) return {
+      missingInformation: ["소청심사 결정서를 받은 날짜와 결정 내용을 확인해주세요.", "소청심사에서 받아들여지지 않은 사실·법리·양정 쟁점을 확인해주세요.", "원처분과 소청결정 중 행정소송에서 다툴 대상을 확인해주세요."],
+      recommendedDocuments: ["소청심사 결정서와 수령일 자료", "징계처분서·징계의결서", "소청심사청구서·답변서·심리자료", "행정소송에서 제출할 반박·정상참작 자료"],
+    };
+    if (lawsuitPending) return {
+      missingInformation: ["행정소송의 사건번호와 현재 변론 단계를 확인해주세요.", "소장·답변서에서 정리된 처분사유·절차·양정 쟁점을 확인해주세요.", "다음 기일과 추가 증거 제출 계획을 확인해주세요."],
+      recommendedDocuments: ["소장·답변서·준비서면", "징계처분서·징계의결서·소청심사 결정서", "법원 증거목록과 제출 증거", "변론기일통지서와 사건 진행 내역"],
+    };
+  }
   const commonAdministrative = {
     missingInformation: ["처분 내용과 처분 사유를 확인해주세요.", "처분서를 받은 날짜와 효력 발생일을 확인해주세요.", "이의신청·행정심판·행정소송 진행 여부를 확인해주세요."],
     recommendedDocuments: ["처분서·통지서·공문", "처분 사유와 근거 자료", "통지 수령일 확인 자료", "사전통지·의견제출·청문 자료", "이의신청·행정심판·소송서류", "처분으로 인한 손해 자료"],
@@ -706,6 +733,19 @@ export function buildAiGuideResult(
     && effectiveClassification.subcategory === "inheritance-debt-choice";
   const coOwnedPropertyDivisionMatter = effectiveClassification.category === "civil"
     && effectiveClassification.subcategory === "co-owned-property-division";
+  const disciplineMatter = effectiveClassification.category === "administrative"
+    && effectiveClassification.subcategory === "discipline";
+  const disciplineStageOpinion = /징계결정\s*전|before-discipline-decision/.test(consultationContext)
+    ? "징계결정 전에는 징계혐의에 대한 사실관계 반박과 정상참작 사유를 징계위원회에 충분히 제출하는 대응을 검토할 수 있습니다. 출석통지서와 조사기록을 토대로 변호사와 소명 방향을 상담해보세요."
+    : /징계결정\s*후.{0,12}소청심사\s*청구\s*전|after-decision-before-appeal/.test(consultationContext)
+    ? "징계결정 후 소청심사 전이라면 처분사유와 양정의 위법·부당성을 나누어 소청심사 청구를 검토할 수 있습니다. 처분서 수령일과 징계의결서를 토대로 변호사와 신속히 상담해보세요."
+    : /소청심사\s*진행\s*중|appeal-pending/.test(consultationContext)
+    ? "소청심사가 진행 중이라면 피청구인 답변에 대한 반박과 추가 증거·정상참작 자료 제출을 검토할 수 있습니다. 현재 심리기록을 토대로 변호사와 보충서면 방향을 상담해보세요."
+    : /소청심사\s*결정\s*후.{0,12}행정소송\s*제기\s*전|after-appeal-before-lawsuit/.test(consultationContext)
+    ? "소청심사 결정 후에는 결정서의 사실인정과 법리, 징계양정 판단을 검토해 행정소송 제기를 고려할 수 있습니다. 결정서 수령일과 소청기록을 토대로 변호사와 소송 방향을 상담해보세요."
+    : /행정소송\s*진행\s*중|administrative-lawsuit-pending/.test(consultationContext)
+    ? "행정소송이 진행 중이라면 소장과 답변서에 정리된 쟁점에 맞춰 추가 주장과 증거 제출을 검토할 수 있습니다. 다음 기일과 소송기록을 토대로 변호사와 대응 방향을 상담해보세요."
+    : "공무원 징계는 현재 절차 단계에 따라 소명, 소청심사 또는 행정소송 대응이 달라집니다. 단계와 문서 수령일을 확인해 변호사와 적절한 불복 방법을 상담해보세요.";
 
   return {
     sessionId,
@@ -719,6 +759,8 @@ export function buildAiGuideResult(
       ? "상속포기는 재산과 채무를 모두 승계하지 않는 방법이고, 한정승인은 상속받은 재산 범위에서 채무를 정리하는 방법이므로 남길 재산의 유무와 채무 확정 가능성이 선택에 중요합니다. 후순위 상속인에게 영향이 이어지는지와 사망 후 재산 처분 여부도 함께 확인해야 하므로, 재산·채무 조회자료를 토대로 변호사와 신청 방향을 상담해보세요."
       : coOwnedPropertyDivisionMatter
       ? "형제들과 공유지분 등기까지 마친 토지는 상속재산분할이 아니라 공유관계를 해소하는 공유물분할청구소송을 검토할 수 있습니다. 협의가 되지 않으면 법원이 현물분할 가능성을 먼저 살피고, 어렵다면 한 공유자의 지분 인수나 경매를 통한 대금분할을 정할 수 있으므로 등기 지분과 토지 현황을 토대로 변호사와 상담해보세요."
+      : disciplineMatter
+      ? disciplineStageOpinion
       : criminalTrialMatter
       ? "형사 1심 재판에서는 공소사실에 대한 인정·부인 입장을 먼저 정하고, 검사가 제출한 증거와 수사기록을 검토해 방어 방향을 구체화해야 합니다. 혐의를 다툰다면 반박 증거와 증인을, 인정한다면 피해회복과 양형자료를 준비해야 하므로 공소장과 기록을 토대로 변호사와 재판 대응을 상담해보세요."
       : criminalAppealMatter

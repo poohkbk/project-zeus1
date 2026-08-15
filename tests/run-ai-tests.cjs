@@ -1030,6 +1030,53 @@ test("unit/provider: administrative remedy comparison does not assume a procedur
   assert.ok(response.data.some((item) => /집행을 멈출/.test(item.question)));
 });
 
+test("unit/provider: public-official discipline asks the current procedural stage", async () => {
+  const provider = new OpenAiLegalGuideProvider({
+    apiKey: "test-key",
+    fetchImpl: async () => new Response(JSON.stringify({
+      choices: [{ message: { content: JSON.stringify({ questions: [
+        { question: "징계 사유는 무엇인가요?", type: "long_text", required: true },
+        { question: "받은 문서의 내용을 적어주세요.", type: "long_text", required: true },
+        { question: "원하는 결과는 무엇인가요?", type: "long_text", required: true },
+      ] }) } }],
+    }), { status: 200, headers: { "content-type": "application/json" } }),
+  });
+  const input = "공무원 징계 절차에 어떻게 대응해야 하는지 상담받고 싶습니다.";
+  const response = await provider.createQuestions(classifyLegalQuestion(input), {
+    sessionId: "discipline-stage",
+    initialQuestionRedacted: input,
+    answers: [],
+    promptVersion: "test",
+  });
+
+  const stageQuestion = response.data.find((item) => /징계 절차가 어느 단계/.test(item.question));
+  assert.equal(stageQuestion?.type, "single_choice");
+  assert.deepEqual(stageQuestion?.options?.map((item) => item.value), [
+    "before-discipline-decision",
+    "after-decision-before-appeal",
+    "appeal-pending",
+    "after-appeal-before-lawsuit",
+    "administrative-lawsuit-pending",
+  ]);
+});
+
+test("unit: public-official discipline result follows the selected procedural stage", () => {
+  const input = "공무원 징계 처분에 불복하려고 합니다.";
+  const questions = [{
+    id: "ai-followup-1", field: "aiFollowup1", category: "administrative", order: 1, type: "single_choice",
+    question: "현재 공무원 징계 절차가 어느 단계인가요?", required: true,
+    options: [{ value: "after-appeal-before-lawsuit", label: "소청심사 결정 후·행정소송 제기 전" }],
+  }];
+  const result = buildAiGuideResult("discipline-after-appeal", input, classifyLegalQuestion(input), [
+    answer("ai-followup-1", "aiFollowup1", "after-appeal-before-lawsuit"),
+  ], questions);
+
+  assert.ok(result.missingInformation.some((item) => /소청심사 결정서를 받은 날짜/.test(item)));
+  assert.ok(result.recommendedDocuments.some((item) => /소청심사 결정서.*수령일/.test(item)));
+  assert.match(result.consultationOpinion ?? "", /행정소송 제기/);
+  assert.match(result.consultationOpinion ?? "", /변호사.*상담/);
+});
+
 test("unit: registered inherited land uses a co-owned-property partition result", () => {
   const input = "상속재산인 토지를 형제들과 공동으로 소유하고 있습니다. 합의가 되지 않으면 법원을 통해 분할할 수 있나요?";
   const result = buildAiGuideResult("co-owned-land-partition", input, classifyLegalQuestion(input), []);

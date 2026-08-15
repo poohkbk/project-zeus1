@@ -290,6 +290,25 @@ function validateQuestionDrafts(
       required: true,
     });
   }
+  const disciplineContext = classification?.subcategory === "discipline" || /공무원.{0,16}징계|징계.{0,16}공무원|소청\s*심사/.test(initialQuestionRedacted);
+  const asksDisciplineStage = validatedQuestions.some((item) => /징계.{0,12}(?:단계|결정|의결)|소청\s*심사|행정\s*소송/.test(item.question ?? "")
+    && item.type === "single_choice"
+    && (item.options?.length ?? 0) >= 4);
+  if (disciplineContext && !asksDisciplineStage) {
+    validatedQuestions.unshift({
+      question: "현재 공무원 징계 절차가 어느 단계인가요?",
+      helpText: "현재 상황과 가장 가까운 단계를 하나 선택해주세요.",
+      type: "single_choice",
+      required: true,
+      options: [
+        { value: "before-discipline-decision", label: "징계결정 전" },
+        { value: "after-decision-before-appeal", label: "징계결정 후·소청심사 청구 전" },
+        { value: "appeal-pending", label: "소청심사 진행 중" },
+        { value: "after-appeal-before-lawsuit", label: "소청심사 결정 후·행정소송 제기 전" },
+        { value: "administrative-lawsuit-pending", label: "행정소송 진행 중" },
+      ],
+    });
+  }
   return validatedQuestions.slice(0, 6);
 }
 
@@ -577,7 +596,9 @@ export function applyProviderResultDraft(
       ruleResult.consultationSummary.userQuestion,
       ...ruleResult.confirmedFacts,
     ].join(" "));
-  const rawConsultationOpinion = violenceDivorce || visitationMatter || unpaidChildSupportMatter || coOwnedPropertyDivision
+  const disciplineMatter = ruleResult.classification.category === "administrative"
+    && ruleResult.classification.subcategory === "discipline";
+  const rawConsultationOpinion = violenceDivorce || visitationMatter || unpaidChildSupportMatter || coOwnedPropertyDivision || disciplineMatter
     ? ruleResult.consultationOpinion
     : draft.consultationOpinion?.trim() || ruleResult.consultationOpinion;
   const consultationOpinion = rawConsultationOpinion
