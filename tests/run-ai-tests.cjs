@@ -778,6 +778,32 @@ test("unit/provider: explanatory help text converts yes-no questions to written 
   assert.equal(response.data[0]?.options, undefined);
 });
 
+test("unit/provider: reserved-share questions use objective dates instead of a decision date", async () => {
+  const provider = new OpenAiLegalGuideProvider({
+    apiKey: "test-key",
+    fetchImpl: async () => new Response(JSON.stringify({
+      choices: [{ message: { content: JSON.stringify({ questions: [
+        { question: "다른 자녀가 유류분 청구를 하기로 결정한 날짜는 언제인가요?", helpText: "예: 2023년 10월 1일", type: "date", required: true },
+        { question: "부모님이 돌아가신 날짜는 언제인가요?", type: "date", required: true },
+        { question: "다른 자녀에게 재산을 증여한 사실을 언제 처음 알게 되었나요?", type: "date", required: true },
+        { question: "증여된 재산의 종류와 대략적인 가액은 얼마인가요?", type: "long_text", required: true },
+      ] }) } }],
+    }), { status: 200, headers: { "content-type": "application/json" } }),
+  });
+  const input = "부모님이 생전에 대부분의 재산을 한 자녀에게 증여했습니다. 다른 자녀가 유류분을 청구할 수 있나요?";
+  const response = await provider.createQuestions(classifyLegalQuestion(input), {
+    sessionId: "reserved-share-objective-dates",
+    initialQuestionRedacted: input,
+    answers: [],
+    promptVersion: "test",
+  });
+
+  assert.equal(response.data.some((item) => /유류분.{0,12}(?:결정|하기로)/.test(item.question)), false);
+  assert.ok(response.data.some((item) => /돌아가신 날짜/.test(item.question)));
+  assert.ok(response.data.some((item) => /증여한 사실.*처음 알게/.test(item.question)));
+  assert.ok(response.data.some((item) => /재산의 종류.*가액/.test(item.question)));
+});
+
 test("unit: construction payment guidance excludes lease and sale materials", () => {
   const input = "공사를 완료했는데 상대방이 천장 누수 하자를 주장하며 공사대금 지급을 거절하고 있습니다.";
   const result = buildAiGuideResult("construction-payment", input, classifyLegalQuestion(input), []);
