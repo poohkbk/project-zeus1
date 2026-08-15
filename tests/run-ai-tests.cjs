@@ -1000,6 +1000,32 @@ test("unit/provider: registered inherited coownership skips estate-division docu
   assert.ok(response.data.some((item) => /현물.*매각/.test(item.question)));
 });
 
+test("unit/provider: administrative remedy comparison does not assume a procedure is underway", async () => {
+  const provider = new OpenAiLegalGuideProvider({
+    apiKey: "test-key",
+    fetchImpl: async () => new Response(JSON.stringify({
+      choices: [{ message: { content: JSON.stringify({ questions: [
+        { question: "현재 행정심판 또는 행정소송 중 어느 절차를 진행하고 있나요?", helpText: "예: 행정심판 진행 중", type: "boolean", required: true },
+        { question: "영업정지 처분서를 받은 날짜는 언제인가요?", type: "date", required: true },
+        { question: "영업정지 기간과 처분 사유는 어떻게 기재되어 있나요?", type: "long_text", required: true },
+        { question: "영업정지가 바로 시작되어 긴급히 집행을 멈출 필요가 있나요?", type: "boolean", required: true },
+      ] }) } }],
+    }), { status: 200, headers: { "content-type": "application/json" } }),
+  });
+  const input = "음식점 영업정지 처분을 받았습니다. 행정심판과 행정소송 중 어떤 절차로 다투는 것이 좋나요?";
+  const response = await provider.createQuestions(classifyLegalQuestion(input), {
+    sessionId: "administrative-remedy-comparison",
+    initialQuestionRedacted: input,
+    answers: [],
+    promptVersion: "test",
+  });
+
+  assert.equal(response.data.some((item) => /현재.*행정심판.*행정소송.*어느.*진행/.test(item.question)), false);
+  assert.ok(response.data.some((item) => /처분서를 받은 날짜/.test(item.question) && item.type === "date"));
+  assert.ok(response.data.some((item) => /영업정지 기간.*처분 사유/.test(item.question)));
+  assert.ok(response.data.some((item) => /집행을 멈출/.test(item.question)));
+});
+
 test("unit: registered inherited land uses a co-owned-property partition result", () => {
   const input = "상속재산인 토지를 형제들과 공동으로 소유하고 있습니다. 합의가 되지 않으면 법원을 통해 분할할 수 있나요?";
   const result = buildAiGuideResult("co-owned-land-partition", input, classifyLegalQuestion(input), []);

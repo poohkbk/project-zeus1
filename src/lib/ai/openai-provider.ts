@@ -172,6 +172,14 @@ function validateQuestionDrafts(
     if (forcedReservedShareDecisionDate) return [];
     const lowValueMovingDate = /(?:이사|전입)\s*(?:예정)?\s*(?:일|날짜)|(?:언제|날짜).{0,8}(?:이사|전입)\s*예정/.test(question);
     if (lowValueMovingDate) return [];
+    const comparingAdministrativeRemedies = /행정\s*심판/.test(initialQuestionRedacted)
+      && /행정\s*소송/.test(initialQuestionRedacted)
+      && /어떤|어느|중\s*어|절차|선택|좋|적절/.test(initialQuestionRedacted);
+    const assumesRemedyAlreadyFiled = comparingAdministrativeRemedies
+      && /현재|이미/.test(question)
+      && /행정\s*심판|행정\s*소송/.test(question)
+      && /어느|어떤|진행|제기|중/.test(question);
+    if (assumesRemedyAlreadyFiled) return [];
     const userCalculatedLegalDeadline = /(?:소송|고소|고발|청구|신청|심판|불복|항소|상고|이의).{0,12}(?:제기|접수|제출)?\s*(?:마감일|기한|기일|종료일)|(?:소멸시효|제척기간|공소시효).{0,12}(?:완성일|만료일|종료일|기한|언제)/.test(question);
     if (userCalculatedLegalDeadline) return [];
     const inheritanceDeadlineQuestion = /(?:상속\s*포기|한정\s*승인).{0,16}(?:기간|기한).{0,12}(?:언제|날짜|끝|종료|만료)|(?:언제|날짜).{0,12}(?:상속\s*포기|한정\s*승인).{0,12}(?:기간|기한)/.test(question);
