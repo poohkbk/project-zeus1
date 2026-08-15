@@ -16,6 +16,7 @@ export interface ConsultationFormValues {
     categoryLabel: string;
     subcategory?: string;
     subcategoryLabel?: string;
+    userQuestion?: string;
     situationSummary: string;
     confirmedFacts: string[];
     availableEvidence: string[];

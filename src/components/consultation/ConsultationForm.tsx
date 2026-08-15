@@ -61,6 +61,7 @@ function formatAiSummaryMessage(summary: NonNullable<ConsultationFormValues["aiS
     "[AI 법률안내 상담요약]",
     `분야: ${summary.categoryLabel}${summary.subcategoryLabel ? ` / ${summary.subcategoryLabel}` : ""}`,
     `긴급도: ${summary.urgencyLevel}`,
+    ...(summary.userQuestion ? ["", "AI 상담 질문", summary.userQuestion] : []),
     "",
     "상황 요약",
     summary.situationSummary,

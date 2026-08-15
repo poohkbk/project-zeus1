@@ -1258,7 +1258,16 @@ test("integration: consultation submission keeps AI summary for admin detail ren
 
   assert.equal(submission.source, "ai-guide");
   assert.equal(submission.aiSummary?.category, "civil");
+  assert.equal(submission.aiSummary?.userQuestion, "대여금 상담입니다.");
   assert.ok(submission.aiSummary?.confirmedFacts.length);
+});
+
+test("screen-contract: admin consultation detail shows AI field and original question", () => {
+  const adminSource = fs.readFileSync(path.join(projectRoot, "src/components/admin/ConsultationsPage.tsx"), "utf8");
+  assert.match(adminSource, /selected\.aiSummary\.categoryLabel/);
+  assert.match(adminSource, /selected\.aiSummary\.subcategoryLabel/);
+  assert.match(adminSource, /상담자가 처음 입력한 질문/);
+  assert.match(adminSource, /selected\.aiSummary\.userQuestion/);
 });
 
 test("integration/security: blocks invalid, expired, and non-consented transfer access", async () => {

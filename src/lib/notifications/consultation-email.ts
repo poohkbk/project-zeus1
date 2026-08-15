@@ -61,6 +61,7 @@ function buildEmailHtml(payload: ConsultationEmailPayload) {
             <h3 style="margin:24px 0 10px">AI 상담요약</h3>
             <p><strong>분류:</strong> ${escapeHtml(aiSummary.categoryLabel)}${aiSummary.subcategoryLabel ? ` / ${escapeHtml(aiSummary.subcategoryLabel)}` : ""}</p>
             <p><strong>긴급도:</strong> ${escapeHtml(aiSummary.urgencyLevel)}</p>
+            ${aiSummary.userQuestion ? `<p><strong>상담자가 처음 입력한 질문:</strong><br />${lineBreaks(aiSummary.userQuestion)}</p>` : ""}
             <p><strong>상황요약:</strong> ${escapeHtml(aiSummary.situationSummary)}</p>
             <p><strong>확인된 내용</strong></p>
             <ul>${list(aiSummary.confirmedFacts)}</ul>

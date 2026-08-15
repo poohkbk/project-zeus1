@@ -194,7 +194,10 @@ export function ConsultationsPage() {
                   <span>{getConsultationStatusLabel(submission.status)}</span>
                   <strong>{submission.name}</strong>
                   <small>
-                    {submission.categoryLabel} · {new Date(submission.createdAt).toLocaleString("ko-KR")}
+                    {submission.aiSummary
+                      ? `AI 상담 · ${submission.aiSummary.categoryLabel}${submission.aiSummary.subcategoryLabel ? ` / ${submission.aiSummary.subcategoryLabel}` : ""}`
+                      : submission.categoryLabel}
+                    {` · ${new Date(submission.createdAt).toLocaleString("ko-KR")}`}
                   </small>
                   <em>{submission.receptionNumber}</em>
                 </button>
@@ -296,6 +299,12 @@ export function ConsultationsPage() {
                         <dd>{selected.aiSummary.urgencyLevel}</dd>
                       </div>
                     </dl>
+                    {selected.aiSummary.userQuestion ? (
+                      <div className="admin-ai-original-question">
+                        <h4>상담자가 처음 입력한 질문</h4>
+                        <p>{selected.aiSummary.userQuestion}</p>
+                      </div>
+                    ) : null}
                     <p>{selected.aiSummary.situationSummary}</p>
                     <SummaryList title="확인된 내용" items={selected.aiSummary.confirmedFacts} />
                     <SummaryList title="보유 증거" items={selected.aiSummary.availableEvidence} />
