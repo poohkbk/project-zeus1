@@ -620,6 +620,32 @@ test("unit/provider: OpenAI provider creates safe tailored follow-up questions",
   assert.equal(flow?.[4].options, undefined);
 });
 
+test("unit/provider: DUI document prompts use only DUI-specific records", async () => {
+  const provider = new OpenAiLegalGuideProvider({
+    apiKey: "test-key",
+    fetchImpl: async () => new Response(JSON.stringify({
+      choices: [{ message: { content: JSON.stringify({ questions: [{
+        question: "현재 가지고 있는 서류나 증거의 종류와 내용을 구체적으로 적어주세요.",
+        helpText: "예: 판결문, 계약서, 계좌내역, 문자, 사진",
+        type: "long_text",
+        required: true,
+      }] }) } }],
+    }), { status: 200, headers: { "content-type": "application/json" } }),
+  });
+  const input = "술을 마시고 운전하다 적발됐고 혈중알코올농도는 0.09%라고 들었습니다. 초범이면 어떤 처벌을 받나요?";
+  const response = await provider.createQuestions(classifyLegalQuestion(input), {
+    sessionId: "dui-specific-documents",
+    initialQuestionRedacted: input,
+    answers: [],
+    promptVersion: "test",
+  });
+
+  assert.equal(response.data.length, 1);
+  assert.match(response.data[0].question, /음주측정 결과지|출석요구서/);
+  assert.match(response.data[0].helpText ?? "", /혈중알코올농도|채혈|출석 예정일/);
+  assert.doesNotMatch(response.data[0].helpText ?? "", /판결문|계약서|계좌내역/);
+});
+
 test("unit: construction payment guidance excludes lease and sale materials", () => {
   const input = "공사를 완료했는데 상대방이 천장 누수 하자를 주장하며 공사대금 지급을 거절하고 있습니다.";
   const result = buildAiGuideResult("construction-payment", input, classifyLegalQuestion(input), []);
