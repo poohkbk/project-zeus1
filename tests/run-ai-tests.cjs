@@ -875,6 +875,32 @@ test("unit/provider: condition questions require a written description", async (
   assert.equal(response.data[0]?.options, undefined);
 });
 
+test("unit/provider: explicit death-date questions always use a date input", async () => {
+  const provider = new OpenAiLegalGuideProvider({
+    apiKey: "test-key",
+    fetchImpl: async () => new Response(JSON.stringify({
+      choices: [{ message: { content: JSON.stringify({ questions: [
+        {
+          question: "사실혼 배우자의 사망일은 언제인가요?",
+          helpText: "정확한 날짜를 입력해 주세요.",
+          type: "long_text",
+          required: true,
+        },
+      ] }) } }],
+    }), { status: 200, headers: { "content-type": "application/json" } }),
+  });
+  const input = "사실혼 배우자가 사망한 뒤 상속 문제를 상담받고 싶습니다.";
+  const response = await provider.createQuestions(classifyLegalQuestion(input), {
+    sessionId: "de-facto-spouse-death-date",
+    initialQuestionRedacted: input,
+    answers: [],
+    promptVersion: "test",
+  });
+
+  assert.equal(response.data[0]?.type, "date");
+  assert.equal(response.data[0]?.options, undefined);
+});
+
 test("unit/provider: estate division always asks spouse and child count", async () => {
   const provider = new OpenAiLegalGuideProvider({
     apiKey: "test-key",

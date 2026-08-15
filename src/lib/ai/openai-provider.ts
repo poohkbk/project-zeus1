@@ -172,6 +172,8 @@ function validateQuestionDrafts(
       && !/계약서|차용증|소장|고소장|처분서|진단서|등기|가족관계|혼인관계|계좌|녹음|영상|문자|영수증|공소장|판결|조정/.test(question);
     const documentReadinessQuestion = /(?:서류|자료|증거).{0,12}(?:준비|갖추|마련)(?:되|했|하셨|되어)|(?:준비|갖추|마련).{0,12}(?:서류|자료|증거)/.test(question);
     const rawHelpText = safeString(draft.helpText, 220);
+    const explicitDateQuestion = /(?:날짜|사망일|일자)(?:은|는|이|가|를)?\s*언제(?:인가요|입니까)?\?|언제(?:인가요|입니까)?\?$/.test(question)
+      && !/(?:언제부터|언제까지).{0,16}(?:어떻게|얼마나|내용|경위)/.test(question);
     const documentDetailsRequested = /(?:서류|문서|자료|증거).{0,16}(?:종류|내용).{0,12}(?:입력|적어|알려)|(?:종류|내용).{0,16}(?:입력|적어|알려)/.test(`${question} ${rawHelpText ?? ""}`);
     const requiresDocumentText = vagueDocumentQuestion || documentReadinessQuestion || documentDetailsRequested;
     const duiDocumentQuestion = classification?.subcategory === "dui" && requiresDocumentText;
@@ -209,9 +211,9 @@ function validateQuestionDrafts(
         : impliesFileUpload
           ? "관련 사진·대화·점검자료가 있다면 파일 대신 자료의 종류와 핵심 내용을 글로 적어주세요. 없다면 ‘없음’이라고 적어주세요."
           : rawHelpText,
-      type: inheritanceDeadlineQuestion ? "date" : oneSidedInheritanceChoiceQuestion || requiresDocumentText || forceOpenTextType ? "long_text" : booleanQuestion ? "boolean" : type === "boolean" ? "long_text" : type === "single_choice" && (!options || options.length < 2) ? "short_text" : type,
+      type: inheritanceDeadlineQuestion || explicitDateQuestion ? "date" : oneSidedInheritanceChoiceQuestion || requiresDocumentText || forceOpenTextType ? "long_text" : booleanQuestion ? "boolean" : type === "boolean" ? "long_text" : type === "single_choice" && (!options || options.length < 2) ? "short_text" : type,
       required: draft.required !== false,
-      options: inheritanceDeadlineQuestion || oneSidedInheritanceChoiceQuestion || requiresDocumentText || forceOpenTextType ? undefined : booleanQuestion
+      options: inheritanceDeadlineQuestion || explicitDateQuestion || oneSidedInheritanceChoiceQuestion || requiresDocumentText || forceOpenTextType ? undefined : booleanQuestion
         ? [{ value: "yes", label: "예" }, { value: "no", label: "아니오" }]
         : type === "boolean"
           ? undefined
