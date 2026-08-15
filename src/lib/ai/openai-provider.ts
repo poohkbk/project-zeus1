@@ -196,6 +196,8 @@ function validateQuestionDrafts(
     const documentDetailsRequested = /(?:서류|문서|자료|증거).{0,16}(?:종류|내용).{0,12}(?:입력|적어|알려)|(?:종류|내용).{0,16}(?:입력|적어|알려)/.test(`${question} ${rawHelpText ?? ""}`);
     const requiresDocumentText = vagueDocumentQuestion || documentReadinessQuestion || documentDetailsRequested;
     const duiDocumentQuestion = classification?.subcategory === "dui" && requiresDocumentText;
+    const businessSuspensionDocumentQuestion = (classification?.subcategory === "business-suspension" || /영업\s*정지/.test(initialQuestionRedacted))
+      && requiresDocumentText;
     const impliesFileUpload = /(?:증거|자료|파일).{0,12}(?:포함|첨부|업로드|올려)|(?:포함|첨부|업로드).{0,12}(?:증거|자료|파일)/.test(`${question} ${rawHelpText ?? ""}`);
     const options = Array.isArray(draft.options)
       ? draft.options.slice(0, 5).flatMap((option) => {
@@ -218,6 +220,8 @@ function validateQuestionDrafts(
         ? "피상속인이 돌아가신 날짜는 언제인가요?"
         : duiDocumentQuestion
         ? "경찰에게 받은 음주측정 결과지나 출석요구서가 있다면 문서 이름과 핵심 내용을 적어주세요."
+        : businessSuspensionDocumentQuestion
+        ? "영업정지 처분과 관련해 받은 문서의 이름과 핵심 내용을 적어주세요."
         : requiresDocumentText ? "현재 가지고 있는 서류나 증거의 종류와 내용을 구체적으로 적어주세요." : question,
       helpText: oneSidedInheritanceChoiceQuestion
         ? "예: 예금 2,000만 원, 부동산 1억 원, 대출 1억 5,000만 원, 보증채무 금액 미상. 정확히 모르면 확인된 범위만 적어주세요."
@@ -225,6 +229,8 @@ function validateQuestionDrafts(
         ? "가족관계등록부나 사망진단서에 표시된 사망일을 입력해주세요."
         : duiDocumentQuestion
         ? "예: 측정 일시와 혈중알코올농도, 채혈 여부, 출석 예정일. 받은 문서가 없다면 ‘없음’이라고 적어주세요."
+        : businessSuspensionDocumentQuestion
+        ? "예: 영업정지 처분서, 영업정지 처분결정서, 사전통지서, 청문통지서. 처분기간·처분사유·문서를 받은 날짜를 함께 적고, 없다면 ‘없음’이라고 적어주세요."
         : requiresDocumentText
           ? "예: 판결문·조정조서, 계약서, 계좌내역, 문자·카카오톡, 사진, 녹음. 자료가 없어도 상담할 수 있으므로 없다면 ‘없음’이라고 적어주세요."
         : impliesFileUpload

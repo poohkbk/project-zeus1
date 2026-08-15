@@ -1006,6 +1006,7 @@ test("unit/provider: administrative remedy comparison does not assume a procedur
     fetchImpl: async () => new Response(JSON.stringify({
       choices: [{ message: { content: JSON.stringify({ questions: [
         { question: "현재 행정심판 또는 행정소송 중 어느 절차를 진행하고 있나요?", helpText: "예: 행정심판 진행 중", type: "boolean", required: true },
+        { question: "현재 가지고 있는 서류나 증거의 종류와 내용을 구체적으로 적어주세요.", helpText: "예: 판결문, 계약서, 계좌내역", type: "long_text", required: true },
         { question: "영업정지 처분서를 받은 날짜는 언제인가요?", type: "date", required: true },
         { question: "영업정지 기간과 처분 사유는 어떻게 기재되어 있나요?", type: "long_text", required: true },
         { question: "영업정지가 바로 시작되어 긴급히 집행을 멈출 필요가 있나요?", type: "boolean", required: true },
@@ -1021,6 +1022,9 @@ test("unit/provider: administrative remedy comparison does not assume a procedur
   });
 
   assert.equal(response.data.some((item) => /현재.*행정심판.*행정소송.*어느.*진행/.test(item.question)), false);
+  const documentQuestion = response.data.find((item) => /영업정지 처분과 관련해 받은 문서/.test(item.question));
+  assert.match(documentQuestion?.helpText ?? "", /영업정지 처분서.*영업정지 처분결정서.*사전통지서.*청문통지서/);
+  assert.doesNotMatch(documentQuestion?.helpText ?? "", /판결문|계약서|계좌내역/);
   assert.ok(response.data.some((item) => /처분서를 받은 날짜/.test(item.question) && item.type === "date"));
   assert.ok(response.data.some((item) => /영업정지 기간.*처분 사유/.test(item.question)));
   assert.ok(response.data.some((item) => /집행을 멈출/.test(item.question)));
