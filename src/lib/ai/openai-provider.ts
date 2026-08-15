@@ -13,6 +13,7 @@ import type {
 const categories = new Set<AiLegalCategory>(["civil", "criminal", "divorce", "inheritance", "administrative", "unclear"]);
 const subcategories = new Set<AiSubcategory>([
   "debt",
+  "investment-return",
   "contract",
   "damages",
   "police-investigation",

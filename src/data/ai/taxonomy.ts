@@ -45,6 +45,24 @@ export const aiKeywordRules: AiKeywordRule[] = [
   },
   {
     category: "civil",
+    subcategory: "investment-return",
+    tags: ["civil", "investment-return", "investment", "settlement", "contract"],
+    keywords: uniqueKeywords([
+      "투자금 반환",
+      "투자금 회수",
+      "투자금 정산",
+      "투자원금 반환",
+      "원금 반환 약정",
+      "수익금 정산",
+      "투자계약 해지",
+      "투자계약 종료",
+      "투자금을 돌려",
+      "투자금을 반환",
+    ]),
+    reason: "투자계약 종료·해지, 투자원금 반환 또는 수익 정산과 관련된 표현이 포함되어 있습니다.",
+  },
+  {
+    category: "civil",
     subcategory: "contract",
     tags: ["civil", "contract", "payment", "real-estate-contract", "lease"],
     keywords: uniqueKeywords([

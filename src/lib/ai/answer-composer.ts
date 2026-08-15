@@ -109,6 +109,7 @@ function buildSectionComments(
 const trafficAccidentPattern = /교통사고|자동차\s*사고|차량\s*사고|보행자\s*사고|접촉사고|추돌|블랙박스/;
 const constructionPaymentPattern = /공사대금|공사비|도급대금|기성금|미지급\s*공사|공사\s*잔금|추가\s*공사대금/;
 const leaseDepositReturnPattern = /임대차.{0,16}보증금|보증금.{0,16}(?:반환|돌려|못\s*받|미반환)|전세금.{0,12}(?:반환|돌려|못\s*받)/;
+const investmentReturnPattern = /투자금|투자원금|투자\s*계약|수익금.{0,8}(?:정산|배분)|원금\s*반환\s*약정/;
 
 function isTrafficAccident(question: string, classification: AiClassificationResult) {
   return classification.subcategory === "damages" && trafficAccidentPattern.test(question);
@@ -173,6 +174,24 @@ function buildStrictGuidance(
       "목적물 인도·퇴거 및 열쇠 반환 관련 자료",
       "등기사항증명서와 전입신고·확정일자 확인 자료",
       "차임·관리비·공과금 정산 내역이 있다면 그 내역",
+    ],
+  };
+
+  if (classification.category === "civil" && (classification.subcategory === "investment-return" || investmentReturnPattern.test(initialQuestion))) return {
+    missingInformation: [
+      "투자금이 실제 사업·자산에 사용되었는지와 현재 운용·처분 상태를 확인해주세요.",
+      "원금 보장·반환 시기·중도 해지·손실 부담에 관한 약정 내용을 확인해주세요.",
+      "수익과 손실의 산정 방식 및 지금까지 받은 수익금·정산금이 있는지 확인해주세요.",
+      "상대방에게 투자금 반환 또는 회계자료 공개를 요구한 내용과 답변을 확인해주세요.",
+      "투자 권유 당시 설명과 실제 자금 사용처가 다른 정황이 있는지 확인해주세요.",
+    ],
+    recommendedDocuments: [
+      "투자계약서·약정서·사업제안서",
+      "투자금 송금내역과 수익금·정산금 입금내역",
+      "원금 보장·수익률·반환 시기 관련 문자·카카오톡·이메일",
+      "사업 진행·자금 사용·손익을 확인할 보고서와 회계자료",
+      "투자금 반환과 정산자료 공개를 요청한 내용",
+      "상대방이 제시한 담보·보증 또는 사업 관련 자료",
     ],
   };
 
@@ -317,7 +336,17 @@ export function buildAiGuideResult(
   const contextualMatch = contextualClassification.category === classification.category && contextualClassification.subcategory !== "general";
   let effectiveClassification: AiClassificationResult = contextualMatch ? contextualClassification : classification;
   const debtIntent = effectiveClassification.category === "civil" && /대여금|차용증|돈을\s*(?:빌려|빌린)|빌려준|빌려줬|갚(?:아|지|으)|상환|변제/.test(userAssertedContext);
-  if (debtIntent) {
+  const investmentReturnIntent = effectiveClassification.category === "civil" && investmentReturnPattern.test(userAssertedContext);
+  if (investmentReturnIntent) {
+    effectiveClassification = {
+      ...effectiveClassification,
+      subcategory: "investment-return",
+      subcategoryLabel: aiSubcategoryLabels["investment-return"],
+      matchedTags: Array.from(new Set([...effectiveClassification.matchedTags.filter((tag) => !["debt", "loan"].includes(tag)), "investment-return", "investment", "settlement"])),
+      reasonSummary: "투자원금 반환 또는 투자 수익·손실 정산을 원하는 상담으로 확인되었습니다.",
+    };
+  }
+  if (debtIntent && !investmentReturnIntent) {
     effectiveClassification = {
       ...effectiveClassification,
       subcategory: "debt",
@@ -463,6 +492,8 @@ export function buildAiGuideResult(
   const unpaidChildSupportMatter = effectiveClassification.category === "divorce"
     && /양육비/.test(consultationContext)
     && /미지급|미납|지급되지|지급하지|받지\s*못|강제|이행명령|직접지급/.test(consultationContext);
+  const investmentReturnMatter = effectiveClassification.category === "civil"
+    && effectiveClassification.subcategory === "investment-return";
 
   return {
     sessionId,
@@ -472,7 +503,9 @@ export function buildAiGuideResult(
     confirmedFacts: confirmedFacts.length > 0 ? confirmedFacts : ["아직 구체적으로 확인된 답변이 많지 않습니다."],
     missingInformation: Array.from(new Set(contextFilteredMissingInformation)).slice(0, 8),
     recommendedDocuments,
-    consultationOpinion: unpaidChildSupportMatter
+    consultationOpinion: investmentReturnMatter
+      ? "투자금 반환은 단순 미지급금과 달리 원금 반환 약정, 투자 종료·해지 조건, 실제 손익과 정산 의무를 함께 검토해야 합니다. 원금 반환 또는 정산자료 공개를 청구할 가능성이 있으며, 투자 권유 내용과 자금 사용처가 달랐다면 기망 여부도 살펴볼 수 있으므로 관련 자료를 토대로 변호사와 상담해보세요."
+      : unpaidChildSupportMatter
       ? "판결·조정 등으로 정해진 양육비가 지급되다가 중단되었다면 미지급액에 대해 이행명령, 직접지급명령 또는 강제집행을 검토할 수 있습니다. 미납 기간과 상대방의 직장·재산을 확인해 변호사와 구체적인 회수 방법을 상담해보세요."
       : visitationMatter
       ? "양육권 판결이 이미 있더라도 비양육 부모는 자녀와의 면접교섭을 청구할 수 있습니다. 기존 판결의 면접교섭 내용과 상대방의 거부 경위를 확인해 가정법원 신청 또는 이행확보 방법을 변호사와 상담해보세요."

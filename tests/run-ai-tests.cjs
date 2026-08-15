@@ -98,6 +98,7 @@ function makeSession(overrides = {}) {
 test("unit: classifies legal categories and expanded keywords", () => {
   assert.equal(classifyLegalQuestion("돈을 빌려줬는데 안 갚아요. 차용증과 계좌이체가 있습니다.").category, "civil");
   assert.equal(classifyLegalQuestion("지급명령 이후 압류와 강제집행을 하고 싶습니다.").subcategory, "debt");
+  assert.equal(classifyLegalQuestion("투자금 반환과 수익금 정산을 청구하고 싶습니다.").subcategory, "investment-return");
   assert.equal(classifyLegalQuestion("투자사기와 보이스피싱 고소를 하고 싶습니다.").subcategory, "fraud");
   assert.equal(classifyLegalQuestion("음주운전 혈중알코올농도 문제로 면허취소가 걱정됩니다.").subcategory, "dui");
   assert.equal(classifyLegalQuestion("상간녀 상간소송과 위자료 문제로 상담받고 싶습니다.").category, "divorce");
@@ -451,6 +452,18 @@ test("unit: AI-generated debt questions do not turn an unspecified enforcement m
   assert.notEqual(result.classification.subcategory, "debt");
   assert.equal(result.missingInformation.some((item) => /돈을 빌려준|변제기|차용증/.test(item)), false);
   assert.equal(result.recommendedDocuments.some((item) => /차용증|변제 약속/.test(item)), false);
+});
+
+test("unit: investment return guidance is tailored beyond a generic contract dispute", () => {
+  const input = "투자금 5,000만 원을 지급했고 계약 종료 후 원금 반환과 수익금 정산을 요구하고 있습니다.";
+  const result = buildAiGuideResult("investment-return", input, classifyLegalQuestion(input), []);
+
+  assert.equal(result.classification.subcategory, "investment-return");
+  assert.match(result.consultationOpinion ?? "", /원금 반환 약정|손익|정산 의무/);
+  assert.ok(result.missingInformation.some((item) => /원금 보장|손실 부담|수익과 손실|자금 사용처/.test(item)));
+  assert.ok(result.recommendedDocuments.some((item) => /투자계약서|사업제안서/.test(item)));
+  assert.ok(result.recommendedDocuments.some((item) => /회계자료|손익/.test(item)));
+  assert.equal(result.recommendedDocuments.some((item) => /견적서|발주서|공사/.test(item)), false);
 });
 
 test("unit: debt guidance does not repeat confirmed facts or request documents confirmed absent", () => {

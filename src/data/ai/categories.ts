@@ -11,6 +11,7 @@ export const aiCategoryLabels: Record<AiLegalCategory, string> = {
 
 export const aiSubcategoryLabels: Record<AiSubcategory, string> = {
   debt: "대여금",
+  "investment-return": "투자금 반환",
   contract: "계약분쟁",
   damages: "손해배상",
   "police-investigation": "경찰조사",

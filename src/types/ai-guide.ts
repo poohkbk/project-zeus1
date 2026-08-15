@@ -8,6 +8,7 @@ export type AiLegalCategory =
 
 export type AiSubcategory =
   | "debt"
+  | "investment-return"
   | "contract"
   | "damages"
   | "police-investigation"
