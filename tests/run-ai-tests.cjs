@@ -533,6 +533,20 @@ test("unit: estate division guidance confirms spouse and number of children", ()
   assert.ok(result.recommendedDocuments.some((item) => /기본증명서.*가족관계증명서.*제적등본/.test(item)));
 });
 
+test("unit: de facto spouse inheritance guidance focuses on legally relevant alternatives", () => {
+  const input = "사실혼 배우자가 사망했습니다. 혼인신고는 하지 않았는데 상속을 받을 수 있나요?";
+  const result = buildAiGuideResult("de-facto-spouse-inheritance", input, classifyLegalQuestion(input), [
+    answer("ai-followup-death", "aiFollowupDeath", "2026-05-08"),
+  ], [{ id: "ai-followup-death", field: "aiFollowupDeath", category: "inheritance", order: 1, type: "date", question: "사실혼 배우자의 사망일은 언제인가요?", required: true }]);
+
+  assert.equal(result.missingInformation.some((item) => /상속 사실을 처음 알게/.test(item)), false);
+  assert.ok(result.missingInformation.some((item) => /법률상 배우자.*자녀.*부모/.test(item)));
+  assert.ok(result.missingInformation.some((item) => /유언장.*약정/.test(item)));
+  assert.ok(result.missingInformation.some((item) => /보험금.*수익자/.test(item)));
+  assert.ok(result.missingInformation.some((item) => /함께 마련.*기여/.test(item)));
+  assert.ok(result.recommendedDocuments.some((item) => /공동 주소.*동거기간/.test(item)));
+});
+
 test("unit: debt guidance does not repeat confirmed facts or request documents confirmed absent", () => {
   const input = "친구에게 3,000만 원을 빌려줬는데 차용증은 없고 계좌이체 내역과 카카오톡 대화만 있습니다. 돈을 돌려받을 수 있나요?";
   const questions = [

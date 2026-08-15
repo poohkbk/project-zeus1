@@ -347,6 +347,24 @@ function buildStrictGuidance(
 
   if (classification.category === "inheritance") {
     const caseType = String(answerMap.get("caseType") ?? classification.subcategory ?? "general");
+    if (/사실혼\s*(?:배우자|관계).{0,24}(?:사망|상속)|(?:사망|상속).{0,24}사실혼\s*(?:배우자|관계)/.test(initialQuestion)) return {
+      missingInformation: [
+        "사망한 배우자에게 법률상 배우자·자녀·부모·형제자매 등 상속인이 있는지 확인해주세요.",
+        "유언장이나 사실혼 배우자에게 재산을 남기겠다는 약정이 있는지 확인해주세요.",
+        "보험금·퇴직금·연금 등에 사실혼 배우자가 수익자나 지급대상자로 지정되어 있는지 확인해주세요.",
+        "사실혼 기간 중 함께 마련하거나 유지한 재산의 명의와 자금 부담·가사·간병 등 기여 내용을 확인해주세요.",
+        "사망 당시 함께 생활하며 부양·간호했는지와 장례를 주관하거나 비용을 부담했는지 확인해주세요.",
+        "상속인이 없거나 상속재산을 승계할 사람이 없는 상황인지 확인해주세요.",
+      ],
+      recommendedDocuments: [
+        "주민등록초본·등본 등 공동 주소와 동거기간 자료",
+        "결혼식·가족행사·공동생활비 등 사실혼 관계 자료",
+        "피상속인의 가족관계증명서·제적등본 등 법정상속인 확인 자료",
+        "유언장·재산 증여 또는 귀속에 관한 약정",
+        "보험·퇴직금·연금의 수익자 또는 지급대상자 지정 자료",
+        "공동재산 취득자금·생활비·간병·장례비 부담 자료",
+      ],
+    };
     if (caseType === "estate-division" || /상속재산\s*분할|상속재산분할|상속분|기여분/.test(initialQuestion)) return {
       missingInformation: [
         "피상속인의 배우자가 생존해 있는지와 자녀가 몇 명인지 확인해주세요.",
@@ -566,9 +584,11 @@ export function buildAiGuideResult(
   if (effectiveClassification.category === "administrative") {
     missingInformation.push("처분일, 통지 수령일, 효력 발생일이 각각 언제인지 확인해주세요.");
   }
+  const deFactoSpouseInheritanceMatter = effectiveClassification.category === "inheritance"
+    && /사실혼\s*(?:배우자|관계).{0,24}(?:사망|상속)|(?:사망|상속).{0,24}사실혼\s*(?:배우자|관계)/.test(consultationContext);
   const deceasedDateKnown = hasAnsweredQuestion(answers, questions, "deceasedDate", /사망일|돌아가신\s*날짜/);
   const inheritanceAwarenessDateKnown = hasAnsweredQuestion(answers, questions, "inheritanceAwarenessDate", /상속\s*사실.{0,12}알게\s*된\s*날짜/);
-  if (effectiveClassification.category === "inheritance" && !inheritanceAwarenessDateKnown) {
+  if (effectiveClassification.category === "inheritance" && !deFactoSpouseInheritanceMatter && !inheritanceAwarenessDateKnown) {
     missingInformation.push(deceasedDateKnown
       ? "상속 사실을 처음 알게 된 날이 사망일과 다르다면 그 날짜를 확인해주세요."
       : "사망일과 상속 사실을 처음 알게 된 날짜를 확인해주세요.");
