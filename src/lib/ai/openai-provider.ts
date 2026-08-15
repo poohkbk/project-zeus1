@@ -168,7 +168,7 @@ function validateQuestionDrafts(
       && /중요한\s*날짜|관련(?:된|한)\s*날짜|특별한\s*날짜/.test(question)
       && !/결혼|혼인|별거|계약|변제|상환|사망|상속|인지|알게\s*된|접수|제출|송달|수령|처분|출석|재판|사고|폭언|폭행|미지급|퇴거|해지|해제/.test(question);
     if (genericDateQuestion) return [];
-    const vagueDocumentQuestion = /중요한\s*(?:서류|증거)|관련(?:된|한)\s*(?:서류|증거)|준비(?:한|할|하는)\s*(?:서류|증거)|(?:서류|증거)(?:가|를)\s*(?:있나요|가지고|보유)/.test(question)
+    const vagueDocumentQuestion = /중요한\s*(?:문서|서류|자료|증거)|관련(?:된|한)\s*(?:문서|서류|자료|증거)|관련하여.{0,20}(?:가지고|보유).{0,16}(?:문서|서류|자료|증거)|준비(?:한|할|하는)\s*(?:문서|서류|자료|증거)|(?:서류|증거)(?:가|를)\s*(?:있나요|가지고|보유)|(?:가지고|보유).{0,16}(?:문서|서류|자료|증거)/.test(question)
       && !/계약서|차용증|소장|고소장|처분서|진단서|등기|가족관계|혼인관계|계좌|녹음|영상|문자|영수증|공소장|판결|조정/.test(question);
     const documentReadinessQuestion = /(?:서류|자료|증거).{0,12}(?:준비|갖추|마련)(?:되|했|하셨|되어)|(?:준비|갖추|마련).{0,12}(?:서류|자료|증거)/.test(question);
     const rawHelpText = safeString(draft.helpText, 220);

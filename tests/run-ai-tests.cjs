@@ -808,6 +808,34 @@ test("unit/provider: reason questions are written answers even when generated as
   assert.equal(response.data[0]?.options, undefined);
 });
 
+test("unit/provider: document inventory questions require a written list", async () => {
+  const provider = new OpenAiLegalGuideProvider({
+    apiKey: "test-key",
+    fetchImpl: async () => new Response(JSON.stringify({
+      choices: [{ message: { content: JSON.stringify({ questions: [
+        {
+          question: "상속 관련하여 보유하고 있는 문서가 있나요?",
+          helpText: "예: 사망증명서, 상속 관련 서류 등",
+          type: "boolean",
+          required: true,
+          options: [{ value: "yes", label: "예" }, { value: "no", label: "아니오" }],
+        },
+      ] }) } }],
+    }), { status: 200, headers: { "content-type": "application/json" } }),
+  });
+  const input = "상속포기와 한정승인 중 어떤 방법을 선택해야 하는지 상담받고 싶습니다.";
+  const response = await provider.createQuestions(classifyLegalQuestion(input), {
+    sessionId: "inheritance-document-inventory",
+    initialQuestionRedacted: input,
+    answers: [],
+    promptVersion: "test",
+  });
+
+  assert.equal(response.data[0]?.type, "long_text");
+  assert.equal(response.data[0]?.options, undefined);
+  assert.match(response.data[0]?.helpText ?? "", /없다면.*없음/);
+});
+
 test("unit/provider: reserved-share questions use objective dates instead of a decision date", async () => {
   const provider = new OpenAiLegalGuideProvider({
     apiKey: "test-key",
