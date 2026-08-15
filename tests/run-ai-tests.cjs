@@ -515,7 +515,13 @@ test("unit/provider: OpenAI provider creates safe tailored follow-up questions",
                       { value: "no", label: "없습니다" },
                     ],
                   },
-                  { question: "현재 보유한 계약 관련 자료를 알려주세요.", type: "long_text", required: false },
+                  {
+                    question: "계약서나 관련 문서가 있나요?",
+                    helpText: "계약서, 통지서 등 관련 문서의 종류를 입력해 주세요. 예: 계약서, 이메일 통지 등.",
+                    type: "single_choice",
+                    required: false,
+                    options: [{ value: "yes", label: "예" }, { value: "no", label: "아니오" }],
+                  },
                   { question: "사고와 관련된 경찰 보고서가 있나요?", type: "short_text", required: true },
                   { question: "이혼 후 원하는 결과는 무엇인가요?", type: "boolean", required: true },
                   { question: "상대방이 주장하는 하자의 구체적인 내용을 알고 있습니까?", helpText: "하자에 대한 설명이나 증거를 포함해 주세요.", type: "long_text", required: true },
@@ -539,6 +545,9 @@ test("unit/provider: OpenAI provider creates safe tailored follow-up questions",
   assert.equal(response.data.some((item) => /이사\s*예정일/.test(item.question)), false);
   assert.equal(response.data.some((item) => /이혼.*결심/.test(item.question)), false);
   assert.equal(response.data[0].type, "date");
+  assert.equal(response.data[2].type, "long_text");
+  assert.equal(response.data[2].options, undefined);
+  assert.match(response.data[2].question, /종류와 내용을 구체적으로/);
   assert.equal(response.data[3].type, "boolean");
   assert.deepEqual(response.data[3].options, [
     { value: "yes", label: "예" },

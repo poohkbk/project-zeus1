@@ -145,6 +145,8 @@ function validateQuestionDrafts(value: Record<string, unknown>): AiProviderQuest
       && !/계약서|차용증|소장|고소장|처분서|진단서|등기|가족관계|혼인관계|계좌|녹음|영상|문자|영수증|공소장|판결|조정/.test(question);
     const documentReadinessQuestion = /(?:서류|자료|증거).{0,12}(?:준비|갖추|마련)(?:되|했|하셨|되어)|(?:준비|갖추|마련).{0,12}(?:서류|자료|증거)/.test(question);
     const rawHelpText = safeString(draft.helpText, 220);
+    const documentDetailsRequested = /(?:서류|문서|자료|증거).{0,16}(?:종류|내용).{0,12}(?:입력|적어|알려)|(?:종류|내용).{0,16}(?:입력|적어|알려)/.test(`${question} ${rawHelpText ?? ""}`);
+    const requiresDocumentText = vagueDocumentQuestion || documentReadinessQuestion || documentDetailsRequested;
     const impliesFileUpload = /(?:증거|자료|파일).{0,12}(?:포함|첨부|업로드|올려)|(?:포함|첨부|업로드).{0,12}(?:증거|자료|파일)/.test(`${question} ${rawHelpText ?? ""}`);
     const options = Array.isArray(draft.options)
       ? draft.options.slice(0, 5).flatMap((option) => {
@@ -158,15 +160,15 @@ function validateQuestionDrafts(value: Record<string, unknown>): AiProviderQuest
     const openQuestion = /무엇|어떤|언제|어디|누구|왜|얼마|어떻게|말씀해|알려주|설명해|구체적/.test(question);
     const booleanQuestion = !openQuestion && (type === "boolean" || (["short_text", "long_text"].includes(type ?? "") && /(?:있나요|없나요|인가요|하나요|했나요|받았나요|되었나요|중인가요|맞나요)\?$/.test(question)));
     return [{
-      question: vagueDocumentQuestion || documentReadinessQuestion ? "현재 가지고 있는 서류나 증거의 종류와 내용을 구체적으로 적어주세요." : question,
-      helpText: vagueDocumentQuestion || documentReadinessQuestion
+      question: requiresDocumentText ? "현재 가지고 있는 서류나 증거의 종류와 내용을 구체적으로 적어주세요." : question,
+      helpText: requiresDocumentText
         ? "예: 판결문·조정조서, 계약서, 계좌내역, 문자·카카오톡, 사진, 녹음. 자료가 없어도 상담할 수 있으므로 없다면 ‘없음’이라고 적어주세요."
         : impliesFileUpload
           ? "관련 사진·대화·점검자료가 있다면 파일 대신 자료의 종류와 핵심 내용을 글로 적어주세요. 없다면 ‘없음’이라고 적어주세요."
           : rawHelpText,
-      type: vagueDocumentQuestion || documentReadinessQuestion ? "long_text" : booleanQuestion ? "boolean" : type === "boolean" ? "long_text" : type === "single_choice" && (!options || options.length < 2) ? "short_text" : type,
+      type: requiresDocumentText ? "long_text" : booleanQuestion ? "boolean" : type === "boolean" ? "long_text" : type === "single_choice" && (!options || options.length < 2) ? "short_text" : type,
       required: draft.required !== false,
-      options: vagueDocumentQuestion || documentReadinessQuestion ? undefined : booleanQuestion
+      options: requiresDocumentText ? undefined : booleanQuestion
         ? [{ value: "yes", label: "예" }, { value: "no", label: "아니오" }]
         : type === "boolean"
           ? undefined
