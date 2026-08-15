@@ -1262,12 +1262,15 @@ test("integration: consultation submission keeps AI summary for admin detail ren
   assert.ok(submission.aiSummary?.confirmedFacts.length);
 });
 
-test("screen-contract: admin consultation detail shows AI field and original question", () => {
+test("screen-contract: admin shows AI field statistics and original questions", () => {
   const adminSource = fs.readFileSync(path.join(projectRoot, "src/components/admin/ConsultationsPage.tsx"), "utf8");
   assert.match(adminSource, /selected\.aiSummary\.categoryLabel/);
   assert.match(adminSource, /selected\.aiSummary\.subcategoryLabel/);
+  assert.match(adminSource, /분야별 상담 현황/);
+  assert.match(adminSource, /admin-consultation-question-preview/);
   assert.match(adminSource, /상담자가 처음 입력한 질문/);
-  assert.match(adminSource, /selected\.aiSummary\.userQuestion/);
+  assert.match(adminSource, /getAiOriginalQuestion\(selected\)/);
+  assert.match(adminSource, /기존 접수 건으로 최초 질문이 저장되어 있지 않습니다/);
 });
 
 test("integration/security: blocks invalid, expired, and non-consented transfer access", async () => {

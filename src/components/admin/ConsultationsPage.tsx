@@ -21,6 +21,14 @@ function formatPreferredSchedule(submission: ConsultationSubmission) {
   return `${submission.preferredDate} ${submission.preferredTime}`;
 }
 
+function getAiOriginalQuestion(submission: ConsultationSubmission) {
+  const storedQuestion = submission.aiSummary?.userQuestion?.trim();
+  if (storedQuestion) return storedQuestion;
+
+  const messageQuestion = submission.message.match(/AI 상담 질문\s*\n([^\n]+)/)?.[1]?.trim();
+  return messageQuestion || "기존 접수 건으로 최초 질문이 저장되어 있지 않습니다.";
+}
+
 function SummaryList({ title, items }: { title: string; items: string[] }) {
   return (
     <div>
@@ -72,6 +80,23 @@ export function ConsultationsPage() {
       ),
     [submissions, statusFilter],
   );
+
+  const aiConsultationStats = useMemo(() => {
+    const aiSubmissions = submissions.filter(
+      (submission) => submission.source === "ai-guide" || Boolean(submission.aiSummary),
+    );
+    const counts = new Map<string, number>();
+
+    aiSubmissions.forEach((submission) => {
+      const label = submission.aiSummary?.categoryLabel || submission.categoryLabel || "미분류";
+      counts.set(label, (counts.get(label) ?? 0) + 1);
+    });
+
+    return {
+      total: aiSubmissions.length,
+      categories: [...counts.entries()].sort((a, b) => b[1] - a[1]),
+    };
+  }, [submissions]);
 
   const selected = submissions.find((submission) => submission.id === selectedId) ?? visibleSubmissions[0];
 
@@ -160,6 +185,28 @@ export function ConsultationsPage() {
         </div>
       </header>
 
+      <section className="admin-ai-consultation-overview" aria-label="AI 상담 분야 현황">
+        <div>
+          <span>AI 상담 접수</span>
+          <strong>{aiConsultationStats.total}건</strong>
+        </div>
+        <div className="admin-ai-category-stats">
+          <span>분야별 상담 현황</span>
+          {aiConsultationStats.categories.length > 0 ? (
+            <ul>
+              {aiConsultationStats.categories.map(([label, count]) => (
+                <li key={label}>
+                  <strong>{label}</strong>
+                  <em>{count}건</em>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p>아직 접수된 AI 상담이 없습니다.</p>
+          )}
+        </div>
+      </section>
+
       <section className="admin-consultation-layout">
         <div className="admin-panel">
           {syncMessage ? <p className="admin-sync-message">{syncMessage}</p> : null}
@@ -199,6 +246,11 @@ export function ConsultationsPage() {
                       : submission.categoryLabel}
                     {` · ${new Date(submission.createdAt).toLocaleString("ko-KR")}`}
                   </small>
+                  {submission.source === "ai-guide" || submission.aiSummary ? (
+                    <p className="admin-consultation-question-preview">
+                      질문: {getAiOriginalQuestion(submission)}
+                    </p>
+                  ) : null}
                   <em>{submission.receptionNumber}</em>
                 </button>
               ))
@@ -299,12 +351,10 @@ export function ConsultationsPage() {
                         <dd>{selected.aiSummary.urgencyLevel}</dd>
                       </div>
                     </dl>
-                    {selected.aiSummary.userQuestion ? (
-                      <div className="admin-ai-original-question">
-                        <h4>상담자가 처음 입력한 질문</h4>
-                        <p>{selected.aiSummary.userQuestion}</p>
-                      </div>
-                    ) : null}
+                    <div className="admin-ai-original-question">
+                      <h4>상담자가 처음 입력한 질문</h4>
+                      <p>{getAiOriginalQuestion(selected)}</p>
+                    </div>
                     <p>{selected.aiSummary.situationSummary}</p>
                     <SummaryList title="확인된 내용" items={selected.aiSummary.confirmedFacts} />
                     <SummaryList title="보유 증거" items={selected.aiSummary.availableEvidence} />
