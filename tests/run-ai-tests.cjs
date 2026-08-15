@@ -972,6 +972,31 @@ test("unit/provider: contribution-share consultation always asks support duratio
   assert.match(durationQuestion?.helpText ?? "", /시작한 시기.*총 기간/);
 });
 
+test("unit/provider: registered inherited coownership skips estate-division document inventory", async () => {
+  const provider = new OpenAiLegalGuideProvider({
+    apiKey: "test-key",
+    fetchImpl: async () => new Response(JSON.stringify({
+      choices: [{ message: { content: JSON.stringify({ questions: [
+        { question: "상속재산 분할과 관련된 문서가 있나요? 어떤 문서인지 알려주세요.", helpText: "예: 상속재산 목록, 유언장 등", type: "long_text", required: true },
+        { question: "현재 토지는 누가 사용하고 있나요?", type: "long_text", required: true },
+        { question: "토지를 현물로 나누거나 매각하는 방법 중 어떤 방식을 원하나요?", type: "long_text", required: true },
+      ] }) } }],
+    }), { status: 200, headers: { "content-type": "application/json" } }),
+  });
+  const input = "상속재산인 토지를 형제들과 공동으로 소유하고 있습니다. 합의가 되지 않으면 법원을 통해 분할할 수 있나요?";
+  const response = await provider.createQuestions(classifyLegalQuestion(input), {
+    sessionId: "registered-inherited-coownership",
+    initialQuestionRedacted: input,
+    answers: [],
+    promptVersion: "test",
+  });
+
+  assert.equal(response.data.some((item) => /상속재산\s*분할.*문서/.test(item.question)), false);
+  assert.ok(response.data.some((item) => /등기부상.*지분/.test(item.question)));
+  assert.ok(response.data.some((item) => /누가 사용/.test(item.question)));
+  assert.ok(response.data.some((item) => /현물.*매각/.test(item.question)));
+});
+
 test("unit/provider: reserved-share questions use objective dates instead of a decision date", async () => {
   const provider = new OpenAiLegalGuideProvider({
     apiKey: "test-key",

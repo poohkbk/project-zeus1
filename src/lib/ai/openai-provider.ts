@@ -151,6 +151,13 @@ function validateQuestionDrafts(
     const mistakenCriminalSettlementQuestion = sexualConsentContext
       && /(?:형사\s*)?합의.{0,16}(?:날짜|언제|시기|합의금|처벌불원)|(?:날짜|언제|시기).{0,12}(?:형사\s*)?합의/.test(question);
     if (mistakenCriminalSettlementQuestion) return [];
+    const inheritedRegisteredCoownership = /상속/.test(initialQuestionRedacted)
+      && /토지|땅|부동산/.test(initialQuestionRedacted)
+      && /형제|자매|상속인/.test(initialQuestionRedacted)
+      && /공동(?:으로)?\s*(?:소유|명의)|공유/.test(initialQuestionRedacted);
+    const obsoleteEstateDocumentInventory = inheritedRegisteredCoownership
+      && /상속재산\s*분할.{0,20}(?:문서|서류|자료|증거)|(?:문서|서류|자료|증거).{0,20}상속재산\s*분할/.test(question);
+    if (obsoleteEstateDocumentInventory) return [];
     const irrelevantPretrialQuestion = ["criminal-trial", "criminal-appeal"].includes(classification?.subcategory ?? "")
       && /경찰|검찰|고소\s*내용|출석\s*(?:요구|예정)|압수수색|체포|피의자\s*신문/.test(question)
       && !/1심|공판|판결|항소|소송기록|양형|구속|보석/.test(question);
@@ -233,6 +240,10 @@ function validateQuestionDrafts(
     return true;
   });
   const estateDivisionContext = /상속재산\s*분할|상속재산분할|상속분|기여분/.test(initialQuestionRedacted);
+  const registeredCoownershipContext = /상속/.test(initialQuestionRedacted)
+    && /토지|땅|부동산/.test(initialQuestionRedacted)
+    && /형제|자매|상속인/.test(initialQuestionRedacted)
+    && /공동(?:으로)?\s*(?:소유|명의)|공유/.test(initialQuestionRedacted);
   const contributionShareContext = /기여분|(?:부모|아버지|어머니|부친|모친).{0,24}(?:부양|간병)|(?:부양|간병).{0,24}(?:상속재산|상속분|더\s*많|추가)/.test(initialQuestionRedacted);
   const asksHeirComposition = validatedQuestions.some((item) => /배우자/.test(item.question ?? "") && /자녀/.test(item.question ?? ""));
   if (estateDivisionContext && !asksHeirComposition) {
@@ -248,6 +259,15 @@ function validateQuestionDrafts(
     validatedQuestions.unshift({
       question: "형제가 부모님을 부양한 기간은 얼마나 되나요?",
       helpText: "부양을 시작한 시기와 끝난 시기 또는 총 기간을 적어주세요. 예: 2015년부터 사망 시까지 약 9년.",
+      type: "long_text",
+      required: true,
+    });
+  }
+  const asksRegisteredShares = validatedQuestions.some((item) => /등기부|등기사항/.test(item.question ?? "") && /지분/.test(item.question ?? ""));
+  if (registeredCoownershipContext && !asksRegisteredShares) {
+    validatedQuestions.unshift({
+      question: "등기부상 각 공유자의 지분은 어떻게 되어 있나요?",
+      helpText: "예: 본인 3분의 1, 형 3분의 1, 동생 3분의 1. 정확히 모르면 등기부에서 확인되는 범위만 적어주세요.",
       type: "long_text",
       required: true,
     });
