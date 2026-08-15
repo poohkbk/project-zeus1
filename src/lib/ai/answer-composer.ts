@@ -376,6 +376,11 @@ export function buildAiGuideResult(
     .map((answer) => `${answerFieldLabels[answer.field] ?? findQuestion(answer.field, questions)?.question ?? answer.field} 항목을 확인해주세요.`)
     .slice(0, 6);
   const availableEvidence = answers.filter(isPositiveEvidence).map((answer) => formatAnswer(answer, questions)).slice(0, 6);
+  const writtenLoanDocumentKnown = debtIntent && (
+    answerMap.get("writtenAgreementExists") === "yes"
+    || /(?:차용증|금전소비대차계약서|대여금\s*계약서).{0,16}(?:있|보유|작성|받아|가지고)/.test(consultationContext)
+    || /(?:있|보유|작성|받아|가지고).{0,16}(?:차용증|금전소비대차계약서|대여금\s*계약서)/.test(consultationContext)
+  );
 
   if (effectiveClassification.category === "unclear") {
     missingInformation.push("분쟁이 시작된 경위와 상대방의 입장을 확인해주세요.");
@@ -386,7 +391,7 @@ export function buildAiGuideResult(
   if (effectiveClassification.category === "inheritance") {
     missingInformation.push("사망일과 상속 사실을 알게 된 날짜가 언제인지 확인해주세요.");
   }
-  if (effectiveClassification.category === "civil" && effectiveClassification.subcategory === "debt" && answerMap.get("writtenAgreementExists") !== "yes") {
+  if (effectiveClassification.category === "civil" && effectiveClassification.subcategory === "debt" && !writtenLoanDocumentKnown) {
     missingInformation.push("차용증·계약서가 없다면 이체내역이나 대화 기록이 있는지 확인해주세요.");
   }
   missingInformation.push(...strictGuidance.missingInformation);
@@ -414,6 +419,7 @@ export function buildAiGuideResult(
     && /현재\s*(?:법적\s*)?(?:절차|소송|지급명령).{0,16}(?:없|아니오)|법적\s*절차.{0,16}(?:없|아니오)/.test(consultationContext);
   const contextFilteredMissingInformation = missingInformation.filter((item) => {
     if (!debtMatter) return true;
+    if (writtenLoanDocumentKnown && /차용증|대여금\s*계약서|금전소비대차계약서/.test(item)) return false;
     if (transferOrMessageEvidenceKnown && /차용증.{0,12}없다면.{0,30}(?:이체|대화)\s*기록/.test(item)) return false;
     if (loanDateKnown && loanAmountKnown && /빌려준\s*날짜와\s*금액/.test(item)) return false;
     if (loanDateKnown && /빌려준\s*날짜/.test(item) && !/금액/.test(item)) return false;

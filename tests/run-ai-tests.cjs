@@ -424,6 +424,19 @@ test("unit: follow-up answers override broad civil classification for debt claim
   assert.equal(result.recommendedDocuments.some((item) => /등기사항증명서|건축물대장|임대차|하자/.test(item)), false);
 });
 
+test("unit: debt guidance does not recheck a promissory note confirmed in a free-text answer", () => {
+  const input = "1억 원을 빌려줬는데 돌려받지 못하고 있습니다.";
+  const questions = [
+    { id: "ai-followup-1", field: "aiFollowup1", category: "civil", order: 1, type: "long_text", question: "계약서나 관련 문서의 종류를 적어주세요.", required: true },
+  ];
+  const result = buildAiGuideResult("debt-written-document", input, classifyLegalQuestion(input), [
+    answer("ai-followup-1", "aiFollowup1", "차용증, 거래 내역서 있음"),
+  ], questions);
+
+  assert.equal(result.missingInformation.some((item) => /차용증|계약서/.test(item)), false);
+  assert.ok(result.recommendedDocuments.some((item) => /차용증/.test(item)));
+});
+
 test("unit: debt guidance does not repeat confirmed facts or request documents confirmed absent", () => {
   const input = "친구에게 3,000만 원을 빌려줬는데 차용증은 없고 계좌이체 내역과 카카오톡 대화만 있습니다. 돈을 돌려받을 수 있나요?";
   const questions = [
