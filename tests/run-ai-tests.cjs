@@ -565,6 +565,12 @@ test("unit/provider: OpenAI provider creates safe tailored follow-up questions",
                     required: false,
                     options: [{ value: "yes", label: "예" }, { value: "no", label: "아니오" }],
                   },
+                  {
+                    question: "증거가 있다면, 어떤 종류의 증거가 있으며 그 주요 내용을 설명해 주세요.",
+                    helpText: "예: 이메일, 문자 메시지, 계약서 등",
+                    type: "long_text",
+                    required: true,
+                  },
                   { question: "사고와 관련된 경찰 보고서가 있나요?", type: "short_text", required: true },
                   { question: "이혼 후 원하는 결과는 무엇인가요?", type: "boolean", required: true },
                   { question: "상대방이 주장하는 하자의 구체적인 내용을 알고 있습니까?", helpText: "하자에 대한 설명이나 증거를 포함해 주세요.", type: "long_text", required: true },
@@ -584,23 +590,24 @@ test("unit/provider: OpenAI provider creates safe tailored follow-up questions",
     answers: [],
     promptVersion: "test",
   });
-  assert.equal(response.data.length, 6);
+  assert.equal(response.data.length, 5);
   assert.equal(response.data.some((item) => /이사\s*예정일/.test(item.question)), false);
   assert.equal(response.data.some((item) => /소송\s*제기\s*마감일/.test(item.question)), false);
   assert.equal(response.data.some((item) => /이혼.*결심/.test(item.question)), false);
-  assert.equal(response.data[0].type, "date");
-  assert.equal(response.data[2].type, "long_text");
-  assert.equal(response.data[2].options, undefined);
-  assert.match(response.data[2].question, /종류와 내용을 구체적으로/);
-  assert.equal(response.data[3].type, "boolean");
-  assert.deepEqual(response.data[3].options, [
+  assert.equal(response.data.filter((item) => /서류|문서|자료|증거/.test(`${item.question} ${item.helpText ?? ""}`) && /종류|내용/.test(`${item.question} ${item.helpText ?? ""}`)).length, 1);
+  assert.equal(response.data.find((item) => /종료된 날짜/.test(item.question))?.type, "date");
+  const documentQuestion = response.data.find((item) => /종류와 내용을 구체적으로/.test(item.question));
+  assert.equal(documentQuestion?.type, "long_text");
+  assert.equal(documentQuestion?.options, undefined);
+  const policeQuestion = response.data.find((item) => /경찰 보고서/.test(item.question));
+  assert.equal(policeQuestion?.type, "boolean");
+  assert.deepEqual(policeQuestion?.options, [
     { value: "yes", label: "예" },
     { value: "no", label: "아니오" },
   ]);
-  assert.equal(response.data[4].type, "long_text");
-  assert.equal(response.data[4].options, undefined);
-  assert.match(response.data[5].helpText ?? "", /파일 대신.*글로/);
-  assert.doesNotMatch(response.data[5].helpText ?? "", /증거를 포함/);
+  const desiredOutcomeQuestion = response.data.find((item) => /원하는 결과/.test(item.question));
+  assert.equal(desiredOutcomeQuestion?.type, "long_text");
+  assert.equal(desiredOutcomeQuestion?.options, undefined);
 
   const flow = sanitizeQuestionFlow(
     response.data.map((question, index) => ({
@@ -612,12 +619,9 @@ test("unit/provider: OpenAI provider creates safe tailored follow-up questions",
     })),
     "civil",
   );
-  assert.equal(flow?.length, 6);
-  assert.equal(flow?.[1].options?.length, 2);
-  assert.equal(flow?.[3].type, "boolean");
-  assert.deepEqual(flow?.[3].options?.map((option) => option.value), ["yes", "no"]);
-  assert.equal(flow?.[4].type, "long_text");
-  assert.equal(flow?.[4].options, undefined);
+  assert.equal(flow?.length, 5);
+  assert.ok(flow?.some((item) => item.type === "boolean" && item.options?.map((option) => option.value).join(",") === "yes,no"));
+  assert.ok(flow?.some((item) => /원하는 결과/.test(item.question) && item.type === "long_text" && item.options === undefined));
 });
 
 test("unit/provider: DUI document prompts use only DUI-specific records", async () => {

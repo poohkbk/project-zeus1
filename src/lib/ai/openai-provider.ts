@@ -126,7 +126,7 @@ function validateResultDraft(value: Record<string, unknown>): AiProviderResultDr
 function validateQuestionDrafts(value: Record<string, unknown>, classification?: AiClassificationResult): AiProviderQuestionDraft[] {
   if (!Array.isArray(value.questions)) return [];
   const allowedTypes = new Set(["single_choice", "date", "short_text", "long_text", "boolean"]);
-  return value.questions.flatMap<AiProviderQuestionDraft>((item) => {
+  const questions = value.questions.flatMap<AiProviderQuestionDraft>((item) => {
     if (!item || typeof item !== "object" || Array.isArray(item)) return [];
     const draft = item as Record<string, unknown>;
     const question = safeString(draft.question, 180)?.trim();
@@ -182,6 +182,18 @@ function validateQuestionDrafts(value: Record<string, unknown>, classification?:
           ? undefined
           : options,
     }];
+  });
+  const seenIntents = new Set<string>();
+  return questions.filter((item) => {
+    const text = `${item.question} ${item.helpText ?? ""}`.replace(/\s+/g, " ").trim();
+    const broadDocumentInventory = /서류|문서|자료|증거/.test(text)
+      && (/종류/.test(text) || /가지고\s*있는|보유(?:한|하고|중인)/.test(text));
+    const intentKey = broadDocumentInventory
+      ? "broad-document-inventory"
+      : (item.question ?? "").replace(/[\s?.!,·:：'“”‘’"()]/g, "").toLowerCase();
+    if (seenIntents.has(intentKey)) return false;
+    seenIntents.add(intentKey);
+    return true;
   }).slice(0, 6);
 }
 
