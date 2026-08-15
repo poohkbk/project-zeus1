@@ -108,6 +108,7 @@ function buildSectionComments(
 
 const trafficAccidentPattern = /교통사고|자동차\s*사고|차량\s*사고|보행자\s*사고|접촉사고|추돌|블랙박스/;
 const constructionPaymentPattern = /공사대금|공사비|도급대금|기성금|미지급\s*공사|공사\s*잔금|추가\s*공사대금/;
+const leaseDepositReturnPattern = /임대차.{0,16}보증금|보증금.{0,16}(?:반환|돌려|못\s*받|미반환)|전세금.{0,12}(?:반환|돌려|못\s*받)/;
 
 function isTrafficAccident(question: string, classification: AiClassificationResult) {
   return classification.subcategory === "damages" && trafficAccidentPattern.test(question);
@@ -154,6 +155,24 @@ function buildStrictGuidance(
       "공사 진행·완료 사진과 검수·인도 자료",
       "하자 통지·보수 요청 및 답변 대화",
       "누수 등 하자 원인에 관한 점검·감정 자료가 있다면 그 자료",
+    ],
+  };
+
+  if (classification.category === "civil" && leaseDepositReturnPattern.test(initialQuestion)) return {
+    missingInformation: [
+      "임차목적물을 비우고 열쇠를 반환했거나 즉시 반환할 준비가 되어 있는지 확인해주세요.",
+      "미납 차임·관리비·공과금이나 원상회복비로 공제될 금액이 있는지 확인해주세요.",
+      "보증금 중 일부를 돌려받았다면 반환받은 날짜와 금액을 확인해주세요.",
+      "임대차 중 소유자 변경, 근저당·압류 또는 경매 진행이 있는지 확인해주세요.",
+      "전입신고와 확정일자 유무 및 현재 주민등록을 유지하고 있는지 확인해주세요.",
+    ],
+    recommendedDocuments: [
+      "임대차계약서와 갱신·변경 계약서",
+      "보증금 지급 계좌내역·영수증",
+      "계약 종료 및 보증금 반환을 요청한 문자·카카오톡·내용증명",
+      "목적물 인도·퇴거 및 열쇠 반환 관련 자료",
+      "등기사항증명서와 전입신고·확정일자 확인 자료",
+      "차임·관리비·공과금 정산 내역이 있다면 그 내역",
     ],
   };
 
@@ -367,7 +386,7 @@ export function buildAiGuideResult(
   if (effectiveClassification.category === "inheritance") {
     missingInformation.push("사망일과 상속 사실을 알게 된 날짜가 언제인지 확인해주세요.");
   }
-  if (effectiveClassification.category === "civil" && effectiveClassification.subcategory !== "damages" && answerMap.get("writtenAgreementExists") !== "yes") {
+  if (effectiveClassification.category === "civil" && effectiveClassification.subcategory === "debt" && answerMap.get("writtenAgreementExists") !== "yes") {
     missingInformation.push("차용증·계약서가 없다면 이체내역이나 대화 기록이 있는지 확인해주세요.");
   }
   missingInformation.push(...strictGuidance.missingInformation);

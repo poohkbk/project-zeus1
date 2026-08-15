@@ -578,6 +578,18 @@ test("unit: construction payment guidance excludes lease and sale materials", ()
   assert.equal(result.recommendedDocuments.some((item) => /등기사항증명서|건축물대장|임대차·매매|보증금/.test(item)), false);
 });
 
+test("unit: lease deposit return guidance excludes generic contract and construction materials", () => {
+  const input = "임대차계약이 종료되었고 집주인에게 보증금 3,000만 원 반환을 요청했지만 돌려받지 못했습니다.";
+  const result = buildAiGuideResult("lease-deposit-return", input, classifyLegalQuestion(input), []);
+  assert.ok(result.missingInformation.some((item) => /열쇠를 반환|즉시 반환할 준비/.test(item)));
+  assert.ok(result.missingInformation.some((item) => /차임·관리비·공과금|공제될 금액/.test(item)));
+  assert.ok(result.recommendedDocuments.some((item) => /임대차계약서/.test(item)));
+  assert.ok(result.recommendedDocuments.some((item) => /보증금 지급/.test(item)));
+  assert.ok(result.recommendedDocuments.some((item) => /보증금 반환을 요청/.test(item)));
+  assert.equal(result.missingInformation.some((item) => /차용증|계약 내용과 체결일|각 당사자가 이행|위반 시점|해제·해지 또는 이행/.test(item)), false);
+  assert.equal(result.recommendedDocuments.some((item) => /견적서|발주서|공사 계약|손해 발생 자료/.test(item)), false);
+});
+
 test("screen-contract: AI date questions name the event without redundant explanation questions", () => {
   const runtime = fs.readFileSync(path.join(projectRoot, "src/lib/ai/provider-runtime.ts"), "utf8");
   const provider = fs.readFileSync(path.join(projectRoot, "src/lib/ai/openai-provider.ts"), "utf8");
