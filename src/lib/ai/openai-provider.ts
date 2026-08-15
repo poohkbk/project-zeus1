@@ -185,7 +185,7 @@ function validateQuestionDrafts(
           return label && optionValue ? [{ label, value: optionValue }] : [];
         })
       : undefined;
-    const openQuestion = /무엇|어떤|언제|어디|누구|왜|얼마|어떻게|이유|경위|방법|내용|말씀해|알려주|설명해|구체적/.test(question);
+    const openQuestion = /무엇|어떤|언제|어디|누구|왜|얼마|어떻게|어떠했|어땠|어떠한\s*상태|상태는\s*어떠|이유|경위|방법|내용|말씀해|알려주|설명해|구체적/.test(question);
     const descriptiveHelp = /(?:내용|방식|경위|이유|종류).{0,16}(?:설명|기재|입력|적어|말씀|알려)|(?:설명|기재|입력|적어|말씀|알려).{0,16}(?:내용|방식|경위|이유|종류)|(?:어떻게|구체적으로).{0,24}(?:설명|기재|입력|적어)|(?:설명|기재|입력|적어)(?:해|하여)?\s*주세요/.test(rawHelpText ?? "");
     const requiresOpenText = openQuestion || descriptiveHelp;
     const forceOpenTextType = descriptiveHelp || (openQuestion && ["boolean", "single_choice"].includes(type ?? ""));

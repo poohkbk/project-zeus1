@@ -836,6 +836,33 @@ test("unit/provider: document inventory questions require a written list", async
   assert.match(response.data[0]?.helpText ?? "", /없다면.*없음/);
 });
 
+test("unit/provider: condition questions require a written description", async () => {
+  const provider = new OpenAiLegalGuideProvider({
+    apiKey: "test-key",
+    fetchImpl: async () => new Response(JSON.stringify({
+      choices: [{ message: { content: JSON.stringify({ questions: [
+        {
+          question: "유언장 작성 당시 아버지의 정신적 상태는 어떠했나요?",
+          helpText: "예: 건강했음, 병원에 입원 중이었음 등",
+          type: "boolean",
+          required: true,
+          options: [{ value: "yes", label: "예" }, { value: "no", label: "아니오" }],
+        },
+      ] }) } }],
+    }), { status: 200, headers: { "content-type": "application/json" } }),
+  });
+  const input = "아버지가 작성한 유언장의 효력에 관해 상담받고 싶습니다.";
+  const response = await provider.createQuestions(classifyLegalQuestion(input), {
+    sessionId: "will-mental-condition-written-answer",
+    initialQuestionRedacted: input,
+    answers: [],
+    promptVersion: "test",
+  });
+
+  assert.equal(response.data[0]?.type, "long_text");
+  assert.equal(response.data[0]?.options, undefined);
+});
+
 test("unit/provider: reserved-share questions use objective dates instead of a decision date", async () => {
   const provider = new OpenAiLegalGuideProvider({
     apiKey: "test-key",
