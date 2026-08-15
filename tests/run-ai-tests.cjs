@@ -518,6 +518,7 @@ test("unit/provider: OpenAI provider creates safe tailored follow-up questions",
               content: JSON.stringify({
                 questions: [
                   { question: "이사 예정일은 언제인가요?", type: "date", required: true },
+                  { question: "소송 제기 마감일이 있나요?", type: "date", required: true },
                   { question: "임대차계약이 종료된 날짜는 언제인가요?", type: "date", required: true },
                   {
                     question: "임대인에게 반환을 요청한 자료가 있나요?",
@@ -556,6 +557,7 @@ test("unit/provider: OpenAI provider creates safe tailored follow-up questions",
   });
   assert.equal(response.data.length, 6);
   assert.equal(response.data.some((item) => /이사\s*예정일/.test(item.question)), false);
+  assert.equal(response.data.some((item) => /소송\s*제기\s*마감일/.test(item.question)), false);
   assert.equal(response.data.some((item) => /이혼.*결심/.test(item.question)), false);
   assert.equal(response.data[0].type, "date");
   assert.equal(response.data[2].type, "long_text");
