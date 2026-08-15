@@ -781,6 +781,33 @@ test("unit/provider: explanatory help text converts yes-no questions to written 
   assert.equal(response.data[0]?.options, undefined);
 });
 
+test("unit/provider: reason questions are written answers even when generated as yes-no", async () => {
+  const provider = new OpenAiLegalGuideProvider({
+    apiKey: "test-key",
+    fetchImpl: async () => new Response(JSON.stringify({
+      choices: [{ message: { content: JSON.stringify({ questions: [
+        {
+          question: "상속포기를 하지 않은 이유가 있나요?",
+          helpText: "예: 정보 부족, 법적 조언 부족 등",
+          type: "boolean",
+          required: true,
+          options: [{ value: "yes", label: "예" }, { value: "no", label: "아니오" }],
+        },
+      ] }) } }],
+    }), { status: 200, headers: { "content-type": "application/json" } }),
+  });
+  const input = "아버지가 돌아가신 뒤 상속포기를 하지 못해 상담을 받고 싶습니다.";
+  const response = await provider.createQuestions(classifyLegalQuestion(input), {
+    sessionId: "inheritance-reason-written-answer",
+    initialQuestionRedacted: input,
+    answers: [],
+    promptVersion: "test",
+  });
+
+  assert.equal(response.data[0]?.type, "long_text");
+  assert.equal(response.data[0]?.options, undefined);
+});
+
 test("unit/provider: reserved-share questions use objective dates instead of a decision date", async () => {
   const provider = new OpenAiLegalGuideProvider({
     apiKey: "test-key",
