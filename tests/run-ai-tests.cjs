@@ -101,6 +101,7 @@ test("unit: classifies legal categories and expanded keywords", () => {
   assert.equal(classifyLegalQuestion("투자금 반환과 수익금 정산을 청구하고 싶습니다.").subcategory, "investment-return");
   assert.equal(classifyLegalQuestion("투자사기와 보이스피싱 고소를 하고 싶습니다.").subcategory, "fraud");
   assert.equal(classifyLegalQuestion("음주운전 혈중알코올농도 문제로 면허취소가 걱정됩니다.").subcategory, "dui");
+  assert.equal(classifyLegalQuestion("형사 1심에서 징역형을 선고받아 항소심을 준비하려고 합니다.").subcategory, "criminal-appeal");
   assert.equal(classifyLegalQuestion("상간녀 상간소송과 위자료 문제로 상담받고 싶습니다.").category, "divorce");
   assert.equal(classifyLegalQuestion("양육권 친권 양육비와 면접교섭이 문제입니다.").subcategory, "custody");
   assert.equal(classifyLegalQuestion("유류분반환 유류분청구와 자필유언 문제가 있습니다.").category, "inheritance");
@@ -464,6 +465,18 @@ test("unit: investment return guidance is tailored beyond a generic contract dis
   assert.ok(result.recommendedDocuments.some((item) => /투자계약서|사업제안서/.test(item)));
   assert.ok(result.recommendedDocuments.some((item) => /회계자료|손익/.test(item)));
   assert.equal(result.recommendedDocuments.some((item) => /견적서|발주서|공사/.test(item)), false);
+});
+
+test("unit: criminal appeal guidance excludes police-investigation intake", () => {
+  const input = "형사재판 1심에서 징역형을 선고받았고 항소심에서 형량 감경을 원합니다.";
+  const result = buildAiGuideResult("criminal-appeal", input, classifyLegalQuestion(input), []);
+
+  assert.equal(result.classification.subcategory, "criminal-appeal");
+  assert.match(result.consultationOpinion ?? "", /사실인정|법리 판단|양형/);
+  assert.ok(result.missingInformation.some((item) => /1심 판결 이유|소송기록접수통지서|새로운 증거/.test(item)));
+  assert.ok(result.recommendedDocuments.some((item) => /1심 판결문|항소장|항소이유서/.test(item)));
+  assert.equal(result.missingInformation.some((item) => /경찰·검찰 연락|출석 예정일|압수수색/.test(item)), false);
+  assert.equal(result.recommendedDocuments.some((item) => /출석요구 문자|고소 내용/.test(item)), false);
 });
 
 test("unit: debt guidance does not repeat confirmed facts or request documents confirmed absent", () => {

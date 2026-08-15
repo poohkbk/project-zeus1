@@ -218,6 +218,25 @@ function buildStrictGuidance(
   if (classification.category === "criminal") {
     const role = String(answerMap.get("partyRole") ?? "unknown");
     const stage = String(answerMap.get("investigationStage") ?? "unknown");
+    const criminalAppeal = classification.subcategory === "criminal-appeal"
+      || /형사\s*항소|항소심|항소이유서|1심\s*판결|징역형?.{0,8}선고|형량\s*감경|양형부당/.test(initialQuestion);
+    if (criminalAppeal) return {
+      missingInformation: [
+        "1심 판결 이유 중 사실인정·법리·형량에서 다투려는 부분을 확인해주세요.",
+        "항소장을 제출했는지와 소송기록접수통지서를 받은 날짜를 확인해주세요.",
+        "1심에서 제출하지 못한 새로운 증거나 추가로 설명할 사정이 있는지 확인해주세요.",
+        "피해자와의 합의·피해회복 또는 공탁이 진행된 사실이 있는지 확인해주세요.",
+        "구속 상태인지와 보석·구속취소를 함께 검토할 사정이 있는지 확인해주세요.",
+      ],
+      recommendedDocuments: [
+        "1심 판결문·공소장·증거목록",
+        "항소장·소송기록접수통지서·항소이유서 초안",
+        "1심에서 제출한 의견서·변론요지서·증거자료",
+        "1심 판단을 다툴 새로운 증거와 사실관계 정리",
+        "합의서·처벌불원서·피해회복·공탁 자료가 있다면 그 자료",
+        "반성·치료·직업·부양 등 양형에 참고될 자료",
+      ],
+    };
     if (role === "victim") return {
       missingInformation: ["피해 일시·장소와 구체적인 경위를 확인해주세요.", "가해자로 보는 상대방과 피해 내용을 확인해주세요.", "고소장 접수 여부와 담당 수사기관을 확인해주세요.", "처벌 의사와 합의 진행 여부를 확인해주세요."],
       recommendedDocuments: ["피해 경위와 시간순 정리", "문자·녹취·사진·영상 등 피해 증거", "진단서·피해금액 자료", "상대방 확인 자료", "고소장·사건접수증·수사기관 연락", "목격자 정보"],
@@ -363,6 +382,17 @@ export function buildAiGuideResult(
       reasonSummary: "강제집행·압류 등 절차 표현만으로 채권의 원인을 대여금으로 단정하지 않았습니다.",
     };
   }
+  const criminalAppealIntent = effectiveClassification.category === "criminal"
+    && /형사\s*항소|항소심|항소이유서|1심\s*판결|징역형?.{0,8}선고|형량\s*감경|양형부당/.test(userAssertedContext);
+  if (criminalAppealIntent) {
+    effectiveClassification = {
+      ...effectiveClassification,
+      subcategory: "criminal-appeal",
+      subcategoryLabel: aiSubcategoryLabels["criminal-appeal"],
+      matchedTags: Array.from(new Set([...effectiveClassification.matchedTags.filter((tag) => tag !== "police-investigation"), "criminal-appeal", "trial", "sentencing"])),
+      reasonSummary: "형사 1심 판결 이후 항소와 형량 감경을 준비하는 상담으로 확인되었습니다.",
+    };
+  }
   const domesticViolenceDivorceIntent = /이혼|혼인관계\s*해소|재판상\s*이혼/.test(consultationContext)
     && /배우자|남편|아내|부부/.test(consultationContext)
     && /폭언|욕설|모욕|가정폭력|폭행|상해|위협|물건을\s*집어던/.test(consultationContext);
@@ -494,6 +524,8 @@ export function buildAiGuideResult(
     && /미지급|미납|지급되지|지급하지|받지\s*못|강제|이행명령|직접지급/.test(consultationContext);
   const investmentReturnMatter = effectiveClassification.category === "civil"
     && effectiveClassification.subcategory === "investment-return";
+  const criminalAppealMatter = effectiveClassification.category === "criminal"
+    && effectiveClassification.subcategory === "criminal-appeal";
 
   return {
     sessionId,
@@ -503,7 +535,9 @@ export function buildAiGuideResult(
     confirmedFacts: confirmedFacts.length > 0 ? confirmedFacts : ["아직 구체적으로 확인된 답변이 많지 않습니다."],
     missingInformation: Array.from(new Set(contextFilteredMissingInformation)).slice(0, 8),
     recommendedDocuments,
-    consultationOpinion: investmentReturnMatter
+    consultationOpinion: criminalAppealMatter
+      ? "형사 1심 판결이 선고된 경우 항소심에서는 1심의 사실인정·법리 판단 또는 양형의 부당성을 구체적으로 다투어야 합니다. 형량 감경을 원한다면 피해회복·합의·공탁과 새로운 양형사정을 정리하고, 판결문과 소송기록을 토대로 항소이유를 신속히 검토하도록 변호사와 상담해보세요."
+      : investmentReturnMatter
       ? "투자금 반환은 단순 미지급금과 달리 원금 반환 약정, 투자 종료·해지 조건, 실제 손익과 정산 의무를 함께 검토해야 합니다. 원금 반환 또는 정산자료 공개를 청구할 가능성이 있으며, 투자 권유 내용과 자금 사용처가 달랐다면 기망 여부도 살펴볼 수 있으므로 관련 자료를 토대로 변호사와 상담해보세요."
       : unpaidChildSupportMatter
       ? "판결·조정 등으로 정해진 양육비가 지급되다가 중단되었다면 미지급액에 대해 이행명령, 직접지급명령 또는 강제집행을 검토할 수 있습니다. 미납 기간과 상대방의 직장·재산을 확인해 변호사와 구체적인 회수 방법을 상담해보세요."

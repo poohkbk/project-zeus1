@@ -16,6 +16,7 @@ const subcategories = new Set<AiSubcategory>([
   "investment-return",
   "contract",
   "damages",
+  "criminal-appeal",
   "police-investigation",
   "fraud",
   "dui",
@@ -143,6 +144,10 @@ function validateQuestionDrafts(
     const mistakenCriminalSettlementQuestion = sexualConsentContext
       && /(?:형사\s*)?합의.{0,16}(?:날짜|언제|시기|합의금|처벌불원)|(?:날짜|언제|시기).{0,12}(?:형사\s*)?합의/.test(question);
     if (mistakenCriminalSettlementQuestion) return [];
+    const irrelevantPretrialQuestion = classification?.subcategory === "criminal-appeal"
+      && /경찰|검찰|고소\s*내용|출석\s*(?:요구|예정)|압수수색|체포|피의자\s*신문/.test(question)
+      && !/1심|판결|항소|소송기록|양형|구속|보석/.test(question);
+    if (irrelevantPretrialQuestion) return [];
     const forcedDivorceDecisionDate = /(?:이혼|혼인\s*해소).{0,16}(?:결심|결정|마음먹).{0,12}(?:날짜|언제)|(?:언제|날짜).{0,12}(?:이혼|혼인\s*해소).{0,12}(?:결심|결정|마음먹)/.test(question);
     if (forcedDivorceDecisionDate) return [];
     const lowValueMovingDate = /(?:이사|전입)\s*(?:예정)?\s*(?:일|날짜)|(?:언제|날짜).{0,8}(?:이사|전입)\s*예정/.test(question);

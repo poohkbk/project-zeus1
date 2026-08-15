@@ -151,6 +151,23 @@ export const aiKeywordRules: AiKeywordRule[] = [
   },
   {
     category: "criminal",
+    subcategory: "criminal-appeal",
+    tags: ["criminal", "criminal-appeal", "trial", "sentencing"],
+    keywords: uniqueKeywords([
+      "형사항소",
+      "형사 항소",
+      "항소심",
+      "항소이유서",
+      "1심 판결",
+      "1심에서 징역",
+      "징역형을 선고",
+      "형량 감경",
+      "양형부당",
+    ]),
+    reason: "형사 1심 판결 이후 항소 또는 형량 감경을 검토하는 표현이 포함되어 있습니다.",
+  },
+  {
+    category: "criminal",
     subcategory: "general",
     tags: ["criminal", "violence", "injury", "settlement"],
     keywords: uniqueKeywords([

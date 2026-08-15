@@ -11,6 +11,7 @@ export type AiSubcategory =
   | "investment-return"
   | "contract"
   | "damages"
+  | "criminal-appeal"
   | "police-investigation"
   | "fraud"
   | "dui"
