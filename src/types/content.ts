@@ -44,6 +44,8 @@ export interface RelatedContentBase {
   category: string;
   tags: string[];
   publishedAt?: string;
+  updatedAt?: string;
+  createdAt?: string;
   featured?: boolean;
 }
 
@@ -54,6 +56,7 @@ export interface CaseContent extends RelatedContentBase {
 export interface LegalGuideContent extends RelatedContentBase {
   readingTime?: string;
   showOnHome?: boolean;
+  showOnSearch?: boolean;
   sections?: {
     checkCases: string;
     legalView: string;

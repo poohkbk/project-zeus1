@@ -43,7 +43,20 @@ function getSlug(row: LegalGuideRow) {
 }
 
 function toLegalGuide(row: LegalGuideRow): LegalGuideContent {
-  if (isLegalGuideContent(row.content)) return row.content;
+  if (isLegalGuideContent(row.content)) {
+    const slug = getSlug(row) || normalizeGuideSlug(row.content.slug) || row.id;
+    return {
+      ...row.content,
+      id: row.id,
+      slug,
+      href: `/legal-guide/${slug}`,
+      publishedAt: row.published_at ?? row.created_at,
+      updatedAt: row.updated_at,
+      createdAt: row.created_at,
+      showOnHome: row.content.showOnHome ?? row.show_on_home,
+      showOnSearch: row.content.showOnSearch ?? row.show_on_search,
+    };
+  }
   if (isCmsGuide(row.content)) {
     const item = row.content;
     const slug = getSlug(row) || normalizeGuideSlug(item.seo?.canonicalPath) || item.id;
@@ -56,9 +69,12 @@ function toLegalGuide(row: LegalGuideRow): LegalGuideContent {
       category: row.category,
       tags: item.tags ?? row.tags ?? [],
       publishedAt: row.published_at ?? row.created_at,
+      updatedAt: row.updated_at,
+      createdAt: row.created_at,
       featured: row.is_featured,
       readingTime: "5분",
       showOnHome: item.visibility?.showOnHome ?? row.show_on_home,
+      showOnSearch: item.visibility?.showOnSearch ?? row.show_on_search,
       sections: item.guideDetail,
     };
   }
@@ -73,8 +89,11 @@ function toLegalGuide(row: LegalGuideRow): LegalGuideContent {
     category: row.category,
     tags: row.tags ?? [],
     publishedAt: row.published_at ?? row.created_at,
+    updatedAt: row.updated_at,
+    createdAt: row.created_at,
     featured: row.is_featured,
     showOnHome: row.show_on_home,
+    showOnSearch: row.show_on_search,
   };
 }
 

@@ -1,7 +1,8 @@
 import type { MetadataRoute } from "next";
-import { caseContents } from "@/data/cases";
 import { localSeoPages } from "@/data/local-seo-pages";
 import { practiceAreas } from "@/data/practice";
+import { getPublishedCases } from "@/lib/data/cases";
+import { getPublishedLegalGuides } from "@/lib/data/legal-guides";
 import { absoluteUrl } from "@/lib/seo/metadata";
 
 function entry(path: string, lastModified = "2026-07-12"): MetadataRoute.Sitemap[number] {
@@ -11,7 +12,12 @@ function entry(path: string, lastModified = "2026-07-12"): MetadataRoute.Sitemap
   };
 }
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const [publishedCases, publishedLegalGuides] = await Promise.all([
+    getPublishedCases(),
+    getPublishedLegalGuides(),
+  ]);
+
   const entries = [
     entry("/"),
     entry("/practice"),
@@ -27,9 +33,22 @@ export default function sitemap(): MetadataRoute.Sitemap {
     entry("/disclaimer"),
     ...localSeoPages.filter((page) => page.index).map((page) => entry(page.canonicalPath, page.updatedAt)),
     ...practiceAreas.map((area) => entry(`/practice/${area.slug}`)),
-    ...caseContents
+    ...publishedCases
       .filter((item) => item.visibility.published && item.visibility.showOnSearch !== false)
-      .map((item) => entry(item.href, item.visibility.updatedAt ?? item.visibility.publishedAt)),
+      .map((item) =>
+        entry(
+          `/cases/${item.slug}`,
+          item.visibility.updatedAt ?? item.visibility.publishedAt ?? item.visibility.createdAt,
+        ),
+      ),
+    ...publishedLegalGuides
+      .filter((guide) => guide.showOnSearch !== false)
+      .map((guide) =>
+        entry(
+          `/legal-guide/${guide.slug}`,
+          guide.updatedAt ?? guide.publishedAt ?? guide.createdAt,
+        ),
+      ),
   ];
 
   return Array.from(new Map(entries.map((item) => [item.url, item])).values());

@@ -228,7 +228,23 @@ function toPublicCaseFromCmsItem(item: CmsContentItem, row: CaseRow): PublicCase
 }
 
 function toPublicCase(row: CaseRow): PublicCaseContent {
-  if (isCaseContent(row.content)) return row.content;
+  if (isCaseContent(row.content)) {
+    const slug = getSlug(row) || normalizeCaseSlug(row.content.slug) || row.id;
+    return {
+      ...row.content,
+      id: row.id,
+      slug,
+      href: `/cases/${slug}`,
+      visibility: {
+        ...row.content.visibility,
+        published: row.status === "published",
+        publishedAt: row.published_at ?? row.created_at,
+        updatedAt: row.updated_at,
+        createdAt: row.created_at,
+        showOnSearch: row.content.visibility.showOnSearch ?? row.show_on_search,
+      },
+    };
+  }
   if (isCmsContentItem(row.content)) return toPublicCaseFromCmsItem(row.content, row);
 
   const slug = getSlug(row);
