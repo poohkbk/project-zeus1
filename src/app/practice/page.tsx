@@ -45,7 +45,10 @@ export default function PracticePage() {
             </p>
           </div>
           <div className="cta-actions">
-            <a className="btn btn-accent" href={siteConfig.phoneHref}>
+            <Link className="btn btn-accent" href={siteConfig.links.aiGuide}>
+              AI 상담으로 분야 찾기
+            </Link>
+            <a className="btn btn-primary" href={siteConfig.phoneHref}>
               전화상담
             </a>
             <Link className="btn btn-light" href={siteConfig.links.consultation}>

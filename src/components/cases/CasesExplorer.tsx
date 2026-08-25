@@ -69,7 +69,10 @@ export function CasesExplorer({ cases, searchRecommendations }: CasesExplorerPro
     if (filter.q.trim()) params.set("q", filter.q.trim());
     if (filter.sort !== "latest") params.set("sort", filter.sort);
     const next = params.toString() ? `/cases?${params}` : "/cases";
-    window.history.replaceState(null, "", next);
+    // Next.js stores App Router bookkeeping in the current history entry.
+    // Replacing it with `null` makes subsequent client-side Link navigation
+    // unreliable after a filter/search update, so preserve the existing state.
+    window.history.replaceState(window.history.state, "", next);
   }, [filter, initialized]);
 
   const availableTags = tagsByCategory[filter.category];

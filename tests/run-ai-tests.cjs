@@ -1404,3 +1404,26 @@ test("screen-contract: every choice question advances immediately and requests t
   assert.match(shell, /응답이 지연되고 있습니다/);
   assert.match(shell, /다시 질문하기/);
 });
+
+test("screen-contract: case filters preserve Next.js history state for card navigation", () => {
+  const explorer = fs.readFileSync(
+    path.join(projectRoot, "src/components/cases/CasesExplorer.tsx"),
+    "utf8",
+  );
+
+  assert.match(
+    explorer,
+    /history\.replaceState\(window\.history\.state,\s*"",\s*next\)/,
+  );
+  assert.doesNotMatch(explorer, /history\.replaceState\(null,\s*"",\s*next\)/);
+});
+
+test("screen-contract: practice help links uncertain visitors to AI consultation", () => {
+  const practicePage = fs.readFileSync(
+    path.join(projectRoot, "src/app/practice/page.tsx"),
+    "utf8",
+  );
+
+  assert.match(practicePage, /href=\{siteConfig\.links\.aiGuide\}/);
+  assert.match(practicePage, /AI 상담으로 분야 찾기/);
+});
