@@ -58,7 +58,7 @@ const {
   saveAiGuideSession,
   updateAiGuideSession,
 } = require("../src/lib/ai/session-store.ts");
-const { isPublishedCase } = require("../src/lib/case-selectors.ts");
+const { isPublishedCase, isSearchIndexableCase } = require("../src/lib/case-selectors.ts");
 const { saveConsultationSubmission } = require("../src/lib/consultation-submissions.ts");
 
 function answer(questionId, field, value) {
@@ -94,6 +94,21 @@ function makeSession(overrides = {}) {
     expiresAt: overrides.expiresAt ?? addDays(30),
   };
 }
+
+test("unit: public cases default to search-visible unless explicitly disabled", () => {
+  const publishedAt = new Date(Date.now() - 60_000).toISOString();
+  const caseWithSearchVisibility = (showOnSearch) => ({
+    visibility: {
+      published: true,
+      publishedAt,
+      showOnSearch,
+    },
+  });
+
+  assert.equal(isSearchIndexableCase(caseWithSearchVisibility(undefined)), true);
+  assert.equal(isSearchIndexableCase(caseWithSearchVisibility(true)), true);
+  assert.equal(isSearchIndexableCase(caseWithSearchVisibility(false)), false);
+});
 
 test("unit: classifies legal categories and expanded keywords", () => {
   assert.equal(classifyLegalQuestion("돈을 빌려줬는데 안 갚아요. 차용증과 계좌이체가 있습니다.").category, "civil");

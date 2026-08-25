@@ -21,7 +21,7 @@ export interface CaseVisibilitySettings {
   showOnHome: boolean;
   showOnCategory: boolean;
   showOnPractice: boolean;
-  showOnSearch: boolean;
+  showOnSearch?: boolean;
   featuredOrder?: number;
   featuredStartAt?: string;
   featuredEndAt?: string;

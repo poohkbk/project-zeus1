@@ -17,7 +17,7 @@ function visibility(
     showOnHome: false,
     showOnCategory: false,
     showOnPractice: false,
-    showOnSearch: false,
+    showOnSearch: true,
     featuredOrder: order,
     ...placement,
   };

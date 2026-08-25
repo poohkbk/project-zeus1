@@ -5,11 +5,15 @@ import { PracticeCard } from "@/components/practice/PracticeCard";
 import { PracticeListHero } from "@/components/practice/PracticeListHero";
 import { siteConfig } from "@/config/site";
 import { getPracticeAreas } from "@/data/practice";
+import { absoluteUrl } from "@/lib/seo/metadata";
 
 export const metadata: Metadata = {
   title: "업무분야",
   description:
     "청주 민사, 형사, 이혼, 상속 사건의 주요 업무분야와 상담 방향을 안내합니다.",
+  alternates: {
+    canonical: absoluteUrl("/practice"),
+  },
 };
 
 export default function PracticePage() {

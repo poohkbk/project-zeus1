@@ -27,6 +27,10 @@ export function isPublishedCase(caseItem: CaseContent, now = new Date()) {
   return publishedAt.getTime() <= now.getTime();
 }
 
+export function isSearchIndexableCase(caseItem: CaseContent, now = new Date()) {
+  return isPublishedCase(caseItem, now) && caseItem.visibility.showOnSearch !== false;
+}
+
 export function isWithinFeaturedPeriod(caseItem: CaseContent, now = new Date()) {
   const start = parseDate(caseItem.visibility.featuredStartAt);
   const end = parseDate(caseItem.visibility.featuredEndAt);

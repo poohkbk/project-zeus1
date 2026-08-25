@@ -206,7 +206,7 @@ function toPublicCaseFromCmsItem(item: CmsContentItem, row: CaseRow): PublicCase
       showOnHome: item.visibility.showOnHome,
       showOnCategory: item.visibility.showOnCategory,
       showOnPractice: item.visibility.showOnPractice,
-      showOnSearch: item.visibility.showOnSearch,
+      showOnSearch: row.show_on_search,
       featuredOrder: item.visibility.featuredOrder ?? row.featured_order ?? undefined,
       featuredStartAt: item.visibility.featuredStartAt ?? row.featured_start_at ?? undefined,
       featuredEndAt: item.visibility.featuredEndAt ?? row.featured_end_at ?? undefined,
@@ -241,7 +241,7 @@ function toPublicCase(row: CaseRow): PublicCaseContent {
         publishedAt: row.published_at ?? row.created_at,
         updatedAt: row.updated_at,
         createdAt: row.created_at,
-        showOnSearch: row.content.visibility.showOnSearch ?? row.show_on_search,
+        showOnSearch: row.show_on_search,
       },
     };
   }

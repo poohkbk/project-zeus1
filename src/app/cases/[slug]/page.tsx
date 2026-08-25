@@ -4,7 +4,7 @@ import { CaseDetailHero } from "@/components/cases/CaseDetailHero";
 import { CaseDetailSections } from "@/components/cases/CaseDetailSections";
 import { caseContents } from "@/data/cases";
 import { getCaseBySlug } from "@/lib/data/cases";
-import { isPublishedCase } from "@/lib/case-selectors";
+import { isPublishedCase, isSearchIndexableCase } from "@/lib/case-selectors";
 import { getRelatedLegalGuides, getRelatedPracticeAreas, getSimilarCases } from "@/lib/case-relations";
 
 type CaseDetailPageProps = {
@@ -27,6 +27,9 @@ export async function generateMetadata({ params }: CaseDetailPageProps): Promise
     title: caseItem.seoTitle,
     description: caseItem.seoDescription,
     alternates: { canonical: `/cases/${caseItem.slug}` },
+    robots: isSearchIndexableCase(caseItem)
+      ? { index: true, follow: true }
+      : { index: false, follow: true },
     openGraph: {
       title: caseItem.seoTitle,
       description: caseItem.seoDescription,

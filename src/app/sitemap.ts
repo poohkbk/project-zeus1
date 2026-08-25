@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { localSeoPages } from "@/data/local-seo-pages";
 import { practiceAreas } from "@/data/practice";
+import { isSearchIndexableCase } from "@/lib/case-selectors";
 import { getPublishedCases } from "@/lib/data/cases";
 import { getPublishedFaqs } from "@/lib/data/faqs";
 import { getPublishedLegalGuides } from "@/lib/data/legal-guides";
@@ -47,7 +48,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...localSeoPages.filter((page) => page.index).map((page) => entry(page.canonicalPath, page.updatedAt)),
     ...practiceAreas.map((area) => entry(`/practice/${area.slug}`)),
     ...publishedCases
-      .filter((item) => item.visibility.published && item.visibility.showOnSearch !== false)
+      .filter((item) => isSearchIndexableCase(item))
       .map((item) =>
         entry(
           `/cases/${item.slug}`,
