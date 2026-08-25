@@ -2,11 +2,13 @@ import type { MetadataRoute } from "next";
 import { localSeoPages } from "@/data/local-seo-pages";
 import { practiceAreas } from "@/data/practice";
 import { isSearchIndexableCase } from "@/lib/case-selectors";
-import { getPublishedCases } from "@/lib/data/cases";
+import { getCasesListing } from "@/lib/data/cases";
 import { getPublishedFaqs } from "@/lib/data/faqs";
 import { getPublishedLegalGuides } from "@/lib/data/legal-guides";
 import { getPublishedTestimonials } from "@/lib/data/testimonials";
 import { absoluteUrl } from "@/lib/seo/metadata";
+
+export const dynamic = "force-dynamic";
 
 function entry(path: string, lastModified?: string): MetadataRoute.Sitemap[number] {
   return {
@@ -25,12 +27,13 @@ function latestContentDate(
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [publishedCases, publishedLegalGuides, publishedFaqs, publishedTestimonials] = await Promise.all([
-    getPublishedCases(),
+  const [casesListing, publishedLegalGuides, publishedFaqs, publishedTestimonials] = await Promise.all([
+    getCasesListing(),
     getPublishedLegalGuides(),
     getPublishedFaqs(),
     getPublishedTestimonials(),
   ]);
+  const publishedCases = casesListing.cases;
 
   const entries = [
     entry("/"),
@@ -43,8 +46,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     entry("/about/location"),
     entry("/consultation"),
     entry("/privacy"),
-    entry("/terms"),
-    entry("/disclaimer"),
     ...localSeoPages.filter((page) => page.index).map((page) => entry(page.canonicalPath, page.updatedAt)),
     ...practiceAreas.map((area) => entry(`/practice/${area.slug}`)),
     ...publishedCases

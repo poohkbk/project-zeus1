@@ -57,6 +57,8 @@ const caseListColumns = [
 
 type CaseListRow = Omit<CaseRow, "body" | "content" | "hero_image_alt">;
 
+const CASE_QUERY_PAGE_SIZE = 500;
+
 function createPublicReadClient() {
   const url = getSupabaseUrl();
   const key = getSupabasePublishableKey();
@@ -289,16 +291,24 @@ function toPublicCase(row: CaseRow): PublicCaseContent {
 
 async function fetchPublishedCaseRowsWithClient(supabase: NonNullable<ReturnType<typeof createAdminClient>>) {
   const now = new Date().toISOString();
-  const { data, error } = await supabase
-    .from("cases")
-    .select("*")
-    .eq("status", "published")
-    .or(`published_at.is.null,published_at.lte.${now}`)
-    .order("published_at", { ascending: false, nullsFirst: false })
-    .order("created_at", { ascending: false });
+  const rows: CaseRow[] = [];
 
-  if (error || !data || data.length === 0) return undefined;
-  return data as CaseRow[];
+  for (let offset = 0; ; offset += CASE_QUERY_PAGE_SIZE) {
+    const { data, error } = await supabase
+      .from("cases")
+      .select("*")
+      .eq("status", "published")
+      .or(`published_at.is.null,published_at.lte.${now}`)
+      .order("published_at", { ascending: false, nullsFirst: false })
+      .order("created_at", { ascending: false })
+      .range(offset, offset + CASE_QUERY_PAGE_SIZE - 1);
+
+    if (error || !data) return undefined;
+    rows.push(...(data as CaseRow[]));
+    if (data.length < CASE_QUERY_PAGE_SIZE) break;
+  }
+
+  return rows.length ? rows : undefined;
 }
 
 const fetchPublishedCaseRowsFromAdmin = unstable_cache(
@@ -317,16 +327,25 @@ const fetchPublishedCaseCards = unstable_cache(
     if (!supabase) return fallbackCases.map(toCaseCardContent);
 
     const now = new Date().toISOString();
-    const { data, error } = await supabase
-      .from("cases")
-      .select(caseListColumns)
-      .eq("status", "published")
-      .or(`published_at.is.null,published_at.lte.${now}`)
-      .order("published_at", { ascending: false, nullsFirst: false })
-      .order("created_at", { ascending: false });
+    const rows: CaseListRow[] = [];
 
-    if (error || !data || data.length === 0) return fallbackCases.map(toCaseCardContent);
-    return (data as unknown as CaseListRow[]).map(toCaseCardFromRow);
+    for (let offset = 0; ; offset += CASE_QUERY_PAGE_SIZE) {
+      const { data, error } = await supabase
+        .from("cases")
+        .select(caseListColumns)
+        .eq("status", "published")
+        .or(`published_at.is.null,published_at.lte.${now}`)
+        .order("published_at", { ascending: false, nullsFirst: false })
+        .order("created_at", { ascending: false })
+        .range(offset, offset + CASE_QUERY_PAGE_SIZE - 1);
+
+      if (error || !data) return fallbackCases.map(toCaseCardContent);
+      rows.push(...(data as unknown as CaseListRow[]));
+      if (data.length < CASE_QUERY_PAGE_SIZE) break;
+    }
+
+    if (!rows.length) return fallbackCases.map(toCaseCardContent);
+    return rows.map(toCaseCardFromRow);
   },
   ["published-case-cards-v2"],
   { revalidate: 60, tags: ["published-cases"] },
@@ -337,16 +356,24 @@ async function fetchPublishedCaseRowsFromPublicClient() {
   if (!supabase) return undefined;
 
   const now = new Date().toISOString();
-  const { data, error } = await supabase
-    .from("cases")
-    .select("*")
-    .eq("status", "published")
-    .or(`published_at.is.null,published_at.lte.${now}`)
-    .order("published_at", { ascending: false, nullsFirst: false })
-    .order("created_at", { ascending: false });
+  const rows: CaseRow[] = [];
 
-  if (error || !data || data.length === 0) return undefined;
-  return data as CaseRow[];
+  for (let offset = 0; ; offset += CASE_QUERY_PAGE_SIZE) {
+    const { data, error } = await supabase
+      .from("cases")
+      .select("*")
+      .eq("status", "published")
+      .or(`published_at.is.null,published_at.lte.${now}`)
+      .order("published_at", { ascending: false, nullsFirst: false })
+      .order("created_at", { ascending: false })
+      .range(offset, offset + CASE_QUERY_PAGE_SIZE - 1);
+
+    if (error || !data) return undefined;
+    rows.push(...(data as CaseRow[]));
+    if (data.length < CASE_QUERY_PAGE_SIZE) break;
+  }
+
+  return rows.length ? rows : undefined;
 }
 
 async function fetchPublishedCaseRows() {

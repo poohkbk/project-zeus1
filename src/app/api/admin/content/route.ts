@@ -24,6 +24,7 @@ function revalidatePublicContent(item: CmsContentItem) {
     revalidateTag("published-cases");
     revalidatePath("/");
     revalidatePath("/cases");
+    revalidatePath("/sitemap.xml");
     revalidatePath(`/cases/${item.seo?.canonicalPath?.split("/").filter(Boolean).pop() ?? item.id}`);
     return;
   }
@@ -32,6 +33,7 @@ function revalidatePublicContent(item: CmsContentItem) {
     revalidateTag("published-legal-guides");
     revalidatePath("/");
     revalidatePath("/legal-guide");
+    revalidatePath("/sitemap.xml");
     revalidatePath(`/legal-guide/${item.seo?.canonicalPath?.split("/").filter(Boolean).pop() ?? item.id}`);
   }
 }
@@ -103,10 +105,12 @@ export async function DELETE(request: NextRequest) {
       revalidateTag("published-cases");
       revalidatePath("/");
       revalidatePath("/cases");
+      revalidatePath("/sitemap.xml");
     } else {
       revalidateTag("published-legal-guides");
       revalidatePath("/");
       revalidatePath("/legal-guide");
+      revalidatePath("/sitemap.xml");
     }
     return NextResponse.json({ success: true });
   } catch (error) {

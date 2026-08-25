@@ -1442,3 +1442,21 @@ test("screen-contract: practice help links uncertain visitors to AI consultation
   assert.match(practicePage, /href=\{siteConfig\.links\.aiGuide\}/);
   assert.match(practicePage, /AI 상담으로 분야 찾기/);
 });
+
+test("screen-contract: sitemap uses the production case listing and remains request-time rendered", () => {
+  const sitemap = fs.readFileSync(path.join(projectRoot, "src/app/sitemap.ts"), "utf8");
+  const casesData = fs.readFileSync(path.join(projectRoot, "src/lib/data/cases.ts"), "utf8");
+  const terms = fs.readFileSync(path.join(projectRoot, "src/app/terms/page.tsx"), "utf8");
+  const disclaimer = fs.readFileSync(path.join(projectRoot, "src/app/disclaimer/page.tsx"), "utf8");
+
+  assert.match(sitemap, /dynamic = "force-dynamic"/);
+  assert.match(sitemap, /getCasesListing\(\)/);
+  assert.doesNotMatch(sitemap, /entry\("\/terms"\)/);
+  assert.doesNotMatch(sitemap, /entry\("\/disclaimer"\)/);
+  assert.match(casesData, /CASE_QUERY_PAGE_SIZE = 500/);
+  assert.match(casesData, /\.range\(offset, offset \+ CASE_QUERY_PAGE_SIZE - 1\)/);
+  assert.match(terms, /canonical: "\/terms"/);
+  assert.match(terms, /index: false/);
+  assert.match(disclaimer, /canonical: "\/disclaimer"/);
+  assert.match(disclaimer, /index: false/);
+});

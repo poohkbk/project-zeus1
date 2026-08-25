@@ -20,14 +20,14 @@ function parseDate(value: string | undefined) {
   return Number.isNaN(date.getTime()) ? undefined : date;
 }
 
-export function isPublishedCase(caseItem: CaseContent, now = new Date()) {
+export function isPublishedCase(caseItem: Pick<CaseContent, "visibility">, now = new Date()) {
   if (!caseItem.visibility.published) return false;
   const publishedAt = parseDate(caseItem.visibility.publishedAt);
   if (!publishedAt) return false;
   return publishedAt.getTime() <= now.getTime();
 }
 
-export function isSearchIndexableCase(caseItem: CaseContent, now = new Date()) {
+export function isSearchIndexableCase(caseItem: Pick<CaseContent, "visibility">, now = new Date()) {
   return isPublishedCase(caseItem, now) && caseItem.visibility.showOnSearch !== false;
 }
 

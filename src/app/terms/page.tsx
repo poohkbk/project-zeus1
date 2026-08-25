@@ -4,6 +4,13 @@ import Link from "next/link";
 export const metadata: Metadata = {
   title: "이용약관 | 법률사무소 제우",
   description: "법률사무소 제우 웹사이트 이용약관 안내입니다.",
+  alternates: {
+    canonical: "/terms",
+  },
+  robots: {
+    index: false,
+    follow: true,
+  },
 };
 
 export default function TermsPage() {

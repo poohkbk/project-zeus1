@@ -4,6 +4,13 @@ import Link from "next/link";
 export const metadata: Metadata = {
   title: "면책공고 | 법률사무소 제우",
   description: "법률사무소 제우 웹사이트 면책공고 안내입니다.",
+  alternates: {
+    canonical: "/disclaimer",
+  },
+  robots: {
+    index: false,
+    follow: true,
+  },
 };
 
 export default function DisclaimerPage() {
