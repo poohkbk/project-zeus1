@@ -4,6 +4,8 @@ import { CaseDetailHero } from "@/components/cases/CaseDetailHero";
 import { CaseDetailSections } from "@/components/cases/CaseDetailSections";
 import { caseContents } from "@/data/cases";
 import { getCaseBySlug } from "@/lib/data/cases";
+import { getCasesListing } from "@/lib/data/cases";
+import { isLegacyCaseSlug } from "@/lib/legacy-cases";
 import { isPublishedCase, isSearchIndexableCase } from "@/lib/case-selectors";
 import { getRelatedLegalGuides, getRelatedPracticeAreas, getSimilarCases } from "@/lib/case-relations";
 
@@ -27,7 +29,7 @@ export async function generateMetadata({ params }: CaseDetailPageProps): Promise
     title: caseItem.seoTitle,
     description: caseItem.seoDescription,
     alternates: { canonical: `/cases/${caseItem.slug}` },
-    robots: isSearchIndexableCase(caseItem)
+    robots: !isLegacyCaseSlug(caseItem.slug) && isSearchIndexableCase(caseItem)
       ? { index: true, follow: true }
       : { index: false, follow: true },
     openGraph: {
@@ -45,7 +47,8 @@ export default async function CaseDetailPage({ params }: CaseDetailPageProps) {
   if (!caseItem) notFound();
 
   const practices = getRelatedPracticeAreas(caseItem.tags, caseItem.category, 2);
-  const similarCases = getSimilarCases(caseItem, 3);
+  const casesListing = await getCasesListing();
+  const similarCases = getSimilarCases(caseItem, casesListing.cases, 3);
   const guides = getRelatedLegalGuides(caseItem.tags, caseItem.category, 3);
   const jsonLd = [
     {

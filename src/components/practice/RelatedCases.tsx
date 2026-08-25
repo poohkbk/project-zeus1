@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { Reveal } from "@/components/animation/Reveal";
 import { siteConfig } from "@/config/site";
-import type { PublicCaseContent } from "@/types/case";
+import type { CaseCardContent } from "@/types/case";
 
-export function RelatedCases({ cases }: { cases: PublicCaseContent[] }) {
+export function RelatedCases({ cases }: { cases: CaseCardContent[] }) {
   if (cases.length === 0) return null;
 
   return (

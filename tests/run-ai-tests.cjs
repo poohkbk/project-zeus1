@@ -59,6 +59,7 @@ const {
   updateAiGuideSession,
 } = require("../src/lib/ai/session-store.ts");
 const { isPublishedCase, isSearchIndexableCase } = require("../src/lib/case-selectors.ts");
+const { legacyCaseSlugs } = require("../src/lib/legacy-cases.ts");
 const { saveConsultationSubmission } = require("../src/lib/consultation-submissions.ts");
 
 function answer(questionId, field, value) {
@@ -198,11 +199,10 @@ test("unit: does not guarantee acquittal or case outcome", () => {
   assert.doesNotMatch(result.safetyNotice, /무조건 무죄입니다/);
 });
 
-test("unit: recommends tagged public content and excludes private or unpublished cases", () => {
+test("unit: synchronous AI fallback does not recommend legacy sample cases", () => {
   const classification = classifyLegalQuestion("돈을 빌려줬는데 못 받고 있습니다. 차용증과 계좌이체가 있습니다.");
   const related = getAiRelatedContent(classification, []);
-  assert.ok(related.cases.length > 0);
-  assert.ok(related.cases.every((item) => item.href.startsWith("/cases/")));
+  assert.equal(related.cases.length, 0);
 
   const unpublishedCase = {
     id: "private-case",
@@ -1459,4 +1459,22 @@ test("screen-contract: sitemap uses the production case listing and remains requ
   assert.match(terms, /index: false/);
   assert.match(disclaimer, /canonical: "\/disclaimer"/);
   assert.match(disclaimer, /index: false/);
+});
+
+test("screen-contract: legacy cases stay accessible but are excluded from discovery surfaces", () => {
+  const casePage = fs.readFileSync(path.join(projectRoot, "src/app/cases/[slug]/page.tsx"), "utf8");
+  const sitemap = fs.readFileSync(path.join(projectRoot, "src/app/sitemap.ts"), "utf8");
+  const casesData = fs.readFileSync(path.join(projectRoot, "src/lib/data/cases.ts"), "utf8");
+  const relations = fs.readFileSync(path.join(projectRoot, "src/lib/case-relations.ts"), "utf8");
+  const contentRelations = fs.readFileSync(path.join(projectRoot, "src/lib/content-relations.ts"), "utf8");
+  const localLanding = fs.readFileSync(path.join(projectRoot, "src/components/seo/LocalLandingPage.tsx"), "utf8");
+
+  assert.equal(legacyCaseSlugs.size, 13);
+  assert.match(casePage, /!isLegacyCaseSlug\(caseItem\.slug\) && isSearchIndexableCase\(caseItem\)/);
+  assert.match(sitemap, /!isLegacyCaseSlug\(item\.slug\)/);
+  assert.doesNotMatch(relations, /caseContents/);
+  assert.doesNotMatch(contentRelations, /caseContents/);
+  assert.doesNotMatch(localLanding, /caseContents/);
+  assert.match(casesData, /if \(!supabase\) return \[\]/);
+  assert.match(casesData, /rows\?\.map\(toPublicCase\) \?\? \[\]/);
 });

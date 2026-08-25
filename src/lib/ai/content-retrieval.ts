@@ -1,7 +1,6 @@
 import { aiCategoryBaseTags, aiCategoryToPracticeSlug } from "@/data/ai/categories";
 import { legalGuideContents } from "@/data/legal-guides";
 import { getPracticeAreas } from "@/data/practice";
-import { getPublishedCases } from "@/lib/case-selectors";
 import { getTagMatchScore, normalizeTag } from "@/lib/content-relations";
 import { classifyLegalQuestion } from "./classifier";
 import type { AiClassificationResult, AiGuideAnswer, AiRelatedContent } from "@/types/ai-guide";
@@ -71,22 +70,7 @@ export function getAiRelatedContent(classification: AiClassificationResult, answ
     .sort((a, b) => b.matchScore - a.matchScore)
     .slice(0, 2);
 
-  const cases: AiRelatedContent[] = getPublishedCases()
-    .map((caseItem) => ({
-      id: caseItem.id,
-      type: "case" as const,
-      slug: caseItem.slug,
-      href: caseItem.href,
-      title: caseItem.title,
-      excerpt: caseItem.excerpt,
-      category: caseItem.category,
-      tags: caseItem.tags,
-      matchScore: scoreContent(caseItem.tags, caseItem.title, queryTags) + (caseItem.visibility.isFeatured ? 2 : 0),
-      matchedTags: matchedTags(caseItem.tags, queryTags),
-    }))
-    .filter((item) => item.matchScore > 0 && hasSpecificMatch(item))
-    .sort((a, b) => b.matchScore - a.matchScore)
-    .slice(0, 3);
+  const cases: AiRelatedContent[] = [];
 
   const guides: AiRelatedContent[] = legalGuideContents
     .map((guide) => ({

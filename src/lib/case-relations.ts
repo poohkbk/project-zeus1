@@ -1,9 +1,8 @@
 import { legalGuideContents } from "@/data/legal-guides";
 import { getPracticeAreas } from "@/data/practice";
-import { caseContents, toPublicCaseContent } from "@/data/cases";
 import { isPublishedCase } from "@/lib/case-selectors";
 import type { LegalGuideContent } from "@/types/content";
-import type { PublicCaseContent } from "@/types/case";
+import type { CaseCardContent, PublicCaseContent } from "@/types/case";
 import type { PracticeArea } from "@/types/practice";
 
 export function normalizeTag(tag: string) {
@@ -25,8 +24,12 @@ function uniqueById<T extends { id?: string; slug: string }>(items: T[]) {
   });
 }
 
-export function getSimilarCases(currentCase: PublicCaseContent, limit = 3): PublicCaseContent[] {
-  const scored = caseContents
+export function getSimilarCases(
+  currentCase: PublicCaseContent,
+  candidates: CaseCardContent[],
+  limit = 3,
+): CaseCardContent[] {
+  const scored = candidates
     .filter((item) => item.slug !== currentCase.slug)
     .filter((item) => isPublishedCase(item))
     .map((item) => {
@@ -43,14 +46,14 @@ export function getSimilarCases(currentCase: PublicCaseContent, limit = 3): Publ
       }
       return b.item.visibility.publishedAt.localeCompare(a.item.visibility.publishedAt);
     })
-    .map(({ item }) => toPublicCaseContent(item));
+    .map(({ item }) => item);
 
-  const fallback = caseContents
+  const fallback = candidates
     .filter((item) => item.slug !== currentCase.slug)
     .filter((item) => item.category === currentCase.category)
     .filter((item) => isPublishedCase(item))
     .sort((a, b) => b.visibility.publishedAt.localeCompare(a.visibility.publishedAt))
-    .map(toPublicCaseContent);
+    .map((item) => item);
 
   return uniqueById([...scored, ...fallback]).slice(0, limit);
 }

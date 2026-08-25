@@ -68,24 +68,6 @@ function createPublicReadClient() {
   });
 }
 
-function toCaseCardContent(caseItem: PublicCaseContent): CaseCardContent {
-  return {
-    id: caseItem.id,
-    slug: caseItem.slug,
-    href: caseItem.href,
-    category: caseItem.category,
-    categoryLabel: caseItem.categoryLabel,
-    subcategory: caseItem.subcategory,
-    title: caseItem.title,
-    excerpt: caseItem.excerpt,
-    heroImage: getPublicImageUrl(caseItem.heroImage, caseItem.id),
-    accent: caseItem.accent,
-    tags: caseItem.tags,
-    visibility: caseItem.visibility,
-    searchText: caseItem.summary,
-  };
-}
-
 function toCaseCardFromRow(row: CaseListRow): CaseCardContent {
   const slug = getSlug(row as CaseRow);
   const category = toLocalCategory(row.category);
@@ -324,7 +306,7 @@ const fetchPublishedCaseRowsFromAdmin = unstable_cache(
 const fetchPublishedCaseCards = unstable_cache(
   async (): Promise<CaseCardContent[]> => {
     const supabase = createAdminClient() ?? createPublicReadClient();
-    if (!supabase) return fallbackCases.map(toCaseCardContent);
+    if (!supabase) return [];
 
     const now = new Date().toISOString();
     const rows: CaseListRow[] = [];
@@ -339,12 +321,12 @@ const fetchPublishedCaseCards = unstable_cache(
         .order("created_at", { ascending: false })
         .range(offset, offset + CASE_QUERY_PAGE_SIZE - 1);
 
-      if (error || !data) return fallbackCases.map(toCaseCardContent);
+      if (error || !data) return [];
       rows.push(...(data as unknown as CaseListRow[]));
       if (data.length < CASE_QUERY_PAGE_SIZE) break;
     }
 
-    if (!rows.length) return fallbackCases.map(toCaseCardContent);
+    if (!rows.length) return [];
     return rows.map(toCaseCardFromRow);
   },
   ["published-case-cards-v2"],
@@ -425,7 +407,7 @@ async function fetchPublishedCaseRowBySlug(slug: string) {
 
 export async function getPublishedCases(): Promise<PublicCaseContent[]> {
   const rows = await fetchPublishedCaseRows();
-  return rows?.map(toPublicCase) ?? fallbackCases;
+  return rows?.map(toPublicCase) ?? [];
 }
 
 function getFeaturedCaseCards(
@@ -499,7 +481,7 @@ export async function getCasesByCategory(category: CaseContent["category"]): Pro
   return cases.filter((item) => item.category === category);
 }
 
-function isVisibleAtPlacement(caseItem: PublicCaseContent, placement: GetFeaturedCasesOptions["placement"]) {
+function isVisibleAtPlacement(caseItem: CaseCardContent, placement: GetFeaturedCasesOptions["placement"]) {
   if (!caseItem.visibility.isFeatured) return false;
   if (placement === "home") return caseItem.visibility.showOnHome;
   if (placement === "category") return caseItem.visibility.showOnCategory;
@@ -511,28 +493,12 @@ export async function getFeaturedCases({
   placement,
   limit = 6,
   now = new Date(),
-}: GetFeaturedCasesOptions): Promise<PublicCaseContent[]> {
-  const cases = await getPublishedCases();
+}: GetFeaturedCasesOptions): Promise<CaseCardContent[]> {
+  const cases = await fetchPublishedCaseCards();
   if (placement === "home") {
-    return getHomeFeaturedCases(cases, limit, now);
+    return getBalancedFeaturedCaseCards(cases, "home", limit, now);
   }
-
-  const featured = cases
-    .filter((caseItem) => isWithinFeaturedPeriod(caseItem as CaseContent, now))
-    .filter((caseItem) => isVisibleAtPlacement(caseItem, placement))
-    .sort((a, b) => compareFeaturedCases(a as CaseContent, b as CaseContent))
-    .slice(0, limit);
-
-  if (featured.length >= limit || placement === "practice") return featured;
-
-  const selectedIds = new Set(featured.map((caseItem) => caseItem.id));
-  const latest = cases
-    .filter((caseItem) => !selectedIds.has(caseItem.id))
-    .filter((caseItem) => caseItem.visibility.showOnSearch !== false)
-    .sort((a, b) => b.visibility.publishedAt.localeCompare(a.visibility.publishedAt))
-    .slice(0, limit - featured.length);
-
-  return [...featured, ...latest];
+  return getFeaturedCaseCards(cases, placement, limit, now);
 }
 
 const homeFeaturedLimits: ReadonlyArray<{
@@ -544,28 +510,3 @@ const homeFeaturedLimits: ReadonlyArray<{
   { category: "divorce", limit: 2 },
   { category: "inheritance", limit: 1 },
 ];
-
-function getHomeFeaturedCases(cases: PublicCaseContent[], limit: number, now: Date) {
-  const selected: PublicCaseContent[] = [];
-
-  for (const group of homeFeaturedLimits) {
-    if (selected.length >= limit) break;
-    const groupLimit = Math.min(group.limit, limit - selected.length);
-    const categoryCases = cases.filter((caseItem) => caseItem.category === group.category);
-    const featured = categoryCases
-      .filter((caseItem) => isWithinFeaturedPeriod(caseItem as CaseContent, now))
-      .filter((caseItem) => isVisibleAtPlacement(caseItem, "home"))
-      .sort((a, b) => compareFeaturedCases(a as CaseContent, b as CaseContent))
-      .slice(0, groupLimit);
-    const selectedIds = new Set(featured.map((caseItem) => caseItem.id));
-    const latest = categoryCases
-      .filter((caseItem) => !selectedIds.has(caseItem.id))
-      .filter((caseItem) => caseItem.visibility.showOnSearch !== false)
-      .sort((a, b) => b.visibility.publishedAt.localeCompare(a.visibility.publishedAt))
-      .slice(0, groupLimit - featured.length);
-
-    selected.push(...featured, ...latest);
-  }
-
-  return selected;
-}

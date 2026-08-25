@@ -7,6 +7,7 @@ import { getPublishedFaqs } from "@/lib/data/faqs";
 import { getPublishedLegalGuides } from "@/lib/data/legal-guides";
 import { getPublishedTestimonials } from "@/lib/data/testimonials";
 import { absoluteUrl } from "@/lib/seo/metadata";
+import { isLegacyCaseSlug } from "@/lib/legacy-cases";
 
 export const dynamic = "force-dynamic";
 
@@ -49,6 +50,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...localSeoPages.filter((page) => page.index).map((page) => entry(page.canonicalPath, page.updatedAt)),
     ...practiceAreas.map((area) => entry(`/practice/${area.slug}`)),
     ...publishedCases
+      .filter((item) => !isLegacyCaseSlug(item.slug))
       .filter((item) => isSearchIndexableCase(item))
       .map((item) =>
         entry(

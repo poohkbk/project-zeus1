@@ -3,13 +3,13 @@ import { CaseCard } from "@/components/cases/CaseCard";
 import { siteConfig } from "@/config/site";
 import { getLegalGuideCategoryLabel } from "@/lib/legal-guide-taxonomy";
 import type { LegalGuideContent } from "@/types/content";
-import type { PublicCaseContent } from "@/types/case";
+import type { CaseCardContent, PublicCaseContent } from "@/types/case";
 import type { PracticeArea } from "@/types/practice";
 
 type CaseDetailSectionsProps = {
   caseItem: PublicCaseContent;
   practices: PracticeArea[];
-  similarCases: PublicCaseContent[];
+  similarCases: CaseCardContent[];
   guides: LegalGuideContent[];
 };
 

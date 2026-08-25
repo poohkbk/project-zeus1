@@ -10,6 +10,7 @@ import { RelatedCases } from "@/components/practice/RelatedCases";
 import { RelatedGuides } from "@/components/practice/RelatedGuides";
 import { getPracticeBySlug } from "@/data/practice";
 import { getRelatedCases, getRelatedGuides } from "@/lib/content-relations";
+import { getCasesListing } from "@/lib/data/cases";
 import { getFaqsByCategory } from "@/lib/data/faqs";
 import type { PracticeFaqItem } from "@/types/practice";
 
@@ -52,7 +53,8 @@ export default async function PracticeDetailPage({ params }: PracticeDetailPageP
 
   if (!practice) notFound();
 
-  const relatedCases = getRelatedCases(practice.relatedTags, 3);
+  const casesListing = await getCasesListing();
+  const relatedCases = getRelatedCases(casesListing.cases, practice.relatedTags, 3);
   const relatedGuides = getRelatedGuides(practice.relatedTags, 3);
   const publishedFaqs = await getFaqsByCategory(practice.slug);
   const mergedFaqs = mergePracticeFaqs(

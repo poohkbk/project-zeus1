@@ -1,17 +1,12 @@
 import Link from "next/link";
-import { caseContents } from "@/data/cases";
 import { legalGuideContents } from "@/data/legal-guides";
 import { getPracticeBySlug } from "@/data/practice";
+import { getRelatedCases } from "@/lib/content-relations";
+import { getCasesListing } from "@/lib/data/cases";
 import { siteConfig } from "@/config/site";
 import type { LocalSeoPage } from "@/types/seo";
 import { StructuredData } from "./StructuredData";
 import { localSeoPageJsonLd } from "@/lib/seo/structured-data";
-
-function relatedCases(page: LocalSeoPage) {
-  return caseContents
-    .filter((item) => item.visibility.published && item.tags.some((tag) => page.relatedTags.includes(tag)))
-    .slice(0, 3);
-}
 
 function relatedGuides(page: LocalSeoPage) {
   return legalGuideContents
@@ -19,9 +14,10 @@ function relatedGuides(page: LocalSeoPage) {
     .slice(0, 3);
 }
 
-export function LocalLandingPage({ page }: { page: LocalSeoPage }) {
+export async function LocalLandingPage({ page }: { page: LocalSeoPage }) {
   const practice = page.practiceSlug ? getPracticeBySlug(page.practiceSlug) : undefined;
-  const cases = relatedCases(page);
+  const casesListing = await getCasesListing();
+  const cases = getRelatedCases(casesListing.cases, page.relatedTags, 3);
   const guides = relatedGuides(page);
 
   return (
