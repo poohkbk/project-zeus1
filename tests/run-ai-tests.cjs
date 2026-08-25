@@ -60,6 +60,11 @@ const {
 } = require("../src/lib/ai/session-store.ts");
 const { isPublishedCase, isSearchIndexableCase } = require("../src/lib/case-selectors.ts");
 const { legacyCaseSlugs } = require("../src/lib/legacy-cases.ts");
+const {
+  getLegalGuidePracticeSlug,
+  getRelatedCasesForGuide,
+  getRelatedLegalGuides,
+} = require("../src/lib/legal-guide-relations.ts");
 const { saveConsultationSubmission } = require("../src/lib/consultation-submissions.ts");
 
 function answer(questionId, field, value) {
@@ -109,6 +114,67 @@ test("unit: public cases default to search-visible unless explicitly disabled", 
   assert.equal(isSearchIndexableCase(caseWithSearchVisibility(undefined)), true);
   assert.equal(isSearchIndexableCase(caseWithSearchVisibility(true)), true);
   assert.equal(isSearchIndexableCase(caseWithSearchVisibility(false)), false);
+});
+
+test("unit: legal-guide relations use relevant published content without legacy fallbacks", () => {
+  const guide = {
+    id: "guide-current",
+    slug: "debt-guide",
+    href: "/legal-guide/debt-guide",
+    title: "대여금 청구 가이드",
+    excerpt: "대여금 청구 절차",
+    category: "민사",
+    tags: ["대여금", "계약"],
+    publishedAt: "2026-01-01T00:00:00.000Z",
+  };
+  const caseCandidate = (slug, tags, published = true, category = "civil") => ({
+    id: slug,
+    slug,
+    href: `/cases/${slug}`,
+    title: slug,
+    excerpt: slug,
+    category,
+    tags,
+    visibility: { published, publishedAt: "2026-01-02T00:00:00.000Z", showOnSearch: true },
+  });
+
+  assert.equal(getLegalGuidePracticeSlug(guide), "civil");
+  assert.deepEqual(
+    getRelatedCasesForGuide(guide, [
+      caseCandidate("real-debt-case", ["대여금"]),
+      caseCandidate("unpublished-case", ["대여금"], false),
+      caseCandidate("unrelated-case", ["형사"], true, "criminal"),
+    ]).map((item) => item.slug),
+    ["real-debt-case"],
+  );
+  assert.deepEqual(
+    getRelatedLegalGuides(guide, [
+      guide,
+      { ...guide, id: "related", slug: "related", href: "/legal-guide/related", title: "계약 가이드" },
+      { ...guide, id: "unrelated", slug: "unrelated", href: "/legal-guide/unrelated", title: "형사", category: "형사", tags: ["형사"] },
+    ]).map((item) => item.slug),
+    ["related"],
+  );
+  assert.equal(getRelatedCasesForGuide(guide, []).length, 0);
+  assert.equal(legacyCaseSlugs.has("real-debt-case"), false);
+});
+
+test("contract: legal-guide pages avoid invented authors and expose accurate dates, schemas, relations, and CTA", () => {
+  const source = fs.readFileSync(path.join(projectRoot, "src/app/legal-guide/[slug]/page.tsx"), "utf8");
+
+  assert.match(source, /"@type": "Article"/);
+  assert.match(source, /"@type": "BreadcrumbList"/);
+  assert.match(source, /datePublished: publishedDate/);
+  assert.match(source, /dateModified: modifiedDate/);
+  assert.doesNotMatch(source, /author:\s*\{/);
+  assert.doesNotMatch(source, /author:\s*\{[^}]*강정우/s);
+  assert.match(source, /발행:/);
+  assert.match(source, /href="\/about\/lawyer"/);
+  assert.match(source, />변호사 소개<\/Link>/);
+  assert.doesNotMatch(source, /담당 변호사/);
+  assert.match(source, /getRelatedCasesForGuide/);
+  assert.match(source, /getRelatedLegalGuides/);
+  assert.match(source, /siteConfig\.links\.consultation/);
 });
 
 test("unit: classifies legal categories and expanded keywords", () => {

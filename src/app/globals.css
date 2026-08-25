@@ -3778,6 +3778,21 @@
   max-width: 920px;
 }
 
+.legal-guide-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  margin-top: 22px;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 0.94rem;
+}
+
+.legal-guide-meta a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 .legal-guide-sections article {
   border-bottom: 1px solid rgba(0, 27, 54, 0.12);
   padding-bottom: 22px;
