@@ -12,6 +12,8 @@ export type PublicFaq = {
   tags: string[];
   sortOrder?: number;
   publishedAt?: string;
+  updatedAt?: string;
+  createdAt?: string;
 };
 
 const fallbackFaqs: PublicFaq[] = localSeoPages.flatMap((page) =>
@@ -34,7 +36,9 @@ function toFaq(row: FaqRow): PublicFaq {
     category: row.category,
     tags: row.tags ?? [],
     sortOrder: row.sort_order ?? undefined,
-    publishedAt: row.published_at ?? undefined,
+    publishedAt: row.published_at ?? row.created_at,
+    updatedAt: row.updated_at,
+    createdAt: row.created_at,
   };
 }
 

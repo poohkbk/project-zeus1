@@ -9,6 +9,8 @@ export type PublicTestimonial = {
   imageUrl?: string;
   imageAlt?: string;
   publishedAt?: string;
+  updatedAt?: string;
+  createdAt?: string;
 };
 
 type TestimonialRow = {
@@ -20,6 +22,8 @@ type TestimonialRow = {
   hero_image_url: string | null;
   hero_image_alt: string | null;
   published_at: string | null;
+  updated_at: string;
+  created_at: string;
   content?: unknown;
 };
 
@@ -35,7 +39,9 @@ function mapRows(rows: TestimonialRow[]): PublicTestimonial[] {
     body: row.body,
     imageUrl: row.hero_image_url ?? undefined,
     imageAlt: row.hero_image_alt ?? undefined,
-    publishedAt: row.published_at ?? undefined,
+    publishedAt: row.published_at ?? row.created_at,
+    updatedAt: row.updated_at,
+    createdAt: row.created_at,
   }));
 }
 
@@ -47,7 +53,7 @@ export const getPublishedTestimonials = unstable_cache(
     const now = new Date().toISOString();
     const { data, error } = await supabase
       .from("testimonials")
-      .select("id,title,category,summary,body,hero_image_url,hero_image_alt,published_at")
+      .select("id,title,category,summary,body,hero_image_url,hero_image_alt,published_at,updated_at,created_at")
       .eq("status", "published")
       .or(`published_at.is.null,published_at.lte.${now}`)
       .order("sort_order", { ascending: true, nullsFirst: false })
@@ -57,7 +63,7 @@ export const getPublishedTestimonials = unstable_cache(
 
     const { data: fallbackData, error: fallbackError } = await supabase
       .from("legal_guides")
-      .select("id,title,category,summary,body,hero_image_url,hero_image_alt,published_at,content")
+      .select("id,title,category,summary,body,hero_image_url,hero_image_alt,published_at,updated_at,created_at,content")
       .eq("status", "published")
       .or(`published_at.is.null,published_at.lte.${now}`)
       .order("published_at", { ascending: false, nullsFirst: false });
