@@ -1,7 +1,16 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { absoluteUrl } from "@/lib/seo/metadata";
+import { CaseCard } from "@/components/cases/CaseCard";
+import { StructuredData } from "@/components/seo/StructuredData";
+import { siteConfig } from "@/config/site";
+import { lawyerHighlights } from "@/data/home";
+import { practiceAreas } from "@/data/practice";
+import { getCasesListing } from "@/lib/data/cases";
+import { getPublishedLegalGuides } from "@/lib/data/legal-guides";
+import { getLegalGuideCategoryLabel } from "@/lib/legal-guide-taxonomy";
+import { absoluteUrl, siteUrl } from "@/lib/seo/metadata";
+import { lawyerPersonJsonLd } from "@/lib/seo/structured-data";
 
 export const metadata: Metadata = {
   title: {
@@ -13,9 +22,27 @@ export const metadata: Metadata = {
   },
 };
 
-export default function LawyerProfilePage() {
+export const revalidate = 60;
+
+export default async function LawyerProfilePage() {
+  const [casesListing, legalGuides] = await Promise.all([
+    getCasesListing(),
+    getPublishedLegalGuides(),
+  ]);
+  const featuredCases = casesListing.cases.slice(0, 3);
+  const featuredGuides = legalGuides.slice(0, 3);
+  const breadcrumbJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "홈", item: siteUrl },
+      { "@type": "ListItem", position: 2, name: "변호사 소개", item: absoluteUrl("/about/lawyer") },
+    ],
+  };
+
   return (
     <main className="lawyer-profile-page">
+      <StructuredData data={[lawyerPersonJsonLd(), breadcrumbJsonLd]} />
       <section className="practice-hero list-hero">
         <div className="site-shell">
           <nav className="breadcrumb invert" aria-label="현재 위치">
@@ -47,15 +74,70 @@ export default function LawyerProfilePage() {
               사건을 중심으로 상담합니다.
             </p>
             <ul className="highlight-list">
-              <li>민사소송</li>
-              <li>형사사건</li>
-              <li>이혼·가사</li>
-              <li>상속분쟁</li>
+              {lawyerHighlights.map((item) => <li key={item.label}>{item.label}</li>)}
             </ul>
-            <Link className="btn btn-secondary" href="/consultation">
+            <Link className="btn btn-secondary" href={siteConfig.links.consultation}>
               상담신청
             </Link>
           </div>
+        </div>
+      </section>
+
+      <section className="case-detail-section case-section-muted">
+        <div className="site-shell">
+          <span className="section-kicker">Practice</span>
+          <h2>주요 상담 업무분야</h2>
+          <div className="case-related-practices">
+            {practiceAreas.map((practice) => (
+              <Link key={practice.slug} href={`/practice/${practice.slug}`}>
+                <small>{practice.englishTitle}</small>
+                <strong>{practice.title}</strong>
+                <p>{practice.shortDescription}</p>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {featuredCases.length ? (
+        <section className="case-detail-section">
+          <div className="site-shell">
+            <span className="section-kicker">Cases</span>
+            <h2>법률사무소 제우 승소사례</h2>
+            <div className="case-results-grid">
+              {featuredCases.map((item) => <CaseCard key={item.id} caseItem={item} />)}
+            </div>
+            <Link className="text-link" href={siteConfig.links.cases}>승소사례 전체 보기</Link>
+          </div>
+        </section>
+      ) : null}
+
+      {featuredGuides.length ? (
+        <section className="case-detail-section case-section-muted">
+          <div className="site-shell">
+            <span className="section-kicker">Legal Guides</span>
+            <h2>법률사무소 제우 법률가이드</h2>
+            <div className="related-grid">
+              {featuredGuides.map((guide) => (
+                <Link className="related-card guide" key={guide.id} href={guide.href}>
+                  <span>{getLegalGuideCategoryLabel(guide.category)}</span>
+                  <h3>{guide.title}</h3>
+                  <p>{guide.excerpt}</p>
+                </Link>
+              ))}
+            </div>
+            <Link className="text-link" href={siteConfig.links.legalGuide}>법률가이드 전체 보기</Link>
+          </div>
+        </section>
+      ) : null}
+
+      <section className="case-detail-section">
+        <div className="site-shell">
+          <span className="section-kicker">Office</span>
+          <h2>법률사무소 제우 안내</h2>
+          <p>{siteConfig.address}</p>
+          <p><a href={siteConfig.phoneHref}>{siteConfig.phone}</a></p>
+          <Link className="text-link" href={siteConfig.links.location}>오시는 길 확인</Link>
         </div>
       </section>
     </main>

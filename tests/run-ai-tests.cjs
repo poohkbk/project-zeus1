@@ -66,6 +66,7 @@ const {
   getRelatedLegalGuides,
 } = require("../src/lib/legal-guide-relations.ts");
 const { saveConsultationSubmission } = require("../src/lib/consultation-submissions.ts");
+const { lawyerPersonJsonLd, localSeoPageJsonLd, organizationJsonLd } = require("../src/lib/seo/structured-data.ts");
 
 function answer(questionId, field, value) {
   return {
@@ -175,6 +176,45 @@ test("contract: legal-guide pages avoid invented authors and expose accurate dat
   assert.match(source, /getRelatedCasesForGuide/);
   assert.match(source, /getRelatedLegalGuides/);
   assert.match(source, /siteConfig\.links\.consultation/);
+});
+
+test("contract: lawyer profile uses one canonical Person entity and only verified public fields", () => {
+  const person = lawyerPersonJsonLd();
+  const organization = organizationJsonLd();
+  const pageSource = fs.readFileSync(path.join(projectRoot, "src/app/about/lawyer/page.tsx"), "utf8");
+
+  assert.equal(person["@type"], "Person");
+  assert.equal(person.name, "강병권 변호사");
+  assert.equal(person.url, "https://www.jwlaw.co.kr/about/lawyer");
+  assert.equal(person["@id"], "https://www.jwlaw.co.kr/about/lawyer#person");
+  assert.equal(person.jobTitle, "변호사");
+  assert.equal(person.worksFor["@id"], "https://www.jwlaw.co.kr/#legalservice");
+  assert.equal(person.worksFor.name, "법률사무소 제우");
+  assert.equal(person.image, "https://www.jwlaw.co.kr/images/lawyer/kang-byoungkwon-profile.png");
+  assert.deepEqual(person.knowsAbout, ["이혼", "형사법"]);
+  assert.equal("sameAs" in person, false);
+  assert.equal(organization.employee["@id"], person["@id"]);
+  assert.equal(organization.employee.url, person.url);
+  const localSeoSchemas = localSeoPageJsonLd({
+    canonicalPath: "/cheongju-lawyer",
+    title: "청주변호사",
+    description: "설명",
+    primaryKeyword: "청주변호사",
+    authorName: "강병권 변호사",
+    reviewerName: "강병권 변호사",
+    publishedAt: "2026-07-12",
+    updatedAt: "2026-07-12",
+    faqs: [],
+  });
+  assert.equal(localSeoSchemas[2].author["@id"], person["@id"]);
+  assert.equal(localSeoSchemas[2].reviewedBy["@id"], person["@id"]);
+  assert.match(pageSource, /법률사무소 제우 승소사례/);
+  assert.match(pageSource, /법률사무소 제우 법률가이드/);
+  assert.doesNotMatch(pageSource, /강병권 변호사의 승소사례|강병권 변호사가 작성한/);
+  assert.match(pageSource, /getCasesListing/);
+  assert.match(pageSource, /getPublishedLegalGuides/);
+  assert.match(pageSource, /siteConfig\.links\.consultation/);
+  assert.doesNotMatch(pageSource, /cheongju-administrative-lawyer|청주행정변호사/);
 });
 
 test("unit: classifies legal categories and expanded keywords", () => {

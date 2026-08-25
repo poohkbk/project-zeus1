@@ -2,6 +2,18 @@ import { siteConfig } from "@/config/site";
 import type { LocalSeoPage } from "@/types/seo";
 import { absoluteUrl, siteUrl } from "./metadata";
 
+export const lawyerPersonId = `${absoluteUrl("/about/lawyer")}#person`;
+
+function officePostalAddressJsonLd() {
+  return {
+    "@type": "PostalAddress",
+    addressCountry: "KR",
+    addressRegion: "충청북도",
+    addressLocality: "청주시",
+    streetAddress: "서원구 산남로70번길 34, 201호",
+  };
+}
+
 export function organizationJsonLd() {
   const legalService = {
     "@context": "https://schema.org",
@@ -12,17 +24,13 @@ export function organizationJsonLd() {
     url: siteUrl,
     telephone: siteConfig.phone,
     email: siteConfig.email,
-    address: {
-      "@type": "PostalAddress",
-      addressCountry: "KR",
-      addressRegion: "충청북도",
-      addressLocality: "청주시",
-      streetAddress: "서원구 산남로70번길 34, 201호",
-    },
+    address: officePostalAddressJsonLd(),
     areaServed: ["청주시", "충청북도"],
     employee: {
       "@type": "Person",
+      "@id": lawyerPersonId,
       name: "강병권 변호사",
+      url: absoluteUrl("/about/lawyer"),
       jobTitle: "변호사",
       worksFor: {
         "@id": `${siteUrl}/#legalservice`,
@@ -42,6 +50,38 @@ export function organizationJsonLd() {
   }
 
   return legalService;
+}
+
+export function lawyerPersonJsonLd() {
+  return {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    "@id": lawyerPersonId,
+    name: "강병권 변호사",
+    url: absoluteUrl("/about/lawyer"),
+    image: absoluteUrl("/images/lawyer/kang-byoungkwon-profile.png"),
+    jobTitle: "변호사",
+    worksFor: {
+      "@type": "LegalService",
+      "@id": `${siteUrl}/#legalservice`,
+      name: siteConfig.name,
+      url: siteUrl,
+      address: officePostalAddressJsonLd(),
+    },
+    knowsAbout: ["이혼", "형사법"],
+    hasCredential: [
+      {
+        "@type": "EducationalOccupationalCredential",
+        name: "대한변호사협회 등록 이혼전문변호사",
+        credentialCategory: "대한변호사협회 등록 전문분야",
+      },
+      {
+        "@type": "EducationalOccupationalCredential",
+        name: "대한변호사협회 등록 형사법 전문변호사",
+        credentialCategory: "대한변호사협회 등록 전문분야",
+      },
+    ],
+  };
 }
 
 export function websiteJsonLd() {
@@ -77,12 +117,16 @@ export function localSeoPageJsonLd(page: LocalSeoPage) {
       },
       author: {
         "@type": "Person",
+        "@id": lawyerPersonId,
         name: page.authorName,
+        url: absoluteUrl("/about/lawyer"),
       },
       reviewedBy: page.reviewerName
         ? {
             "@type": "Person",
+            "@id": lawyerPersonId,
             name: page.reviewerName,
+            url: absoluteUrl("/about/lawyer"),
           }
         : undefined,
       datePublished: page.publishedAt,
