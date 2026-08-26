@@ -303,35 +303,83 @@ const fetchPublishedCaseRowsFromAdmin = unstable_cache(
   { revalidate: 60, tags: ["published-cases"] },
 );
 
-const fetchPublishedCaseCards = unstable_cache(
+function logCaseListQueryError(source: "admin" | "public", offset: number, error: {
+  code?: string;
+  message?: string;
+  details?: string;
+  hint?: string;
+}) {
+  console.error("[cases] Published case-card query failed", {
+    source,
+    offset,
+    code: error.code,
+    message: error.message,
+    details: error.details,
+    hint: error.hint,
+  });
+}
+
+async function fetchPublishedCaseCardsWithClient(
+  supabase: NonNullable<ReturnType<typeof createAdminClient>>,
+  source: "admin" | "public",
+) {
+  const now = new Date().toISOString();
+  const rows: CaseListRow[] = [];
+
+  for (let offset = 0; ; offset += CASE_QUERY_PAGE_SIZE) {
+    const { data, error } = await supabase
+      .from("cases")
+      .select(caseListColumns)
+      .eq("status", "published")
+      .or(`published_at.is.null,published_at.lte.${now}`)
+      .order("published_at", { ascending: false, nullsFirst: false })
+      .order("created_at", { ascending: false })
+      .range(offset, offset + CASE_QUERY_PAGE_SIZE - 1);
+
+    if (error) {
+      logCaseListQueryError(source, offset, error);
+      return undefined;
+    }
+    if (!data) return undefined;
+    rows.push(...(data as unknown as CaseListRow[]));
+    if (data.length < CASE_QUERY_PAGE_SIZE) break;
+  }
+
+  return rows.map(toCaseCardFromRow);
+}
+
+const fetchPublishedCaseCardsCached = unstable_cache(
   async (): Promise<CaseCardContent[]> => {
-    const supabase = createAdminClient() ?? createPublicReadClient();
-    if (!supabase) return [];
-
-    const now = new Date().toISOString();
-    const rows: CaseListRow[] = [];
-
-    for (let offset = 0; ; offset += CASE_QUERY_PAGE_SIZE) {
-      const { data, error } = await supabase
-        .from("cases")
-        .select(caseListColumns)
-        .eq("status", "published")
-        .or(`published_at.is.null,published_at.lte.${now}`)
-        .order("published_at", { ascending: false, nullsFirst: false })
-        .order("created_at", { ascending: false })
-        .range(offset, offset + CASE_QUERY_PAGE_SIZE - 1);
-
-      if (error || !data) return [];
-      rows.push(...(data as unknown as CaseListRow[]));
-      if (data.length < CASE_QUERY_PAGE_SIZE) break;
+    const admin = createAdminClient();
+    if (admin) {
+      const cards = await fetchPublishedCaseCardsWithClient(admin, "admin");
+      if (cards !== undefined) return cards;
     }
 
-    if (!rows.length) return [];
-    return rows.map(toCaseCardFromRow);
+    const publicClient = createPublicReadClient();
+    if (publicClient) {
+      const cards = await fetchPublishedCaseCardsWithClient(publicClient, "public");
+      if (cards !== undefined && (cards.length > 0 || !admin)) return cards;
+    }
+
+    if (!admin && !publicClient) return [];
+    throw new Error("Published case-card query failed for all configured clients");
   },
-  ["published-case-cards-v2"],
+  ["published-case-cards-v3"],
   { revalidate: 60, tags: ["published-cases"] },
 );
+
+async function fetchPublishedCaseCards() {
+  try {
+    return await fetchPublishedCaseCardsCached();
+  } catch (error) {
+    console.error("[cases] Published case cards unavailable; returning an empty result without caching the failure", {
+      name: error instanceof Error ? error.name : "UnknownError",
+      message: error instanceof Error ? error.message : "Unknown case-card query failure",
+    });
+    return [];
+  }
+}
 
 async function fetchPublishedCaseRowsFromPublicClient() {
   const supabase = await createClient();

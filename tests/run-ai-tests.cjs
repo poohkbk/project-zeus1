@@ -217,6 +217,19 @@ test("contract: lawyer profile uses one canonical Person entity and only verifie
   assert.doesNotMatch(pageSource, /cheongju-administrative-lawyer|청주행정변호사/);
 });
 
+test("contract: case-card query retries public access, logs sanitized errors, and never caches query failures as empty data", () => {
+  const source = fs.readFileSync(path.join(projectRoot, "src/lib/data/cases.ts"), "utf8");
+
+  assert.match(source, /fetchPublishedCaseCardsWithClient\(admin, "admin"\)/);
+  assert.match(source, /fetchPublishedCaseCardsWithClient\(publicClient, "public"\)/);
+  assert.match(source, /throw new Error\("Published case-card query failed for all configured clients"\)/);
+  assert.match(source, /Published case cards unavailable; returning an empty result without caching the failure/);
+  assert.match(source, /code: error\.code/);
+  assert.match(source, /message: error\.message/);
+  assert.doesNotMatch(source, /console\.error\([^\n]*(SUPABASE_SERVICE_ROLE_KEY|NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY)/);
+  assert.match(source, /\["published-case-cards-v3"\]/);
+});
+
 test("unit: classifies legal categories and expanded keywords", () => {
   assert.equal(classifyLegalQuestion("돈을 빌려줬는데 안 갚아요. 차용증과 계좌이체가 있습니다.").category, "civil");
   assert.equal(classifyLegalQuestion("지급명령 이후 압류와 강제집행을 하고 싶습니다.").subcategory, "debt");
@@ -1581,6 +1594,6 @@ test("screen-contract: legacy cases stay accessible but are excluded from discov
   assert.doesNotMatch(relations, /caseContents/);
   assert.doesNotMatch(contentRelations, /caseContents/);
   assert.doesNotMatch(localLanding, /caseContents/);
-  assert.match(casesData, /if \(!supabase\) return \[\]/);
+  assert.match(casesData, /if \(!admin && !publicClient\) return \[\]/);
   assert.match(casesData, /rows\?\.map\(toPublicCase\) \?\? \[\]/);
 });
