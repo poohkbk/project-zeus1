@@ -39,6 +39,9 @@ export function HomeLocationSection() {
               </div>
             </dl>
             <LocationActions />
+            <Link className="btn btn-light" href="/cheongju-lawyer">
+              청주 지역 법률상담 안내
+            </Link>
             <Link className="btn btn-light" href={siteConfig.links.location}>
               상세 오시는 길 보기
             </Link>

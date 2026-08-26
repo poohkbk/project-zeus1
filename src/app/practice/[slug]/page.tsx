@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PracticeCTA } from "@/components/practice/PracticeCTA";
 import { PracticeDetailHero } from "@/components/practice/PracticeDetailHero";
@@ -19,6 +20,13 @@ type PracticeDetailPageProps = {
 };
 
 export const revalidate = 60;
+
+const localLandingByPractice = {
+  civil: "/cheongju-civil-lawyer",
+  criminal: "/cheongju-criminal-lawyer",
+  divorce: "/cheongju-divorce-lawyer",
+  inheritance: "/cheongju-inheritance-lawyer",
+} as const;
 
 export async function generateMetadata({
   params,
@@ -112,6 +120,15 @@ export default async function PracticeDetailPage({ params }: PracticeDetailPageP
           <span className="section-kicker">Overview</span>
           <h2 id="practice-summary-title">{practice.title} 상담 안내</h2>
           <p>{practice.summary}</p>
+          {practice.slug in localLandingByPractice ? (
+            <p>
+              청주 지역 상담 정보를 찾고 있다면{" "}
+              <Link href={localLandingByPractice[practice.slug as keyof typeof localLandingByPractice]}>
+                {practice.title} 지역 상담 안내
+              </Link>
+              를 함께 확인할 수 있습니다.
+            </p>
+          ) : null}
         </div>
       </section>
       <PracticeIssueGrid practice={practice} />

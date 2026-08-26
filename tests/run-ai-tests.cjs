@@ -230,6 +230,24 @@ test("contract: case-card query retries public access, logs sanitized errors, an
   assert.match(source, /\["published-case-cards-v3"\]/);
 });
 
+test("contract: local SEO hubs form contextual clusters with production content", () => {
+  const localPage = fs.readFileSync(path.join(projectRoot, "src/components/seo/LocalLandingPage.tsx"), "utf8");
+  const practicePage = fs.readFileSync(path.join(projectRoot, "src/app/practice/[slug]/page.tsx"), "utf8");
+  const homeLocation = fs.readFileSync(path.join(projectRoot, "src/components/location/HomeLocationSection.tsx"), "utf8");
+  const relations = fs.readFileSync(path.join(projectRoot, "src/lib/content-relations.ts"), "utf8");
+
+  for (const slug of ["civil", "criminal", "divorce", "inheritance"]) {
+    assert.match(localPage, new RegExp(`/cheongju-${slug}-lawyer`));
+    assert.match(practicePage, new RegExp(`${slug}: "/cheongju-${slug}-lawyer"`));
+  }
+  assert.match(homeLocation, /href="\/cheongju-lawyer"/);
+  assert.match(localPage, /getPublishedLegalGuides\(\)/);
+  assert.match(localPage, /getRelatedGuides\(page\.relatedTags, 3, publishedGuides\)/);
+  assert.match(localPage, /siteConfig\.links\.lawyer/);
+  assert.match(localPage, /siteConfig\.links\.location/);
+  assert.match(relations, /includes\(content\.category\) \? 2 : 0/);
+});
+
 test("unit: classifies legal categories and expanded keywords", () => {
   assert.equal(classifyLegalQuestion("돈을 빌려줬는데 안 갚아요. 차용증과 계좌이체가 있습니다.").category, "civil");
   assert.equal(classifyLegalQuestion("지급명령 이후 압류와 강제집행을 하고 싶습니다.").subcategory, "debt");

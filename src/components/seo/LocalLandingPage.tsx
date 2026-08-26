@@ -1,24 +1,28 @@
 import Link from "next/link";
-import { legalGuideContents } from "@/data/legal-guides";
 import { getPracticeBySlug } from "@/data/practice";
-import { getRelatedCases } from "@/lib/content-relations";
+import { getRelatedCases, getRelatedGuides } from "@/lib/content-relations";
 import { getCasesListing } from "@/lib/data/cases";
+import { getPublishedLegalGuides } from "@/lib/data/legal-guides";
 import { siteConfig } from "@/config/site";
 import type { LocalSeoPage } from "@/types/seo";
 import { StructuredData } from "./StructuredData";
 import { localSeoPageJsonLd } from "@/lib/seo/structured-data";
 
-function relatedGuides(page: LocalSeoPage) {
-  return legalGuideContents
-    .filter((item) => item.tags.some((tag) => page.relatedTags.includes(tag)))
-    .slice(0, 3);
-}
+const localPracticeLinks = [
+  { href: "/cheongju-civil-lawyer", label: "민사 법률상담" },
+  { href: "/cheongju-criminal-lawyer", label: "형사 법률상담" },
+  { href: "/cheongju-divorce-lawyer", label: "이혼·가사 법률상담" },
+  { href: "/cheongju-inheritance-lawyer", label: "상속 법률상담" },
+];
 
 export async function LocalLandingPage({ page }: { page: LocalSeoPage }) {
   const practice = page.practiceSlug ? getPracticeBySlug(page.practiceSlug) : undefined;
-  const casesListing = await getCasesListing();
+  const [casesListing, publishedGuides] = await Promise.all([
+    getCasesListing(),
+    getPublishedLegalGuides(),
+  ]);
   const cases = getRelatedCases(casesListing.cases, page.relatedTags, 3);
-  const guides = relatedGuides(page);
+  const guides = getRelatedGuides(page.relatedTags, 3, publishedGuides);
 
   return (
     <main className="local-seo-page">
@@ -122,6 +126,19 @@ export async function LocalLandingPage({ page }: { page: LocalSeoPage }) {
           </article>
 
           <aside className="local-seo-side">
+            {!page.practiceSlug ? (
+              <section>
+                <h2>분야별 청주 법률상담</h2>
+                <div className="local-side-links">
+                  {localPracticeLinks.map((item) => (
+                    <Link key={item.href} href={item.href}>
+                      {item.label}
+                    </Link>
+                  ))}
+                </div>
+              </section>
+            ) : null}
+
             <section>
               <h2>관련 업무분야</h2>
               {practice ? (
@@ -157,6 +174,14 @@ export async function LocalLandingPage({ page }: { page: LocalSeoPage }) {
                   </Link>
                 ))}
                 {!guides.length ? <Link href={siteConfig.links.legalGuide}>법률가이드 전체 보기</Link> : null}
+              </div>
+            </section>
+
+            <section>
+              <h2>법률사무소 안내</h2>
+              <div className="local-side-links">
+                <Link href={siteConfig.links.lawyer}>강병권 변호사 소개</Link>
+                <Link href={siteConfig.links.location}>오시는 길</Link>
               </div>
             </section>
 

@@ -51,6 +51,7 @@ export function getRelatedCases(
       content,
       score:
         getTagMatchScore(content.tags, relatedTags) +
+        (relatedTags.map(normalizeTag).includes(content.category) ? 2 : 0) +
         (content.visibility.showOnPractice ? 1 : 0),
     }))
     .filter((item) => item.score > 0)
@@ -66,6 +67,10 @@ export function getRelatedCases(
   return matched.slice(0, limit);
 }
 
-export function getRelatedGuides(relatedTags: string[], limit = 3): LegalGuideContent[] {
-  return sortRelated(legalGuideContents, relatedTags, limit);
+export function getRelatedGuides(
+  relatedTags: string[],
+  limit = 3,
+  candidates: LegalGuideContent[] = legalGuideContents,
+): LegalGuideContent[] {
+  return sortRelated(candidates, relatedTags, limit);
 }
