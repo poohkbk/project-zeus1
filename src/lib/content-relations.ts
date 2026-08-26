@@ -74,3 +74,55 @@ export function getRelatedGuides(
 ): LegalGuideContent[] {
   return sortRelated(candidates, relatedTags, limit);
 }
+
+type LocalGuideCategory = "civil" | "criminal" | "divorce" | "inheritance";
+
+function normalizeGuideCategory(category: string): LocalGuideCategory | "administrative" | undefined {
+  const normalized = normalizeTag(category).replace(/\s+/g, "");
+  if (normalized === "civil" || normalized === "민사") return "civil";
+  if (normalized === "criminal" || normalized === "형사") return "criminal";
+  if (["divorce", "이혼", "이혼·가사", "이혼가사", "가사"].includes(normalized)) return "divorce";
+  if (normalized === "inheritance" || normalized === "상속") return "inheritance";
+  if (normalized === "administrative" || normalized === "행정") return "administrative";
+  return undefined;
+}
+
+function sortLocalGuideCandidates(
+  candidates: LegalGuideContent[],
+  relatedTags: string[],
+) {
+  return candidates
+    .map((content) => ({ content, tagScore: getTagMatchScore(content.tags, relatedTags) }))
+    .sort((a, b) => {
+      if (b.tagScore !== a.tagScore) return b.tagScore - a.tagScore;
+      return (b.content.publishedAt ?? "").localeCompare(a.content.publishedAt ?? "");
+    })
+    .map((item) => item.content);
+}
+
+export function getLocalLandingRelatedGuides(
+  candidates: LegalGuideContent[],
+  practiceSlug: LocalGuideCategory | undefined,
+  relatedTags: string[],
+  limit = 3,
+) {
+  if (practiceSlug) {
+    return sortLocalGuideCandidates(
+      candidates.filter((guide) => normalizeGuideCategory(guide.category) === practiceSlug),
+      relatedTags,
+    ).slice(0, limit);
+  }
+
+  const representatives = (["civil", "criminal", "divorce", "inheritance"] as const)
+    .map((category) =>
+      sortLocalGuideCandidates(
+        candidates.filter((guide) => normalizeGuideCategory(guide.category) === category),
+        relatedTags,
+      )[0],
+    )
+    .filter((guide): guide is LegalGuideContent => Boolean(guide));
+
+  return representatives
+    .sort((a, b) => (b.publishedAt ?? "").localeCompare(a.publishedAt ?? ""))
+    .slice(0, limit);
+}

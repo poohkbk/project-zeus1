@@ -60,6 +60,7 @@ const {
 } = require("../src/lib/ai/session-store.ts");
 const { isPublishedCase, isSearchIndexableCase } = require("../src/lib/case-selectors.ts");
 const { legacyCaseSlugs } = require("../src/lib/legacy-cases.ts");
+const { getLocalLandingRelatedGuides } = require("../src/lib/content-relations.ts");
 const {
   getLegalGuidePracticeSlug,
   getRelatedCasesForGuide,
@@ -242,10 +243,45 @@ test("contract: local SEO hubs form contextual clusters with production content"
   }
   assert.match(homeLocation, /href="\/cheongju-lawyer"/);
   assert.match(localPage, /getPublishedLegalGuides\(\)/);
-  assert.match(localPage, /getRelatedGuides\(page\.relatedTags, 3, publishedGuides\)/);
+  assert.match(localPage, /getLocalLandingRelatedGuides\(/);
   assert.match(localPage, /siteConfig\.links\.lawyer/);
   assert.match(localPage, /siteConfig\.links\.location/);
   assert.match(relations, /includes\(content\.category\) \? 2 : 0/);
+});
+
+test("unit: local landing guides require an exact supported category and never use featured zero-score fallbacks", () => {
+  const guide = (id, category, tags = [], featured = false, publishedAt = "2026-01-01") => ({
+    id,
+    slug: id,
+    href: `/legal-guide/${id}`,
+    title: id,
+    excerpt: id,
+    category,
+    tags,
+    featured,
+    publishedAt,
+  });
+  const candidates = [
+    guide("civil", "민사", ["debt"]),
+    guide("criminal", "형사", ["criminal"]),
+    guide("divorce", "이혼·가사", ["divorce"]),
+    guide("inheritance", "상속", ["inheritance"]),
+    guide("administrative-featured", "행정", [], true, "2026-12-31"),
+  ];
+
+  for (const category of ["civil", "criminal", "divorce", "inheritance"]) {
+    const related = getLocalLandingRelatedGuides(candidates, category, [category], 3);
+    assert.deepEqual(related.map((item) => item.id), [category]);
+  }
+  assert.deepEqual(
+    getLocalLandingRelatedGuides([candidates[4]], "civil", ["civil"], 3),
+    [],
+  );
+
+  const hub = getLocalLandingRelatedGuides(candidates, undefined, ["civil", "criminal", "divorce", "inheritance"], 3);
+  assert.equal(hub.length, 3);
+  assert.equal(new Set(hub.map((item) => item.category)).size, 3);
+  assert.equal(hub.some((item) => item.category === "행정"), false);
 });
 
 test("unit: classifies legal categories and expanded keywords", () => {

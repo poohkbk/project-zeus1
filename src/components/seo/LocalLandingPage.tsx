@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getPracticeBySlug } from "@/data/practice";
-import { getRelatedCases, getRelatedGuides } from "@/lib/content-relations";
+import { getLocalLandingRelatedGuides, getRelatedCases } from "@/lib/content-relations";
 import { getCasesListing } from "@/lib/data/cases";
 import { getPublishedLegalGuides } from "@/lib/data/legal-guides";
 import { siteConfig } from "@/config/site";
@@ -22,7 +22,12 @@ export async function LocalLandingPage({ page }: { page: LocalSeoPage }) {
     getPublishedLegalGuides(),
   ]);
   const cases = getRelatedCases(casesListing.cases, page.relatedTags, 3);
-  const guides = getRelatedGuides(page.relatedTags, 3, publishedGuides);
+  const guides = getLocalLandingRelatedGuides(
+    publishedGuides,
+    page.practiceSlug,
+    page.relatedTags,
+    3,
+  );
 
   return (
     <main className="local-seo-page">
